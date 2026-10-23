@@ -1,0 +1,61 @@
+.vscode/
+debug/
+.env
+.venv/
+.venv-old-py310/
+__pycache__/
+*.pyc
+# Ignore everything under results/ ...
+results/*
+# ... except the committed ground-truth metric baselines (scores only). These
+# are the per-utterance WER (.wer carries the aggregate WER: footer too), MSR-UTMOS,
+# and speaker-similarity ceilings for the two GT sets.
+!results/gt_zero_shot/
+!results/gt_zero_shot_voxblink/
+# but NOT the audio (multi-GB / symlinks), the absolute-path scp, or intermediates
+# regenerable/redundant with .wer (.wer.raw is .wer minus header+footer).
+results/gt_zero_shot/*/wavs/
+results/gt_zero_shot_voxblink/*/wavs/
+results/gt_zero_shot/*/wav.scp
+results/gt_zero_shot_voxblink/*/wav.scp
+results/gt_zero_shot/*/wav_res_ref_text.wer.raw
+results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw
+results/gt_zero_shot/*/wav_res_ref_text
+results/gt_zero_shot_voxblink/*/wav_res_ref_text
+# NOTE: 'third_party/*' not 'third_party/' -- git cannot re-include anything whose
+# parent DIRECTORY is excluded, so the negation below would silently never apply.
+third_party/*
+# EXCEPTION: the VibeVoice-1.5B/7B inference code is VENDORED, not cloned. Microsoft
+# withdrew it and rewrote the repo history, so unlike every other third_party/ tree it
+# cannot be re-fetched -- setup_vibevoice15_env.sh deliberately does not clone. Keep it
+# in-repo or the vibevoice15 recipes are unrunnable anywhere but the machine that has
+# it. 35 KB, MIT. See third_party/VibeVoice-1.5B/PROVENANCE.md.
+!third_party/VibeVoice-1.5B/
+!third_party/VibeVoice-1.5B/**
+# ...but the broad '**' negation above also re-includes byte-caches that the
+# global rules would otherwise drop, so exclude them again.
+third_party/VibeVoice-1.5B/**/__pycache__/
+scripts/results_doc/_cache/
+logs/
+*.log
+results/.wer_norm_cache.json
+.claude/scheduled_tasks.lock
+
+# VoxBlink2 prep artifacts: chmod lists reference a local raw-audio tree.
+data/zero_shot_voxblink/_stage_a/*_to_chmod.txt
+# Control-probe artifacts under the tracked GT dirs (2026-08 methodology
+# controls): alternate-scorer WER and held-out-embedder speaker sim. These are
+# evidence for docs/controls_2026-08.md, not published baselines, and the
+# published files beside them are the numbers of record.
+results/gt_zero_shot/*/wav_res_ref_text.whisperctl.*
+results/gt_zero_shot_voxblink/*/wav_res_ref_text.whisperctl.*
+results/gt_zero_shot/*/spk_simi_scores.vox2.txt
+results/gt_zero_shot_voxblink/*/spk_simi_scores.vox2.txt
+results/gt_zero_shot/*/wav_res_ref_text.wer.raw.meta
+results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw.meta
+
+# Prompt audio (24 GB) is the Hugging Face dataset Zyphra/ZTTS2-Eval, fetched into
+# place by scripts/download_data.py; the coreset panels' tracked symlinks point here.
+data/zero_shot/*/waveform/
+data/zero_shot_voxblink/*/waveform/
+data/.cache/

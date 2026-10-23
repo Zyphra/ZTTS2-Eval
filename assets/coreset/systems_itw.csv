@@ -1,0 +1,25 @@
+system,results_dir,family,preset,role,n_langs_scored,mean_leaf_coverage,min_leaf_coverage,low_coverage_langs,n_imputed,imputed_langs
+zonos2_accurate,zonos2_accurate,zonos2,0,system,20,1.0000,1.0000,,0,
+zonos2_expressive,zonos2_expressive,zonos2,0,system,20,1.0000,1.0000,,4,ko:4
+qwen3-tts-1.7b,omni_qwen3-tts-1.7b,qwen3,0,system,20,1.0000,1.0000,,4,hi:4
+qwen3-tts-0.6b,omni_qwen3-tts-0.6b,qwen3,0,system,20,1.0000,1.0000,,4,hi:4
+voxcpm2,omni_voxcpm2,voxcpm,0,system,20,1.0000,1.0000,,0,
+fish-s2-pro,omni_fish-s2-pro,fish,0,system,20,1.0000,1.0000,,0,
+higgs-audio-v3,omni_higgs-audio-v3,higgs,0,system,20,1.0000,1.0000,,0,
+omnivoice-reftext,omni_omnivoice-reftext,omnivoice,0,system,20,1.0000,1.0000,,0,
+moss-tts,moss-tts,moss,0,system,20,1.0000,1.0000,,1,zh:1
+cosyvoice3,cosyvoice3,cosyvoice3,0,system,20,0.9905,0.8486,ko,16,hi:14 th:1 vi:1
+voxtral-tts,omni_voxtral-tts,voxtral,1,system,20,1.0000,1.0000,,58,ko:20 th:25 vi:3 zh:10
+qwen3-tts-1.7b-reftext,omni_qwen3-tts-1.7b-reftext,qwen3,0,partial,20,1.0000,1.0000,,216,hi:204 vi:3 zh:9
+qwen3-tts-0.6b-reftext,omni_qwen3-tts-0.6b-reftext,qwen3,0,partial,20,1.0000,1.0000,,224,hi:212 ko:6 th:1 zh:5
+voxcpm2-reftext,omni_voxcpm2-reftext,voxcpm,0,partial,20,1.0000,1.0000,,1,hi:1
+omnivoice,omni_omnivoice,omnivoice,0,partial,9,1.0000,1.0000,,1,ko:1
+moss-tts-v1.5,moss-tts-v1.5,moss,0,partial,9,1.0000,1.0000,,1,zh:1
+moss-tts-local-v1.5,moss-tts-local-v1.5,moss,0,partial,9,1.0000,1.0000,,44,de:4 en:6 es:8 fr:6 it:2 ja:5 ru:12 zh:1
+glm-tts,omni_glm-tts,glm,0,partial,9,1.0000,1.0000,,4,ko:4
+kokoro,kokoro,kokoro,1,partial,8,1.0000,1.0000,,0,
+neutts-2e,neutts-2e,neutts,1,partial,1,1.0000,1.0000,,0,
+vibevoice-rt-0.5b,vibevoice-rt-0.5b,vibevoice,1,partial,10,1.0000,1.0000,,0,
+indextts2,omni_indextts2,indextts,0,partial,0,,,,0,
+GT,gt_zero_shot_voxblink,reference,0,reference,20,1.0000,1.0000,,1,hi:1
+GT-whisper,whisper_zero_shot_voxblink,reference,0,reference,20,1.0000,1.0000,,0,

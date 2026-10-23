@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZTTS2 · Eval — reliability explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <h1>ZTTS2<span class="dot">·</span>Eval</h1>
+      <p class="sub">Reliability and intelligibility of zero-shot text-to-speech, measured across languages</p>
+    </div>
+    <div class="readout" id="readout">
+      <div><span class="k">models</span><b id="ro-models">—</b></div>
+      <div><span class="k">rows</span><b id="ro-rows">—</b></div>
+      <div><span class="k">channel</span><b id="ro-channel">—</b></div>
+    </div>
+  </div>
+</header>
+
+<nav class="console" id="console">
+  <label class="ctl">
+    <span>task</span>
+    <select id="sel-task"></select>
+  </label>
+  <label class="ctl">
+    <span>lang</span>
+    <select id="sel-lang"></select>
+  </label>
+  <label class="ctl grow">
+    <span>filter</span>
+    <input id="inp-filter" type="text" placeholder="model name…" autocomplete="off" />
+  </label>
+  <div class="ctl">
+    <span>metric</span>
+    <div class="seg" id="metric-seg"></div>
+  </div>
+  <div class="ctl">
+    <span>view</span>
+    <div class="seg" id="view-seg">
+      <button data-view="board" class="on">board</button>
+      <button data-view="grid">grid</button>
+      <button data-view="bins">voxblink bins</button>
+      <button data-view="reliability">reliability</button>
+      <button data-view="speaking">speaking rate</button>
+      <button data-view="mpm">prosody overlap</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <!-- scope note for coreset panel tasks (zero_shot_mini / _delta, ...) -->
+  <div id="panel-note" class="panel-note hidden"></div>
+
+  <section id="board-view" class="view">
+    <div class="board-wrap">
+      <table class="board" id="board">
+        <thead id="board-head"></thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="grid-view" class="view hidden">
+    <div class="grid-scroll" id="grid-scroll"></div>
+    <div class="grid-legend" id="grid-legend"></div>
+  </section>
+
+  <section id="bins-view" class="view hidden">
+    <div class="bins-head">
+      <h2>WER<span class="dim"> _CLIP</span> vs reference MSR-UTMOS bin</h2>
+      <p class="bins-note">One trace per system on VoxBlink2 in-the-wild prompts, stratified by reference MSR-UTMOS — <b>b0 worst → higher = cleaner</b>. Lower trace = more robust to noisy prompts; the dashed navy floor is ground truth. Click a legend chip to drop or restore a system.</p>
+      <div class="bins-langs" id="bins-langs"></div>
+    </div>
+    <div class="scope-chart" id="bins-chart">
+      <div class="bins-tip" id="bins-tip" hidden></div>
+    </div>
+    <div class="bins-legend" id="bins-legend"></div>
+    <div class="chart-source" id="bins-source"></div>
+  </section>
+
+  <section id="rel-view" class="view hidden">
+    <div class="bins-head">
+      <h2 id="rel-title">Reliability — the tail is the whole story</h2>
+      <p class="bins-note" id="rel-note"></p>
+      <div class="rel-controls">
+        <div class="bins-langs" id="rel-datasets"></div>
+        <div class="bins-langs" id="rel-langs" hidden></div>
+        <div class="seg" id="rel-type-seg">
+          <button data-rel="p99" class="on">p99 · CI</button>
+          <button data-rel="survival">survival</button>
+          <button data-rel="multiples">small multiples</button>
+          <button data-rel="slope">slopegraph</button>
+        </div>
+      </div>
+    </div>
+    <div class="scope-chart" id="rel-chart">
+      <div class="bins-tip" id="rel-tip" hidden></div>
+    </div>
+    <div class="bins-legend" id="rel-legend"></div>
+    <div class="chart-source" id="rel-source"></div>
+  </section>
+
+  <section id="sr-view" class="view hidden">
+    <div class="bins-head">
+      <h2 id="sr-title">Speaking rate — pacing against natural speech</h2>
+      <p class="bins-note" id="sr-note"></p>
+      <div class="rel-controls">
+        <div class="bins-langs" id="sr-sets"></div>
+        <div class="bins-langs" id="sr-panels" hidden></div>
+        <div class="seg" id="sr-type-seg">
+          <button data-sr="dref" class="on">d · CI</button>
+          <button data-sr="dist">distribution</button>
+        </div>
+      </div>
+    </div>
+    <div class="scope-chart" id="sr-chart">
+      <div class="bins-tip" id="sr-tip" hidden></div>
+    </div>
+    <div class="bins-legend" id="sr-legend"></div>
+    <div class="chart-source" id="sr-source"></div>
+  </section>
+
+  <section id="mpm-view" class="view hidden">
+    <div class="bins-head">
+      <h2 id="mpm-title">Prosody realism — distance from ground truth</h2>
+      <p class="bins-note" id="mpm-note"></p>
+      <div class="rel-controls">
+        <div class="bins-langs" id="mpm-langs"></div>
+      </div>
+    </div>
+    <div class="scope-chart" id="mpm-chart">
+      <div class="bins-tip" id="mpm-tip" hidden></div>
+    </div>
+    <div class="bins-legend" id="mpm-legend"></div>
+    <div class="chart-source" id="mpm-source"></div>
+  </section>
+</main>
+
+<!-- drill-down drawer -->
+<aside id="drawer" class="drawer hidden" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <h2 id="dd-title">—</h2>
+      <p id="dd-meta" class="dd-meta"></p>
+    </div>
+    <div class="dd-tools">
+      <input id="dd-filter" type="text" placeholder="filter uid / text…" autocomplete="off" />
+      <button id="dd-close" aria-label="close">esc ✕</button>
+    </div>
+  </div>
+  <div class="dd-stats" id="dd-stats"></div>
+  <div class="dd-body" id="dd-body"></div>
+</aside>
+<div id="scrim" class="scrim hidden"></div>
+
+<footer class="foot">
+  <span id="foot-status">booting…</span>
+  <span class="foot-r">Data: ZTTS2-Eval · CC BY</span>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/chart_common.js"></script>
+<script src="/reliability.js"></script>
+<script src="/speaking_rate.js"></script>
+<script src="/mpm.js"></script>
+</body>
+</html>

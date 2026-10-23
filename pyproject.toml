@@ -1,0 +1,119 @@
+[project]
+name = "ztts2-eval"
+version = "0.1.0"
+description = "ZTTS2-Eval: a multilingual, in-the-wild zero-shot TTS evaluation benchmark"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # ASR: vLLM serves Qwen3-ASR; openai is the transcription-endpoint client.
+    # vLLM is Linux-only; see [tool.uv.sources] for the CUDA-matched wheel.
+    "vllm[audio]; sys_platform == 'linux'",
+    "openai>=1.40",
+    # WER scoring
+    "jiwer",
+    "zhon",
+    "zhconv",
+    "editdistance>=0.5.2",
+    # audio quality (MSR-UTMOS) + speaker similarity
+    "torch",
+    "torchaudio",
+    "torchcodec",            # decoding backend for torchaudio.load / .save
+    "torchvision",           # vLLM transitive dep; declared direct so the cu129 source applies
+    "soundfile",
+    "librosa",
+    # FLEURS-R data preparation (downloads raw TSV + audio tarballs)
+    "huggingface-hub",
+    # vLLM-Omni's Qwen3-TTS code calls transformers' pre-5.9 create_causal_mask
+    # (the `input_embeds` kwarg, dropped in 5.9.0). The pinned vLLM 0.25.1 wheel
+    # itself only requires transformers>=5.5.3 (no ceiling) -- this cap exists
+    # solely for vllm-omni.
+    "transformers<5.9",
+    "addict",
+    "simplejson",
+    "sortedcontainers",
+    # general
+    "numpy",
+    "scipy",
+    "pandas",
+    "tqdm",
+    "PyYAML>=5.1.2",
+    "pyloudnorm>=0.2.0",
+    "pyarrow>=25.0.1",
+]
+
+[project.optional-dependencies]
+# Native Google Gemini TTS for scripts/generate_gemini.py + run_generate_gemini.sh.
+# Not needed for the core benchmark; install with:  uv sync --extra gemini
+gemini = [
+    "google-genai",
+]
+
+# Official ElevenLabs TTS for scripts/generate_elevenlabs.py +
+# run_generate_elevenlabs.sh. Not needed for the core benchmark; install with:
+#   uv sync --extra elevenlabs
+elevenlabs = [
+    "elevenlabs",
+]
+
+# Inworld REST TTS for scripts/generate_inworld.py + run_generate_inworld.sh.
+# No SDK -- just a raw HTTP client. Not needed for the core benchmark; install
+# with:  uv sync --extra inworld
+inworld = [
+    "requests",
+]
+
+# Cartesia (Sonic) REST TTS for scripts/generate_cartesia.py +
+# run_generate_cartesia.sh. No SDK -- raw HTTP client. Install with:
+#   uv sync --extra cartesia
+cartesia = [
+    "requests",
+]
+
+# Extra prosody / MOS scorers run from the main .venv by run_infer_*_eval.sh:
+#   dswed     -> utils/score_dswed.py      (DS-WED prosody diversity)
+#   sfi-utmos -> utils/score_msr_utmos.py  (MSR-UTMOS parallel MOS predictor)
+# Heavy transitive deps (lightning, descript-audio-codec, ...), so kept optional;
+# install with:  uv sync --extra scorers
+scorers = [
+    "dswed==1.0.0",
+    "sfi-utmos @ git+https://github.com/sarulab-speech/msr-utmos.git@ccf5e98815c33a456b4f5f18f6002322a7729433",
+]
+
+# Plotting deps for the results-doc figures (scripts/results_doc/plot_*.py,
+# scripts/plot_dswed_dists.py, scripts/plot_ttsds_pitch_ridgeline.py). Kept out
+# of the core deps so the benchmark runs headless; install with: uv sync --extra viz
+viz = [
+    "matplotlib",
+    "scipy",
+]
+
+# vLLM-Omni: local multi-model TTS serving for scripts/generate_omni.py +
+# run_generate_omni.sh. A separate, fast-moving project; requires Python >=3.11
+# (the repo .venv is built on 3.12). Install with:  uv sync --extra omni
+omni = [
+    # PyPI's wheel (0.20.0) predates the vLLM 0.25.1 wheel pinned in
+    # [tool.uv.sources] and is incompatible with it; the git main branch is
+    # required. uv records the resolved commit in uv.lock.
+    "vllm-omni @ git+https://github.com/vllm-project/vllm-omni.git",
+]
+
+[tool.uv]
+# This repo is a collection of scripts, not an importable package: install the
+# dependencies into the venv but do not try to build the project itself.
+package = false
+
+# CUDA 12.9 wheels for torch / torchaudio / torchvision / torchcodec / vLLM.
+# To target a different CUDA, change the index URL and vLLM wheel URL below.
+# See https://docs.astral.sh/uv/guides/integration/pytorch/
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]
+torchaudio = [{ index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]
+torchvision = [{ index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]
+torchcodec = [{ index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]
+vllm = { url = "https://github.com/vllm-project/vllm/releases/download/v0.25.1/vllm-0.25.1+cu129-cp38-abi3-manylinux_2_28_x86_64.whl" }

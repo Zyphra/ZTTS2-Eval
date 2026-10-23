@@ -1,0 +1,50 @@
+ZTTS2-Eval
+Copyright 2025 Zyphra
+
+This product includes software and references models/datasets developed by third
+parties. Their copyrights and licenses are acknowledged below. This NOTICE file is
+provided in accordance with section 4(d) of the Apache License, Version 2.0.
+
+------------------------------------------------------------------------------
+Vendored / adapted code
+------------------------------------------------------------------------------
+
+Kaldi — utils/parse_options.sh
+  Copyright 2012 Johns Hopkins University (Daniel Povey), Arnab Ghoshal, Karel Vesely
+  License: Apache-2.0
+  https://github.com/kaldi-asr/kaldi
+
+------------------------------------------------------------------------------
+Scoring models & libraries (fetched at runtime, not redistributed here)
+------------------------------------------------------------------------------
+
+Qwen3-ASR (Qwen/Qwen3-ASR-1.7B) — ASR for WER scoring; served via vLLM
+  License: Apache-2.0
+  https://huggingface.co/Qwen/Qwen3-ASR-1.7B
+
+Whisper large-v3 (openai/whisper-large-v3) — ASR for WER scoring outside QWEN_LANGS; served via vLLM
+  License: Apache-2.0
+  https://huggingface.co/openai/whisper-large-v3
+
+ReDimNet2 (PalabraAI) — speaker-similarity embeddings; loaded via torch.hub
+  License: MIT
+  https://github.com/PalabraAI/redimnet2
+
+MSR-UTMOS / sfi-utmos — MOS prediction (utils/score_msr_utmos.py)
+  License: MIT
+  https://github.com/sarulab-speech/msr-utmos
+
+DS-WED / dswed — prosody-diversity metric (utils/score_dswed.py)
+  License: Apache-2.0
+  https://github.com/yfyeung/DS-WED  (arXiv:2509.19928)
+
+TTSDS2 (ttsds 2.1.1) — mean-F0 Pitch metric; installed by scripts/setup_ttsds_env.sh
+  License: MIT
+  https://github.com/ttsds/ttsds
+
+------------------------------------------------------------------------------
+Datasets
+------------------------------------------------------------------------------
+
+See DATA_LICENSE.md for the benchmark data (FLEURS-R: CC-BY-4.0; VoxBlink2:
+CC-BY-NC-SA 4.0).

@@ -1,0 +1,34 @@
+{
+  "zero_shot_delta": {
+    "kind": "delta",
+    "source_task": "zero_shot",
+    "selector": "delta",
+    "k_actual": 200,
+    "seed": 0,
+    "langs": 35
+  },
+  "zero_shot_mini": {
+    "kind": "mini",
+    "source_task": "zero_shot",
+    "selector": "strat_meta",
+    "k_actual": 3500,
+    "seed": 0,
+    "langs": 35
+  },
+  "zero_shot_voxblink_delta": {
+    "kind": "delta",
+    "source_task": "zero_shot_voxblink",
+    "selector": "delta",
+    "k_actual": 194,
+    "seed": 0,
+    "langs": 20
+  },
+  "zero_shot_voxblink_mini": {
+    "kind": "mini",
+    "source_task": "zero_shot_voxblink",
+    "selector": "strat_meta",
+    "k_actual": 1941,
+    "seed": 0,
+    "langs": 20
+  }
+}

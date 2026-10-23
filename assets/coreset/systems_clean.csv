@@ -1,0 +1,25 @@
+system,results_dir,family,preset,role,n_langs_scored,mean_leaf_coverage,min_leaf_coverage,low_coverage_langs,n_imputed,imputed_langs
+zonos2_accurate,zonos2_accurate,zonos2,0,system,35,1.0000,1.0000,,3,zh:3
+zonos2_expressive,zonos2_expressive,zonos2,0,system,35,1.0000,1.0000,,15,fa:2 hi:1 ko:1 th:1 vi:10
+qwen3-tts-1.7b,omni_qwen3-tts-1.7b,qwen3,0,system,35,1.0000,1.0000,,61,fa:6 hi:1 th:10 vi:43 zh:1
+qwen3-tts-0.6b,omni_qwen3-tts-0.6b,qwen3,0,system,35,1.0000,1.0000,,17,fa:2 hi:4 ko:1 vi:10
+voxcpm2,omni_voxcpm2,voxcpm,0,system,35,1.0000,1.0000,,6,ar:1 fa:1 ja:2 zh:2
+fish-s2-pro,omni_fish-s2-pro,fish,0,system,35,1.0000,1.0000,,15,fa:4 hi:2 th:3 vi:5 zh:1
+higgs-audio-v3,omni_higgs-audio-v3,higgs,0,system,35,1.0000,1.0000,,1,fa:1
+omnivoice-reftext,omni_omnivoice-reftext,omnivoice,0,system,35,1.0000,1.0000,,0,
+moss-tts,moss-tts,moss,0,system,35,1.0000,1.0000,,2,th:1 vi:1
+cosyvoice3,cosyvoice3,cosyvoice3,0,system,35,0.9936,0.9432,,42,hi:5 vi:37
+voxtral-tts,omni_voxtral-tts,voxtral,1,system,35,1.0000,1.0000,,1115,fa:23 hi:2 ko:187 th:774 vi:68 zh:61
+qwen3-tts-1.7b-reftext,omni_qwen3-tts-1.7b-reftext,qwen3,0,partial,35,1.0000,1.0000,,118,fa:12 hi:62 ko:1 th:2 vi:25 zh:16
+qwen3-tts-0.6b-reftext,omni_qwen3-tts-0.6b-reftext,qwen3,0,partial,35,1.0000,1.0000,,98,fa:17 hi:34 ko:4 th:12 vi:7 zh:24
+voxcpm2-reftext,omni_voxcpm2-reftext,voxcpm,0,partial,33,1.0000,1.0000,,5,fa:1 ja:1 ko:1 vi:1 zh:1
+omnivoice,omni_omnivoice,omnivoice,0,partial,9,1.0000,1.0000,,0,
+moss-tts-v1.5,moss-tts-v1.5,moss,0,partial,9,1.0000,1.0000,,0,
+moss-tts-local-v1.5,moss-tts-local-v1.5,moss,0,partial,9,1.0000,1.0000,,43,en:1 es:3 fr:12 it:5 ja:1 ko:5 ru:8 zh:8
+glm-tts,omni_glm-tts,glm,0,partial,22,0.9821,0.6071,fil,240,fa:76 hi:117 ko:47
+kokoro,kokoro,kokoro,1,partial,8,1.0000,1.0000,,0,
+neutts-2e,neutts-2e,neutts,1,partial,1,1.0000,1.0000,,0,
+vibevoice-rt-0.5b,vibevoice-rt-0.5b,vibevoice,1,partial,10,1.0000,1.0000,,0,
+indextts2,omni_indextts2,indextts,0,partial,0,,,,0,
+GT,gt_zero_shot,reference,0,reference,35,1.0000,1.0000,,1,fa:1
+GT-whisper,whisper_zero_shot,reference,0,reference,35,1.0000,1.0000,,0,
