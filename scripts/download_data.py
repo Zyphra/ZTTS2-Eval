@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-"""Fetch the ZTTS2-Eval prompt audio from the Hugging Face Hub into data/.
+"""Fetch the ZTTS2-Eval audio from the Hugging Face Hub into data/.
 
-The metadata (text, prompt_text, prompt_wav.scp, ...) is tracked in git; the prompt
-wavs (data/<task>/<lang>/waveform/, 24 GB in total) are the dataset
-Zyphra/ZTTS2-Eval. This script downloads them to the paths the committed
-prompt_wav.scp files already point at, then checks that every prompt resolves.
+The metadata (text, prompt_text, prompt_wav.scp, target_wav.scp, ...) is tracked in
+git; the audio is the dataset Zyphra/ZTTS2-Eval: the prompt wavs
+(data/<task>/<lang>/waveform/, 24 GB in total) and, for zero_shot_voxblink, the
+held-out target recordings (data/zero_shot_voxblink/<lang>/target_wav/) behind the
+speaker-similarity primary score. This script downloads them to the paths the
+committed .scp files already point at, then checks that every listed wav resolves.
 
 Usage:
     python scripts/download_data.py                              # both sets, all languages
@@ -13,7 +15,7 @@ Usage:
 
 Authentication: --token, else HF_TOKEN / a cached `hf auth login`. Downloads resume,
 and files already present are skipped (metadata lives in data/.cache/huggingface/).
-Exits 1 if any prompt wav listed in a prompt_wav.scp is still missing.
+Exits 1 if any wav listed in a prompt_wav.scp / target_wav.scp is still missing.
 """
 import argparse
 import sys
@@ -31,13 +33,21 @@ def langs_of(task):
 
 def missing_prompts(task, lang):
     """Prompt wav paths listed in data/<task>/<lang>/prompt_wav.scp that are not files."""
-    return [path for path in _prompt_paths(task, lang) if not Path(path).is_file()]
+    return [path for path in _scp_paths(task, lang, "prompt_wav.scp") if not Path(path).is_file()]
 
 
-def _prompt_paths(task, lang):
-    """Prompt wav paths of data/<task>/<lang>/prompt_wav.scp, repo-relative ones resolved."""
+def missing_targets(task, lang):
+    """Target wav paths listed in data/<task>/<lang>/target_wav.scp that are not files."""
+    return [path for path in _scp_paths(task, lang, "target_wav.scp") if not Path(path).is_file()]
+
+
+def _scp_paths(task, lang, scp):
+    """Wav paths of data/<task>/<lang>/<scp> (empty when absent), repo-relative ones resolved."""
     paths = []
-    with open(DATA / task / lang / "prompt_wav.scp", encoding="utf-8") as fh:
+    p = DATA / task / lang / scp
+    if not p.is_file():
+        return paths
+    with open(p, encoding="utf-8") as fh:
         for line in fh:
             _, _, path = line.strip().partition(" ")
             if path:
@@ -76,8 +86,11 @@ def main():
         repo_type="dataset",
         revision=args.revision,
         local_dir=DATA,
-        allow_patterns=[f"{task}/{lang}/waveform/*.wav"
-                        for task, langs in selected.items() for lang in langs],
+        allow_patterns=[pat
+                        for task, langs in selected.items() for lang in langs
+                        for pat in ([f"{task}/{lang}/waveform/*.wav"]
+                                    + ([f"{task}/{lang}/target_wav/*.wav"]
+                                       if task == "zero_shot_voxblink" else []))],
         token=args.token,
         max_workers=args.max_workers,
     )
@@ -85,12 +98,17 @@ def main():
     n_missing = 0
     for task, langs in selected.items():
         for lang in langs:
-            total = len(_prompt_paths(task, lang))
+            total = len(_scp_paths(task, lang, "prompt_wav.scp"))
             missing = missing_prompts(task, lang)
             n_missing += len(missing)
             print(f"{task}/{lang}: {total - len(missing)}/{total} prompt wavs present")
+            t_total = len(_scp_paths(task, lang, "target_wav.scp"))
+            if t_total:
+                t_missing = missing_targets(task, lang)
+                n_missing += len(t_missing)
+                print(f"{task}/{lang}: {t_total - len(t_missing)}/{t_total} target wavs present")
     if n_missing:
-        print(f"missing {n_missing} prompt wavs", file=sys.stderr)
+        print(f"missing {n_missing} wavs", file=sys.stderr)
         sys.exit(1)
 
 

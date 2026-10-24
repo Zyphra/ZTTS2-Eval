@@ -119,6 +119,14 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
         with open(os.path.join(dst, "prompt_wav.scp"), "w", encoding="utf-8") as fh:
             for uid, _t, _p, wav, _wt in rows:
                 fh.write(f"{uid} {wav}\n")
+        # ITW: held-out target recordings (target_wav.scp), same subset of uids.
+        src_target = os.path.join(src, "target_wav.scp")
+        if os.path.isfile(src_target):
+            twavs = parse_scp(src_target)
+            with open(os.path.join(dst, "target_wav.scp"), "w", encoding="utf-8") as fh:
+                for uid, *_ in rows:
+                    if uid in twavs:
+                        fh.write(f"{uid} {twavs[uid]}\n")
 
         lang_w = {r[0]: r[4] for r in rows}
         if rows and len(rows) < idx.size:

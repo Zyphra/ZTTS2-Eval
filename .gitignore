@@ -59,3 +59,7 @@ results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw.meta
 data/zero_shot/*/waveform/
 data/zero_shot_voxblink/*/waveform/
 data/.cache/
+
+# Held-out target recordings of the ITW set ship on the HF dataset Zyphra/ZTTS2-Eval
+# (scripts/download_data.py); target_wav.scp / target_provenance.json are tracked.
+data/zero_shot_voxblink/*/target_wav/

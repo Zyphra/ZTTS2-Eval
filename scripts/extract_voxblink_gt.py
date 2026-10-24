@@ -1,9 +1,11 @@
-"""Extract ground-truth target audio for the zero_shot_voxblink eval.
+"""Extract the held-out target recordings for the zero_shot_voxblink eval.
 
 Stage-B produced `data/zero_shot_voxblink/<lang>/{text, prompt_text, prompt_wav.scp,
 waveform/prompt_audio_*.wav}` from a stratified pick of `_stage_a/manifest.tsv`. The
-TARGET audio (the recording behind `text`) was never extracted — it isn't needed
-for the TTS task. We need it for the ground-truth-baseline scoring run.
+TARGET audio (the real recording behind `text`, same speaker as the prompt, different
+video) is the reference for held-out speaker similarity and for the ground-truth
+baseline. It ships on the HF dataset Zyphra/ZTTS2-Eval; this script rebuilds it from the
+raw VoxBlink2 audio.
 
 For each lang dir, this script:
   1. reads `prompt_text` (uid -> prompt transcript) and the per-lang slice of
@@ -11,13 +13,13 @@ For each lang dir, this script:
   2. joins on prompt_text to recover each uid's target_{vid,seg,start,end},
   3. extracts the target audio slice from the local VoxBlink2 audio tree
      $VOXBLINK2_AUDIO_ROOT/<spk>/<vid>/<seg>.wav
-  4. writes <out_root>/<lang>/wavs/<uid>.wav (16 kHz PCM16, mono).
+  4. writes <data_root>/<lang>/target_wav/<uid>.wav (16 kHz PCM16, mono).
 
-Run scoring afterwards with:
-    DECODE_DIR=results/gt_zero_shot_voxblink bash run_infer_voxblink_eval.sh
+Then validate and write target_wav.scp / target_provenance.json with:
+    python scripts/build_voxblink_targets.py
 
 Usage:
-    python scripts/extract_voxblink_gt.py [--out-root results/gt_zero_shot_voxblink]
+    python scripts/extract_voxblink_gt.py [--data-root data/zero_shot_voxblink]
 """
 import argparse
 import csv
@@ -65,7 +67,6 @@ def read_slice(path, start, end):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--out-root", default="results/gt_zero_shot_voxblink")
     ap.add_argument("--data-root", default=DATA_ROOT)
     ap.add_argument("--manifest", default=os.path.join(DATA_ROOT, "_stage_a/manifest.tsv"))
     ap.add_argument("--overwrite", action="store_true")
@@ -89,7 +90,7 @@ def main():
         if not os.path.isfile(prompt_text_path):
             continue
 
-        out_dir = os.path.join(args.out_root, lang, "wavs")
+        out_dir = os.path.join(args.data_root, lang, "target_wav")
         os.makedirs(out_dir, exist_ok=True)
 
         items = load_text_file(prompt_text_path)
@@ -142,7 +143,7 @@ def main():
         overall_ok += ok; overall_fail += fail; overall_dup += dup
 
     print(f"\ndone: {overall_ok} ok, {overall_fail} failed, {overall_dup} "
-          f"ambiguous-dup skipped across all langs -> {args.out_root}/")
+          f"ambiguous-dup skipped across all langs -> {args.data_root}/<lang>/target_wav/")
 
 
 if __name__ == "__main__":
