@@ -16,16 +16,13 @@ OUT = os.path.join(REPO_ROOT, "assets", "plots", "voxblink_perlen_heatmaps.png")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
 sys.path.insert(0, SCRIPT_DIR)
-from rd_common import ordered_langs, VOX_LANGS_EXCLUDED  # noqa: E402
+from rd_common import ordered_langs  # noqa: E402
 
 perlen = json.load(open(os.path.join(CACHE, "voxblink_perlen.json")))
 if not perlen:
     sys.exit("plot_perlen: voxblink_perlen.json is empty — rerun build_perlen.py")
 
-# `tl` excluded — matches plot_perbin.py and RESULTS_CURRENT.md's aggregates
-# (see the excluded-langs callout there).
-VOX_LANGS = [l for l in ordered_langs({k.split("|", 1)[1] for k in perlen})
-             if l not in VOX_LANGS_EXCLUDED]
+VOX_LANGS = ordered_langs({k.split("|", 1)[1] for k in perlen})
 N_BUCKETS = max((len(v) for v in perlen.values()), default=6)
 
 _labels = sorted({k.split("|", 1)[0] for k in perlen},

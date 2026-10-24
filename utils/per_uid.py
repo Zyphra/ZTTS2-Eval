@@ -141,7 +141,8 @@ def parse_score_path(path):
 
 
 def wer_clip(wer):
-    """Per-utterance WER_CLIP in percent: cap at 100% then scale, per average_wer.py:54."""
+    """Per-utterance WER_CLIP in percent: cap at 100% (average_wer.py:118) then scale
+    (average_wer.py:131)."""
     return min(wer, 1.0) * 100.0
 
 
@@ -149,9 +150,12 @@ def load_leaf(leaf_dir):
     """Load the per-uid scores of one results leaf.
 
     Returns ``{"wer": {uid: raw_fraction}, "wer_clip": {uid: pct}, "spk": {uid: x100},
-    "msr": {uid: mos}, "detail": {uid: {...wer fields...}}}``. Any metric whose file is
-    missing comes back as an empty dict -- partial leaves are normal, so check
-    emptiness rather than trusting that all four are populated.
+    "spk_xutt": {uid: x100}, "msr": {uid: mos}, "detail": {uid: {...wer fields...}}}``.
+    ``spk`` is similarity to the prompt (``spk_simi_scores.txt``); ``spk_xutt`` is
+    similarity to a held-out recording of the same speaker (ITW only,
+    ``spk_simi_scores.xutt.txt``). Any metric whose file is missing comes back as an
+    empty dict -- partial leaves are normal, so check emptiness rather than trusting
+    that all of them are populated.
 
     Prefers ``.wer.raw`` over ``.wer``: it is the scorer's direct output, whereas the
     ``.wer`` copy is rewritten by the aggregation step.
@@ -165,6 +169,7 @@ def load_leaf(leaf_dir):
         "wer": wer,
         "wer_clip": {u: wer_clip(v) for u, v in wer.items()},
         "spk": parse_spk(os.path.join(leaf_dir, "spk_simi_scores.txt")),
+        "spk_xutt": parse_spk(os.path.join(leaf_dir, "spk_simi_scores.xutt.txt")),
         "msr": parse_score_path(os.path.join(leaf_dir, "msr_utmos_scores.txt")),
         "detail": detail,
     }

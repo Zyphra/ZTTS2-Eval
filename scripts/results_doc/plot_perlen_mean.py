@@ -17,16 +17,14 @@ OUT = os.path.join(REPO_ROOT, "assets", "plots", "voxblink_perlen_crosslang.png"
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
 sys.path.insert(0, SCRIPT_DIR)
-from rd_common import ordered_langs, VOX_LANGS_EXCLUDED  # noqa: E402
+from rd_common import ordered_langs  # noqa: E402
 
 simple = json.load(open(os.path.join(CACHE, "voxblink_perlen.json")))
 weighted = json.load(open(os.path.join(CACHE, "voxblink_perlen_weighted.json")))
 if not simple:
     sys.exit("plot_perlen_mean: voxblink_perlen.json is empty — rerun build_perlen.py")
 
-# `tl` excluded — matches plot_perbin.py and RESULTS_CURRENT.md's aggregates.
-VOX_LANGS = [l for l in ordered_langs({k.split("|", 1)[1] for k in simple})
-             if l not in VOX_LANGS_EXCLUDED]
+VOX_LANGS = ordered_langs({k.split("|", 1)[1] for k in simple})
 CORE9 = ["en","zh","de","es","fr","it","ja","ko","ru"]
 N_BUCKETS = 6
 

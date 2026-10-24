@@ -24,11 +24,18 @@ const fmt1 = (v) => (v == null || isNaN(v) ? null : (+v).toFixed(1));
 const METRICS = [
   { key: "wer",       label: "WER",   get: (r) => clip(r.wer),      fmt: fmt2, low: true,
     ci: (r) => (r.wer_ci && r.wer_ci.length >= 4 ? [r.wer_ci[2], r.wer_ci[3]] : null) },
-  { key: "spk",       label: "SPK",   get: (r) => r.spk,           fmt: fmt1, low: false },
+  { key: "tail50",    label: "Tail>50%", get: (r) => r.tail50,     fmt: fmt1, low: true  },
+  { key: "spk_xutt",  label: "SPK held-out", get: (r) => r.spk_xutt, fmt: fmt1, low: false },
+  { key: "spk",       label: "SPK prompt", get: (r) => r.spk,     fmt: fmt1, low: false },
   { key: "msr_utmos", label: "MSR",   get: (r) => r.msr_utmos,     fmt: fmt2, low: false,
     ci: (r) => (r.msr_utmos_ci && r.msr_utmos_ci[0] != null ? r.msr_utmos_ci : null) },
-  { key: "ttsds_pitch", label: "Pitch", get: (r) => r.ttsds_pitch,  fmt: fmt2, low: false },
-  { key: "mpm_span",  label: "MPM",   get: (r) => r.mpm_span,      fmt: fmt2, low: true  },
+  { key: "mpm_span",  label: "MPM (Clean only)", get: (r) => r.mpm_span, fmt: fmt2, low: true  },
+  { key: "rhythm_rate_x", label: "Rhythm pace ×ceil", get: (r) => r.rhythm_rate_x, fmt: fmt2, low: true },
+  { key: "rhythm_x",  label: "Rhythm pause ×ceil", get: (r) => r.rhythm_x, fmt: fmt2, low: true },
+  { key: "pitch_range_x", label: "Pitch range ×ceil", get: (r) => r.pitch_range_x, fmt: fmt2, low: true },
+  { key: "paired_dur", label: "Dur |log2|", get: (r) => r.paired_dur, fmt: fmt2, low: true },
+  { key: "paired_pause", label: "Pause Δ", get: (r) => r.paired_pause, fmt: fmt2, low: true },
+  { key: "paired_range", label: "Range |log2|", get: (r) => r.paired_range, fmt: fmt2, low: true },
   { key: "n",         label: "N",     get: (r) => r.n,             fmt: (v) => (v == null ? null : String(v)), low: false, neutral: true },
 ];
 const METRIC = Object.fromEntries(METRICS.map((m) => [m.key, m]));
@@ -801,8 +808,6 @@ function renderStats(rows) {
     [weighted ? "MSR·w" : "MSR", fmt2(mean(rows, (r) => r.msr_utmos))],
     [weighted ? "SPK·w" : "SPK", fmt1(mean(rows, (r) => r.spk))],
   ];
-  const has = (k) => rows.some((r) => r[k] != null);
-  if (has("dswed")) stats.push(["DS-WED", fmt1(mean(rows, (r) => r.dswed))]);
   const box = $("#dd-stats");
   box.innerHTML = "";
   stats.forEach(([k, v]) => {
@@ -886,7 +891,6 @@ function buildDetail(detail, r) {
   // within a language, so 1/k is "average pull")
   if (r.w != null) extras.push(`<span class="emo-tag">panel w: ${(+r.w).toFixed(4)}</span>`);
   if (r.pause_alpha != null) extras.push(`<span class="emo-tag">pause α: ${(+r.pause_alpha).toFixed(3)}</span>`);
-  if (r.dswed != null) extras.push(`<span class="emo-tag">ds-wed: ${(+r.dswed).toFixed(1)}</span>`);
   if (r.ins != null) extras.push(`<span class="emo-tag">ins ${(r.ins * 100).toFixed(1)} · del ${(r.del * 100).toFixed(1)} · sub ${(r.sub * 100).toFixed(1)} %</span>`);
   if (extras.length) {
     const e = el("div", "txt-block");

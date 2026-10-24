@@ -1,0 +1,8 @@
+# Leaves that build_results.py skips instead of refusing the build over them.
+# One leaf per line:   <model> <task|-> <lang> <reason...>
+# `<task>` is the results/<model>/<task>/ dir (zero_shot, zero_shot_voxblink, a panel
+# task); use `-` for the flat baseline dirs (results/gt_*/<lang>/). The reason is
+# required. A listed leaf also drops that (system, task, lang) row from the MPM,
+# rhythm, pitch-range and paired-ITW CSV/TSV loaders, and from the panel backfill.
+# A system with a leaf listed here has no macro value and lands in the
+# "Partial coverage" table of RESULTS_CURRENT.md.

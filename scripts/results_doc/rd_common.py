@@ -9,18 +9,22 @@ One place for the things that used to drift as per-file copies:
   - system discovery from the results tree (`discover_systems()`), mirroring
     the rationale comment in build_perbin.py: hard-coded model lists are how
     caches came to silently hold only stale baselines;
-  - the VoxBlink language basket (`ordered_langs()` / `VOX_LANGS_EXCLUDED`),
-    previously seven diverging hard-coded lists;
+  - the language display order (`ordered_langs()`), derived from the frozen
+    baskets in utils/benchmark.py, previously seven diverging hard-coded lists;
   - atomic JSON writes (`write_json_atomic()`), so a crash mid-dump can never
     leave a truncated cache/snapshot file for the explorer to choke on.
 """
 import json
 import os
+import sys
 import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RESULTS_ROOT = os.path.join(REPO_ROOT, "results")
+
+sys.path.insert(0, REPO_ROOT)
+from utils.benchmark import CLEAN_LANGS, ITW_LANGS  # noqa: E402
 
 # --- model labels -----------------------------------------------------------
 # Optional pretty labels for well-known public models; any other model is shown
@@ -169,18 +173,10 @@ def discover_systems(task, root=RESULTS_ROOT):
 
 
 # --- language baskets -------------------------------------------------------
-# Preferred display order: the core-9, then the rest of the original VoxBlink
-# basket, then the 2026-07 additions. Discovered languages not listed here sort
-# alphabetically after these.
-CANON_LANG_ORDER = ["en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru",
-                    "pt", "ar", "hi", "id", "tr", "tl", "pl", "th",
-                    "nl", "uk", "vi"]
-# yo was removed from the benchmark 2026-08-29: its transcripts are Nigerian
-# English mislabeled by Whisper LID, not Yoruba (see RESULTS_VOXBLINK.md).
-
-# tl is excluded from published aggregates/plots; see the excluded-langs
-# callout in RESULTS_CURRENT.md (gen_md.py) for the auditable rationale.
-VOX_LANGS_EXCLUDED = ["tl"]
+# Display order: the ITW basket first (it contains the core-9), then the Clean-only
+# languages in basket order. Both baskets are frozen in utils/benchmark.py. Languages
+# outside both sort alphabetically after these.
+CANON_LANG_ORDER = list(ITW_LANGS) + [l for l in CLEAN_LANGS if l not in ITW_LANGS]
 
 
 def ordered_langs(langs):
@@ -197,6 +193,57 @@ def data_langs(root_data):
     return ordered_langs(
         d for d in os.listdir(root_data)
         if os.path.isfile(os.path.join(root_data, d, "text")))
+
+# --- snapshot access + the macro rule ---------------------------------------
+# One loader for the snapshot build_results.py writes, shared by gen_md.py and
+# plot_tradeoff.py so the published table and the published figure can never
+# disagree on what a "macro" is.
+SNAPSHOT_PATH = os.path.join(SCRIPT_DIR, "_cache", "results_snapshot.json")
+
+
+def load_snapshot(path=SNAPSHOT_PATH):
+    """The record list written by build_results.py."""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def index_records(recs):
+    """{(model, task, set): record}. gt_* baselines carry task == "" (flat dirs)."""
+    return {(r["model"], r["task"], r["set"]): r for r in recs}
+
+
+def rec_value(rec, field):
+    """Scalar of a snapshot field, or None: WER_CLIP for `wer`; NaN counts as missing."""
+    if rec is None:
+        return None
+    v = rec.get(field)
+    if field == "wer":
+        v = v[2] if v else None
+    if v is None or v != v:
+        return None
+    return v
+
+
+def lang_values(idx, model, task, field, langs):
+    """Per-language values of `field` for a system, None where missing."""
+    t = "" if model.startswith("gt_") else task
+    return [rec_value(idx.get((model, t, l)), field) for l in langs]
+
+
+def macro(idx, model, task, field, langs):
+    """Unweighted mean over `langs` (the task's frozen basket, utils.benchmark.langs_for),
+    defined ONLY when every basket language has the value: a mean over a different
+    language subset is a different quantity and must not share a column with the full one."""
+    vals = lang_values(idx, model, task, field, langs)
+    if not vals or any(v is None for v in vals):
+        return None
+    return sum(vals) / len(vals)
+
+
+def n_covered(idx, model, task, field, langs):
+    """How many basket languages have a value for `field`."""
+    return sum(v is not None for v in lang_values(idx, model, task, field, langs))
+
 
 
 # --- atomic JSON ------------------------------------------------------------

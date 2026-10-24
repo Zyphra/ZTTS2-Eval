@@ -16,8 +16,11 @@ anywhere. Override the interpreter with `PYTHON=...` if needed.
 ## Pipeline
 
 ```
-results/<model>/<task>/<set>/{wav_res_ref_text.wer,spk_simi_scores.txt,msr_utmos_mean.txt}
-        │
+results/<model>/<task>/<set>/{wav_res_ref_text.wer,spk_simi_scores.txt,spk_simi_scores.xutt.txt,msr_utmos_mean.txt}
+results/{rhythm_*,pitch_range_*,paired_itw_*}.csv  results/_mpm_*/*.tsv
+        │   every input must carry the current BENCHMARK_VERSION stamp (utils/benchmark.py);
+        │   build_results.py refuses to build otherwise, unless the leaf is listed in
+        │   excluded_leaves.txt (`<model> <task|-> <lang> <reason>`)
         ▼
 build_results.py   ──►  _cache/results_snapshot.json     (one record per leaf)
 
@@ -36,6 +39,7 @@ plot_perbin.py             ──►  assets/plots/voxblink_perbin_heatmaps.png
 plot_perlen.py             ──►  assets/plots/voxblink_perlen_heatmaps.png
 plot_perlen_mean.py        ──►  assets/plots/voxblink_perlen_crosslang.png
 plot_perlen_zeroshot.py    ──►  assets/plots/perlen_zeroshot_vs_voxblink.png
+plot_tradeoff.py           ──►  assets/plots/tradeoff_{zero_shot,zero_shot_voxblink}.png  (WER vs rhythm / pitch range)
 
 gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + voxblink_perbin.json + voxblink_bin_counts.json + emo_score.txt files)
 

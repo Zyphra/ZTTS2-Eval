@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Build the explorer snapshot from core scores, MPM span, and TTSDS Pitch."""
+"""Build the explorer snapshot from core scores, MPM span, rhythm, pitch range and
+paired ITW prosody; refuse inputs that are not ZTTS2-Eval <BENCHMARK_VERSION>."""
 import collections, csv, os, re, json, sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +14,7 @@ OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 sys.path.insert(0, REPO_ROOT)
 from utils.per_uid import CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, leaf_problems  # noqa: E402
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import write_json_atomic  # noqa: E402
 
@@ -39,8 +41,72 @@ MPM_DIR = os.path.join(ROOT, "_mpm_shuffle_floor")
 MPM_GT_DIR = os.path.join(ROOT, "_mpm_ground_truth")
 
 
+# ---------------------------------------------------------------------------
+# Version gate. Every score file / CSV / TSV this module reads carries a
+# BENCHMARK_VERSION stamp (utils/benchmark.py). Per-leaf stamps are checked with
+# utils.benchmark.leaf_problems in collect_all(); the aggregate CSV/TSV loaders
+# below record each row whose `benchmark_version` is not current in _STALE.
+# Nothing is silently dropped: collect_all() refuses to write a snapshot while any
+# input is stale, unless the leaf is listed in excluded_leaves.txt.
+# ---------------------------------------------------------------------------
+EXCLUDED_FILE = os.path.join(SCRIPT_DIR, "excluded_leaves.txt")
+CEILING_SYSTEM = "__CEILING_split_half__"
+
+
+def load_excluded(path=EXCLUDED_FILE):
+    """{(model, task, lang): reason} from excluded_leaves.txt.
+
+    One leaf per line, `<model> <task|-> <lang> <reason...>`; `-` is the task of a
+    flat baseline dir (results/gt_*/<lang>/). `#` lines and blanks are ignored."""
+    out = {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return out
+    for n, line in enumerate(lines, 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        p = line.split(None, 3)
+        if len(p) < 4:
+            sys.exit(f"{path}:{n}: expected `<model> <task|-> <lang> <reason...>`, got {line!r}")
+        out[(p[0], "" if p[1] == "-" else p[1], p[2])] = p[3]
+    return out
+
+
+EXCLUDED = load_excluded()
+
+
+def leaf_key(system, task, lang):
+    """(model, task, lang) record key of a system in a task: gt_* baselines are
+    stored task-less (flat results/gt_*/<lang>/ dirs)."""
+    return (system, "" if system.startswith("gt_") else task, lang)
+
+
+_STALE = collections.defaultdict(set)    # (relpath, version) -> {system}
+
+
+def stamp_current(path, system, version):
+    """True iff `version` is the current benchmark version; else record the row."""
+    if version == BENCHMARK_VERSION:
+        return True
+    _STALE[(os.path.relpath(path, REPO_ROOT), version)].add(system)
+    return False
+
+
+def stamp_problems():
+    """One human-readable line per (file, stale version) seen by the row loaders."""
+    return [f"{p}: benchmark_version {v if v is not None else '<missing>'} != "
+            f"{BENCHMARK_VERSION} for {len(s)} system(s): {', '.join(sorted(s))}"
+            for (p, v), s in sorted(_STALE.items(), key=lambda kv: (kv[0][0], str(kv[0][1])))]
+
+
 def load_mpm():
-    """{(system, lang): {"span": float, "score": float}} from the MPM tsvs."""
+    """{(system, lang): {"span": float, "score": float}} from the MPM tsvs.
+
+    Rows whose `benchmark_version` is missing or not current are not loaded; they
+    are recorded for the collect_all() refusal instead."""
     out = {}
     if not os.path.isdir(MPM_DIR):
         return out
@@ -51,12 +117,19 @@ def load_mpm():
             ix = {k: i for i, k in enumerate(hdr)}
             if not {"system", "span", "score"} <= ix.keys():
                 return
+            vcol = ix.get("benchmark_version")
             for line in f:
                 p = line.rstrip("\n").split("\t")
                 if len(p) <= max(ix["system"], ix["span"], ix["score"]):
                     continue
+                system = p[ix["system"]]
+                if leaf_key(system, "zero_shot", lang) in EXCLUDED:
+                    continue
+                ver = p[vcol] if vcol is not None and vcol < len(p) else None
+                if not stamp_current(path, system, ver):
+                    continue
                 try:
-                    out[(p[ix["system"]], lang)] = {
+                    out[(system, lang)] = {
                         "span": float(p[ix["span"]]), "score": float(p[ix["score"]])}
                 except ValueError:
                     pass
@@ -77,6 +150,86 @@ def load_mpm():
 
 
 MPM = load_mpm()
+
+
+# Prosody CSVs written by scripts/rhythm_dist.py, scripts/pitch_range_dist.py and
+# scripts/paired_itw.py into results/. Each file is one (task, lang); a row is one
+# system. The task is parsed from the file name, so `zero_shot_voxblink_` MUST be
+# tried before `zero_shot_` (otherwise `rhythm_zero_shot_voxblink_en.csv` reads as
+# lang `voxblink_en` -- the phantom-language bug build_mpm_dist.py once had).
+PROSODY = {}      # (model, task, lang) -> {record key: value}
+_PROSODY_TASKS = ("zero_shot_voxblink", "zero_shot")
+
+
+def _num(x):
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return v if v == v and abs(v) != float("inf") else None
+
+
+def split_task_lang(stem):
+    """`zero_shot_voxblink_en` -> (`zero_shot_voxblink`, `en`); None if not a task stem."""
+    for task in _PROSODY_TASKS:
+        if stem.startswith(task + "_") and len(stem) > len(task) + 1:
+            return task, stem[len(task) + 1:]
+    return None
+
+
+def load_prosody(prefix, columns, fixed_task=None):
+    """Fold results/<prefix>_<task>_<lang>.csv (or <prefix>_<lang>.csv when
+    `fixed_task` is given) into PROSODY. `columns` maps record key -> CSV column.
+    The split-half ceiling row and whisper_* diagnostics are skipped."""
+    if not os.path.isdir(ROOT):
+        return
+    for fn in sorted(os.listdir(ROOT)):
+        if not (fn.startswith(prefix + "_") and fn.endswith(".csv")):
+            continue
+        stem = fn[len(prefix) + 1:-len(".csv")]
+        if fixed_task:
+            task, lang = fixed_task, stem
+        else:
+            tl = split_task_lang(stem)
+            if tl is None:
+                continue
+            task, lang = tl
+        path = os.path.join(ROOT, fn)
+        with open(path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                system = row.get("system") or ""
+                if not system or system == CEILING_SYSTEM or system.startswith("whisper_"):
+                    continue
+                key = leaf_key(system, task, lang)
+                if key in EXCLUDED:
+                    continue
+                if not stamp_current(path, system, row.get("benchmark_version")):
+                    continue
+                vals = {k: _num(row.get(col)) for k, col in columns.items()}
+                PROSODY.setdefault(key, {}).update(
+                    {k: v for k, v in vals.items() if v is not None})
+
+
+# rhythm: pause/stall factor (burstiness) is the headline; pace factor is shown beside it.
+load_prosody("rhythm", {"rhythm_x": "burstiness_x_ceiling",
+                        "rhythm_rate_x": "rate_x_ceiling"})
+load_prosody("pitch_range", {"pitch_range_x": "x_ceiling"})
+load_prosody("paired_itw", {"paired_dur": "dur_abs_med",
+                            "paired_pause": "pause_abs_mean",
+                            "paired_range": "range_abs_med"},
+             fixed_task="zero_shot_voxblink")
+
+
+REC_KEYS = ("wer", "wer_ci", "tail50", "spk", "spk_xutt", "msr_utmos", "msr_utmos_ci",
+            "mpm_span", "rhythm_x", "rhythm_rate_x", "pitch_range_x",
+            "paired_dur", "paired_pause", "paired_range", "n")
+
+
+def new_rec(model, task, setname):
+    """An all-None record in the snapshot's schema."""
+    rec = {"model": model, "task": task, "set": setname}
+    rec.update(dict.fromkeys(REC_KEYS))
+    return rec
 
 
 # ---------------------------------------------------------------------------
@@ -160,15 +313,12 @@ def collect_panel_leaf(model, task, setname, leaf_dir, panel):
     if not w_lang:
         return None
     leaf = load_leaf(leaf_dir)
-    rec = {
-        "model": model, "task": task, "set": setname,
-        "wer": None, "wer_ci": None, "spk": None,
-        "msr_utmos": None, "msr_utmos_ci": None,
-        "ttsds_pitch": None, "mpm_span": None, "n": None,
-        "panel": {"kind": panel["kind"], "source_task": panel["source_task"],
-                  "selector": panel["selector"], "k": len(w_lang),
-                  "coverage": 0.0},
-    }
+    # The GT baseline's prompt-vs-real-target score IS the held-out ceiling.
+    spk_xutt = leaf["spk"] if model == "gt_zero_shot_voxblink" else leaf["spk_xutt"]
+    rec = new_rec(model, task, setname)
+    rec["panel"] = {"kind": panel["kind"], "source_task": panel["source_task"],
+                    "selector": panel["selector"], "k": len(w_lang),
+                    "coverage": 0.0}
 
     uids = [u for u in sorted(w_lang) if u in leaf["wer"]]
     total_w = sum(w_lang.values())
@@ -193,17 +343,23 @@ def collect_panel_leaf(model, task, setname, leaf_dir, panel):
         clo, chi = wboot_ci(clipped, w)
         if wlo is not None:
             rec["wer_ci"] = [wlo, whi, clo, chi]
+        # Tail rate: share of (weighted) utterances with WER above 50%, the same
+        # threshold average_wer.py's WER_TAIL50 footer uses.
+        tail = [100.0 if leaf["wer"][u] > L50_THRESHOLD else 0.0 for u in uids]
+        rec["tail50"] = round(wmean(tail, w), 3)
         rec["n"] = len(uids)
         pieces["wer"] = (raw, w)
         pieces["wer_l50"] = ([raw[i] for i in keep], [w[i] for i in keep]) if keep else (raw, w)
         pieces["wer_clip"] = (clipped, w)
+        pieces["tail50"] = (tail, w)
 
-    su = [u for u in sorted(w_lang) if u in leaf["spk"]]
-    if su:
-        sw = [w_lang[u] for u in su]
-        sy = [leaf["spk"][u] for u in su]
-        rec["spk"] = round(wmean(sy, sw), 3)
-        pieces["spk"] = (sy, sw)
+    for key, scores in (("spk", leaf["spk"]), ("spk_xutt", spk_xutt)):
+        su = [u for u in sorted(w_lang) if u in scores]
+        if su:
+            sw = [w_lang[u] for u in su]
+            sy = [scores[u] for u in su]
+            rec[key] = round(wmean(sy, sw), 3)
+            pieces[key] = (sy, sw)
 
     mu = [u for u in sorted(w_lang) if u in leaf["msr"]]
     if mu:
@@ -221,50 +377,72 @@ def collect_panel_leaf(model, task, setname, leaf_dir, panel):
     return rec if rec["n"] is not None else None
 
 
+# The footers grew (CI, N_IMPUTED, WER_TAIL50, BENCHMARK_VERSION, ASR; the speaker
+# files carry four trailing `#` lines), so every footer parser reads a 4096-byte tail.
+TAIL_BYTES = 4096
 WER_RE = re.compile(r"WER:\s*([\-\d\.eN]+(?:nan|inf)?|nan|inf|[\d\.\-eE]+),\s*WER_L50:\s*([\d\.\-eEnan]+|nan),\s*WER_CLIP:\s*([\d\.\-eEnan]+|nan)")
 # 95% CI footer line emitted by average_wer.py (optional; absent on pre-CI results).
 WER_CI_RE = re.compile(r"WER_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\],\s*WER_CLIP_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\]")
 MSR_CI_RE = re.compile(r"CI95\s+([\d\.\-eEnan]+)\s+([\d\.\-eEnan]+)")
 
-def parse_wer(path):
-    """Read last line of .wer file; return (wer, l50, clip) or None."""
+
+def read_tail(path, nbytes=TAIL_BYTES):
+    """Last `nbytes` of a file as text, or None if unreadable."""
     try:
         with open(path, "rb") as f:
             try:
-                f.seek(-512, os.SEEK_END)
+                f.seek(-nbytes, os.SEEK_END)
             except OSError:
                 f.seek(0)
-            tail = f.read().decode(errors="replace")
+            return f.read().decode(errors="replace")
     except Exception:
+        return None
+
+
+def _float(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+def parse_wer(path):
+    """Last `WER:` footer line of a .wer file; return (wer, l50, clip) or None."""
+    tail = read_tail(path)
+    if tail is None:
         return None
     for line in reversed(tail.splitlines()):
         if line.startswith("WER:"):
             m = WER_RE.search(line)
             if m:
-                def f(x):
-                    try: return float(x)
-                    except: return float("nan")
-                return f(m.group(1)), f(m.group(2)), f(m.group(3))
+                return _float(m.group(1)), _float(m.group(2)), _float(m.group(3))
     return None
+
 
 def parse_wer_ci(path):
     """(wer_lo, wer_hi, clip_lo, clip_hi) from the WER_CI95 footer, or None."""
-    try:
-        with open(path, "rb") as f:
-            try: f.seek(-512, os.SEEK_END)
-            except OSError: f.seek(0)
-            tail = f.read().decode(errors="replace")
-    except Exception:
+    tail = read_tail(path)
+    if tail is None:
         return None
     for line in reversed(tail.splitlines()):
         if line.startswith("WER_CI95:"):
             m = WER_CI_RE.search(line)
             if m:
-                def f(x):
-                    try: return float(x)
-                    except: return float("nan")
-                return f(m.group(1)), f(m.group(2)), f(m.group(3)), f(m.group(4))
+                return tuple(_float(m.group(i)) for i in (1, 2, 3, 4))
     return None
+
+
+def parse_tail50(path):
+    """Share (%) of utterances with WER > 50%, from the `WER_TAIL50:` footer, or None."""
+    tail = read_tail(path)
+    if tail is None:
+        return None
+    for line in reversed(tail.splitlines()):
+        if line.startswith("WER_TAIL50:"):
+            v = _float(line.split(":", 1)[1].strip())
+            return v if v == v else None
+    return None
+
 
 def parse_msr_ci(path):
     """(lo, hi) from a msr_utmos_ci.txt line, or None."""
@@ -277,20 +455,21 @@ def parse_msr_ci(path):
         return None
     return None
 
+
 def parse_spk(path):
-    try:
-        with open(path, "rb") as f:
-            try: f.seek(-200, os.SEEK_END)
-            except OSError: f.seek(0)
-            tail = f.read().decode(errors="replace")
-    except Exception:
+    """Mean hyp score (cosine x100) from the `avg` line of a speaker-score file."""
+    tail = read_tail(path)
+    if tail is None:
         return None
     for line in reversed(tail.splitlines()):
         if line.startswith("avg"):
             parts = line.split()
-            try: return float(parts[2])
-            except: return None
+            try:
+                return float(parts[2])
+            except (IndexError, ValueError):
+                return None
     return None
+
 
 def parse_msr_utmos(path):
     try:
@@ -315,17 +494,12 @@ def collect_leaf(model, task, setname, leaf_dir):
     wer_path = os.path.join(leaf_dir, "wav_res_ref_text.wer")
     if not os.path.isfile(wer_path):
         return None
-    rec = {
-        "model": model, "task": task, "set": setname,
-        "wer": None, "wer_ci": None, "spk": None,
-        "msr_utmos": None, "msr_utmos_ci": None,
-        "ttsds_pitch": None, "mpm_span": None, "n": None,
-    }
-    # Shuffle-floor MPM is a FLEURS-R-only distributional metric, keyed (system, lang).
-    # Only `span` (the discriminating axis) is surfaced; `score` saturates, so it is
-    # intentionally not carried into the snapshot. The zero_shot restriction is not an
-    # oversight: MPM's anchors collapse on in-the-wild audio and no front-end or anchor
-    # fix recovers them -- see docs/mpm_itw_limits.md.
+    rec = new_rec(model, task, setname)
+    # Shuffle-floor MPM is a FLEURS-R-only (Clean set) distributional metric, keyed
+    # (system, lang). Only `span` (the discriminating axis) is surfaced; `score`
+    # saturates, so it is intentionally not carried into the snapshot. The zero_shot
+    # restriction is not an oversight: MPM's anchors collapse on in-the-wild audio
+    # and no front-end or anchor fix recovers them -- see docs/mpm_itw_limits.md.
     mpm_model = model if task == "zero_shot" or (not task and model == "gt_zero_shot") else None
     if mpm_model:
         m = MPM.get((mpm_model, setname))
@@ -333,22 +507,21 @@ def collect_leaf(model, task, setname, leaf_dir):
             rec["mpm_span"] = m["span"]
     rec["wer"] = parse_wer(wer_path)
     rec["wer_ci"] = parse_wer_ci(wer_path)
+    rec["tail50"] = parse_tail50(wer_path)
     sp = os.path.join(leaf_dir, "spk_simi_scores.txt")
     if os.path.isfile(sp): rec["spk"] = parse_spk(sp)
+    if model == "gt_zero_shot_voxblink" and not task:
+        # The GT leaf scores the prompt against the real target recording: that
+        # score IS the held-out ceiling, so there is no separate xutt file.
+        rec["spk_xutt"] = rec["spk"]
+    else:
+        xp = os.path.join(leaf_dir, "spk_simi_scores.xutt.txt")
+        if os.path.isfile(xp): rec["spk_xutt"] = parse_spk(xp)
     mup = os.path.join(leaf_dir, "msr_utmos_mean.txt")
     if os.path.isfile(mup): rec["msr_utmos"] = parse_msr_utmos(mup)
     mci = os.path.join(leaf_dir, "msr_utmos_ci.txt")
     if os.path.isfile(mci): rec["msr_utmos_ci"] = parse_msr_ci(mci)
-    pitch_path = os.path.join(leaf_dir, "ttsds_pitch.csv")
-    if os.path.isfile(pitch_path):
-        try:
-            with open(pitch_path, newline="") as f:
-                for row in csv.DictReader(f):
-                    if row.get("benchmark_name") == "Pitch" and row.get("score"):
-                        rec["ttsds_pitch"] = float(row["score"])
-                        break
-        except (OSError, TypeError, ValueError):
-            pass
+    rec.update(PROSODY.get((model, task, setname), {}))
     rp = os.path.join(leaf_dir, "wav_res_ref_text.wer.raw")
     if os.path.isfile(rp): rec["n"] = count_n(rp)
     return rec
@@ -358,19 +531,38 @@ def collect_all():
     records = []
     if not os.path.isdir(ROOT):
         return records
+    problems = []          # inputs that are not current ZTTS2-Eval <BENCHMARK_VERSION>
+    audited = set()
+
+    def audit(leaf_dir, lang):
+        if leaf_dir in audited:
+            return
+        audited.add(leaf_dir)
+        # leaf_problems() messages already name the offending file
+        problems.extend(leaf_problems(leaf_dir, lang))
+
     for model in sorted(os.listdir(ROOT)):
+        # whisper_* are ASR-comparison diagnostics (read directly by the reliability
+        # and coreset tools); `_*` are aggregate caches, not systems.
+        if model.startswith(("whisper_", "_")):
+            continue
         mdir = os.path.join(ROOT, model)
         if not os.path.isdir(mdir): continue
         for sub in sorted(os.listdir(mdir)):
             sdir = os.path.join(mdir, sub)
             if not os.path.isdir(sdir): continue
+            if (model, "", sub) in EXCLUDED:
+                continue
             rec = collect_leaf(model, "", sub, sdir)
             if rec is not None:
                 records.append(rec)
+                audit(sdir, sub)
                 continue
             for setname in sorted(os.listdir(sdir)):
                 tdir = os.path.join(sdir, setname)
                 if not os.path.isdir(tdir): continue
+                if (model, sub, setname) in EXCLUDED:
+                    continue
                 panel = PANELS.get(sub)
                 if panel is not None:
                     rec = collect_panel_leaf(model, sub, setname, tdir, panel)
@@ -378,6 +570,7 @@ def collect_all():
                     rec = collect_leaf(model, sub, setname, tdir)
                 if rec is not None:
                     records.append(rec)
+                    audit(tdir, setname)
 
     # Backfill every panel row that can be derived from the full source task.
     #
@@ -401,14 +594,18 @@ def collect_all():
         if not src:
             continue
         for model in sorted(os.listdir(ROOT)):
+            if model.startswith(("whisper_", "_")):
+                continue
             # nested results/<model>/<src>/<lang>/, or the baselines' flat
-            # results/<gt|whisper>_<src>/<lang>/ (their task lives in the dir name)
+            # results/gt_<src>/<lang>/ (their task lives in the dir name)
             base = os.path.join(ROOT, model, src)
-            flat = model in (f"gt_{src}", f"whisper_{src}")
+            flat = model == f"gt_{src}"
             if not flat and not os.path.isdir(base):
                 continue
             for setname in sorted(panel["w"]):
                 if (model, ptask, setname) in have:
+                    continue
+                if (model, "" if flat else src, setname) in EXCLUDED:
                     continue
                 ldir = os.path.join(ROOT, model, setname) if flat \
                     else os.path.join(base, setname)
@@ -426,9 +623,20 @@ def collect_all():
                     continue
                 rec["panel"]["backfilled"] = True
                 records.append(rec)
+                audit(ldir, setname)
     if thin:
         print(f"panel rows dropped, leaf covers < {MIN_PANEL_COVERAGE:.0%} of the "
               f"panel weight ({len(thin)}): {', '.join(sorted(thin))}")
+
+    problems.extend(stamp_problems())
+    if problems:
+        for p in problems:
+            print(p, file=sys.stderr)
+        sys.exit(f"build_results: {len(problems)} input(s) are not ZTTS2-Eval "
+                 f"{BENCHMARK_VERSION}; rescore (scripts/rescore_all.sh, "
+                 "slurm/submit_metrics.sh) or list the leaf in "
+                 "scripts/results_doc/excluded_leaves.txt")
+
     records.extend(panel_aggregates(records))
     for r in records:
         r.pop("_pieces", None)
@@ -474,20 +682,17 @@ def panel_aggregates(records):
                 partial.append(f"{model}/{task} ({len(have)}/{len(full)} langs)")
                 continue
             p0 = mrs[0]["panel"]
-            rec = {
-                "model": model, "task": task, "set": ALL_SET,
-                "wer": None, "wer_ci": None, "spk": None,
-                "msr_utmos": None, "msr_utmos_ci": None,
-                "ttsds_pitch": None, "mpm_span": None,
-                "n": sum(r["n"] or 0 for r in mrs),
-                "panel": {"kind": p0["kind"], "source_task": p0["source_task"],
-                          "selector": p0["selector"],
-                          "k": sum(r["panel"]["k"] for r in mrs),
-                          "coverage": round(sum(r["panel"]["coverage"] for r in mrs) / len(mrs), 4),
-                          "langs": len(mrs),
-                          # `run` only if every language was generated on the panel task
-                          "backfilled": any(r["panel"].get("backfilled") for r in mrs),
-                          "aggregate": True},
+            rec = new_rec(model, task, ALL_SET)
+            rec["n"] = sum(r["n"] or 0 for r in mrs)
+            rec["panel"] = {
+                "kind": p0["kind"], "source_task": p0["source_task"],
+                "selector": p0["selector"],
+                "k": sum(r["panel"]["k"] for r in mrs),
+                "coverage": round(sum(r["panel"]["coverage"] for r in mrs) / len(mrs), 4),
+                "langs": len(mrs),
+                # `run` only if every language was generated on the panel task
+                "backfilled": any(r["panel"].get("backfilled") for r in mrs),
+                "aggregate": True,
             }
 
             def macro(key, nd):
@@ -504,7 +709,9 @@ def panel_aggregates(records):
                 rec["wer"] = [raw, l50 if l50 is not None else raw, clipv]
                 if wlo is not None and clo is not None:
                     rec["wer_ci"] = [wlo, whi, clo, chi]
+            rec["tail50"] = macro("tail50", 3)[0]
             rec["spk"] = macro("spk", 3)[0]
+            rec["spk_xutt"] = macro("spk_xutt", 3)[0]
             msr, (mlo, mhi) = macro("msr_utmos", 4)
             rec["msr_utmos"] = msr
             if mlo is not None:

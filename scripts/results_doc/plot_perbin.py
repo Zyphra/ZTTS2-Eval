@@ -17,7 +17,7 @@ OUT = os.path.join(REPO_ROOT, "assets", "plots", "voxblink_perbin_heatmaps.png")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
 sys.path.insert(0, SCRIPT_DIR)
-from rd_common import ordered_langs, VOX_LANGS_EXCLUDED  # noqa: E402
+from rd_common import ordered_langs  # noqa: E402
 
 perbin = json.load(open(os.path.join(CACHE, "voxblink_perbin.json")))
 if not perbin:
@@ -26,10 +26,7 @@ if not perbin:
 # Bin count comes from the cache (build_perbin.py's N_BINS), not a hardcoded value.
 N_BINS = max((len(v) for v in perbin.values()), default=5)
 
-# `tl` excluded, matching RESULTS_CURRENT.md's aggregates (the ASR pipeline was
-# unreliable on its reference audio — see the excluded-langs callout there).
-VOX_LANGS = [l for l in ordered_langs({k.split("|", 1)[1] for k in perbin})
-             if l not in VOX_LANGS_EXCLUDED]
+VOX_LANGS = ordered_langs({k.split("|", 1)[1] for k in perbin})
 
 # One panel per model in the cache: gt first, then everything else in name order.
 _labels = sorted({k.split("|", 1)[0] for k in perbin},

@@ -2,45 +2,50 @@
 """Generate RESULTS_CURRENT.md from the JSON snapshot built by build_results.py.
 
 Model-agnostic: discovers whichever models are present in the snapshot (no
-hardcoded checkpoint list) and emits per-language metric tables for the two
-ZTTS2-Eval sets — zero_shot (FLEURS-R) and zero_shot_voxblink (VoxBlink2) — plus
-the retained distributional prosody readouts and DS-WED prosody diversity.
+hardcoded checkpoint list) and emits, for the two ZTTS2-Eval sets -- zero_shot
+(Clean, FLEURS-R, 35 languages) and zero_shot_voxblink (ITW, VoxBlink2, 20
+languages) -- a headline section (accuracy-vs-prosody figure plus one table per
+conditioning class), per-language metric tables, and the methodology notes.
+
+Every headline number is a macro over the task's frozen basket
+(utils/benchmark.py), defined only when the system covers every basket language
+(rd_common.macro); partial systems are listed separately, never ranked.
 
 Run `scripts/results_doc/build_results.py` first to (re)build the snapshot from a
 populated `results/` tree, or use `scripts/results_doc/run.sh` for the full chain.
 """
-import os, json
+import json
+import os
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-CACHE = os.path.join(SCRIPT_DIR, "_cache")
-
-ROOT = os.path.join(REPO_ROOT, "results")
 OUT = os.path.join(REPO_ROOT, "RESULTS_CURRENT.md")
-recs = json.load(open(os.path.join(CACHE, "results_snapshot.json")))
 
-# Index: (model, task, set) -> rec
-idx = {}
-for r in recs:
-    idx[(r["model"], r["task"], r["set"])] = r
-
-# Shared display-label map + conditioning classes — see scripts/results_doc/rd_common.py.
+sys.path.insert(0, REPO_ROOT)
+sys.path.insert(0, SCRIPT_DIR)
+from utils.benchmark import (  # noqa: E402
+    ASR_MODELS, BENCHMARK_VERSION, CLEAN_LANGS, ITW_LANGS, QWEN_LANGS, SPK_HUB_REF,
+    SPK_HUB_REPO, SPK_VARIANT, data_uids, langs_for)
+# Shared display-label map, conditioning classes, snapshot loader and macro rule.
 from rd_common import (  # noqa: E402
-    label, marked_label, condition, COND_LEGEND, ordered_langs,
-    VOX_LANGS_EXCLUDED)
+    COND_LEGEND, COND_MARKER, condition, index_records, label, load_snapshot,
+    macro, marked_label, n_covered, rec_value)
+
+CLEAN, ITW = "zero_shot", "zero_shot_voxblink"
+GT_NAME = {CLEAN: "gt_zero_shot", ITW: "gt_zero_shot_voxblink"}
+
+# Conditioning classes in headline order: title, marker.
+CLASS_ORDER = (
+    ("with-transcript", "with-transcript clones"),
+    ("no-transcript", f"no-transcript clones {COND_MARKER['no-transcript']}"),
+    ("x-vector", f"x-vector-only clones {COND_MARKER['x-vector']}"),
+    ("preset", f"preset voices {COND_MARKER['preset']} (not cloning the prompt)"),
+    ("unclassified", "unclassified (not in `rd_common.CONDITIONS`)"),
+)
 
 
-def _sort_key(m):
-    # gt_* last (reference rows), omni_* first, everything else in the middle.
-    bucket = 0 if m.startswith("omni_") else (2 if m.startswith("gt_") else 1)
-    return (bucket, label(m))
-
-
-def models_for(task):
-    """All models that have at least one row for `task`, in a stable order."""
-    return sorted({r["model"] for r in recs if r["task"] == task}, key=_sort_key)
-
-
+# --- formatting --------------------------------------------------------------
 def fmt(x, decimals=2, default="—"):
     if x is None:
         return default
@@ -66,145 +71,78 @@ def fmt_l50(rec, key="wer"):
     return "n/a" if v != v else f"{v:.2f}"
 
 
-def mean(xs):
-    xs = [x for x in xs if x is not None and x == x]
-    return sum(xs) / len(xs) if xs else None
+def _sort_key(m):
+    # gt_* last (reference rows), omni_* first, everything else in the middle.
+    bucket = 0 if m.startswith("omni_") else (2 if m.startswith("gt_") else 1)
+    return (bucket, label(m))
 
 
-ZS_LANGS = ["en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru"]
-# The VoxBlink language basket is discovered from the snapshot (model rows plus
-# the flat gt baseline rows) rather than hard-coded, so a newly scored language
-# enters the published tables on the next rebuild. `tl` is excluded from
-# aggregates (see the excluded-langs callout emitted at the end of section 5).
-VOX_LANGS_FULL = ordered_langs(
-    {r["set"] for r in recs if r["task"] == "zero_shot_voxblink"}
-    | {r["set"] for r in recs
-       if r["model"] == "gt_zero_shot_voxblink" and not r["task"]})
-VOX_LANGS = [l for l in VOX_LANGS_FULL if l not in VOX_LANGS_EXCLUDED]
-
-buf = []
-W = buf.append
+def models_for(recs, task):
+    """All non-baseline models that have at least one row for `task`, stable order."""
+    return sorted({r["model"] for r in recs if r["task"] == task}, key=_sort_key)
 
 
-def emit_table_header(first_col, cols):
-    W("| " + first_col + " | " + " | ".join(marked_label(m) for m in cols) + " |")
-    W("|---|" + "|".join(["--:"] * len(cols)) + "|")
+def cls_of(model):
+    cond = condition(model)
+    return cond[0] if cond else "unclassified"
 
 
-W("# ZTTS2-Eval — Current Results Snapshot\n")
-W("Regenerated from the `results/` directory tree by")
-W("`scripts/results_doc/run.sh`. Numbers are read directly from")
-W("`wav_res_ref_text.wer`, `spk_simi_scores.txt`, and `msr_utmos_mean.txt` in")
-W("every leaf directory. **WER_CLIP** (per-utt WER capped")
-W("at 100% before averaging) is the robust mean; raw WER and WER_L50 are also")
-W("tracked. Speaker similarity is cosine × 100 (ReDimNet); MSR-UTMOS is the MOS")
-W("predictor.\n")
-W("> **Comparability note (2026-08 audit + methodology review):** numbers in this")
-W("> snapshot are not directly comparable to earlier snapshots: zh WER shifts on")
-W("> rescore (the traditional→simplified fold is now applied to the reference text")
-W("> as well as the hypothesis), the VoxBlink aggregate basket grew from 17 to 21")
-W("> languages (nl, uk, vi added) and then shrank to 20 on 2026-08-29 when `yo`")
-W("> was removed outright — its transcripts are Nigerian English mislabeled by")
-W("> Whisper LID, not Yoruba (see RESULTS_VOXBLINK.md) — and the coreset win%")
-W("> direction was corrected in RESULTS_CORESET.md.\n")
+# --- headline columns ---------------------------------------------------------
+# (header, value fn(idx, model, task, langs) -> float | None, decimals)
+def _m(field):
+    return lambda idx, m, t, langs: macro(idx, m, t, field, langs)
 
-# --- 1. Coverage matrix -----------------------------------------------------
-W("## 1. Coverage matrix\n")
-W("| Model | zero_shot | voxblink |")
-W("|---|:-:|:-:|")
-all_models = sorted({r["model"] for r in recs}, key=_sort_key)
-for m in all_models:
-    def has(t, mm=m):
-        # Flat baselines (gt_*/whisper_*) encode their task in the dir name and
-        # carry task="" rows, so match them by name instead of by task field.
-        if mm in (f"gt_{t}", f"whisper_{t}"):
-            return True
-        return any(r["model"] == mm and r["task"] == t for r in recs)
-    zs = "✓" if has("zero_shot") else "—"
-    vox = "✓" if has("zero_shot_voxblink") else "—"
-    W(f"| `{label(m)}` | {zs} | {vox} |")
-W("")
 
-# --- 1b. Conditioning --------------------------------------------------------
-W("## 1b. Conditioning\n")
-W("The systems below are NOT all run under the same conditioning — what each one")
-W("is given alongside the target text is a harness policy that differs per")
-W("system (see `scripts/results_doc/rd_common.py:CONDITIONS` for the code")
-W("provenance). WER is strongly sensitive to it: `omnivoice` scores 34.2 avg WER")
-W("without the reference transcript vs 3.2 with it, on the same weights. Rows in")
-W("the ranking tables carry the class markers († ◇ ‡) so classes are never")
-W("compared undisclosed.\n")
-W("| Model | ref transcript? | cloning class | sampling/config |")
-W("|---|:-:|---|---|")
-_cond_classes = {
-    "with-transcript": "yes",
-    "no-transcript": "no",
-    "x-vector": "no",
-    "preset": "n/a",
+def _copy_gap(idx, m, t, langs):
+    p, h = macro(idx, m, t, "spk", langs), macro(idx, m, t, "spk_xutt", langs)
+    return None if p is None or h is None else p - h
+
+
+_PROSODY = [("Rhythm pace ×ceil", _m("rhythm_rate_x"), 2),
+            ("Rhythm pause ×ceil", _m("rhythm_x"), 2),
+            ("Pitch range ×ceil", _m("pitch_range_x"), 2)]
+HEADLINE_COLS = {
+    CLEAN: [("WER_CLIP", _m("wer"), 2), ("Tail >50%", _m("tail50"), 1),
+            ("SPK (prompt)", _m("spk"), 1), ("MSR-UTMOS", _m("msr_utmos"), 2)]
+           + _PROSODY + [("MPM span (Clean only)", _m("mpm_span"), 2)],
+    ITW: [("WER_CLIP", _m("wer"), 2), ("Tail >50%", _m("tail50"), 1),
+          ("SPK held-out", _m("spk_xutt"), 1), ("SPK prompt", _m("spk"), 1),
+          ("Copy gap (prompt − held-out)", _copy_gap, 1),
+          ("MSR-UTMOS", _m("msr_utmos"), 2)]
+         + _PROSODY + [("Dur |log2|", _m("paired_dur"), 2),
+                       ("Pause Δ", _m("paired_pause"), 2),
+                       ("Pitch-range |log2|", _m("paired_range"), 2)],
 }
-for m in all_models:
-    cond = condition(m)
-    if cond is None:
-        continue  # gt_*/whisper_* baselines: real speech, nothing is conditioned
-    cls, prov = cond
-    cls_disp = {"no-transcript": "no-transcript clone †",
-                "x-vector": "x-vector-only clone ◇",
-                "preset": "preset voice ‡",
-                "with-transcript": "with-transcript clone"}[cls]
-    W(f"| `{marked_label(m)}` | {_cond_classes[cls]} | {cls_disp} | {prov} |")
-W("")
-W("Seeding: `zonos2_*` runs are fixed-seed (0); vLLM-Omni-served systems pass no")
-W("seed or temperature (unseeded server-default sampling); native recipes note")
-W("their sampling defaults above.\n")
-
-# --- 2. Zero-shot WER -------------------------------------------------------
-zs_models = models_for("zero_shot")
-# GT anchor: the gt_zero_shot baseline rows carry task="" (flat dir), so
-# models_for() misses them — append explicitly; _sort_key buckets gt_* last.
-if "gt_zero_shot" not in zs_models and \
-        any(r["model"] == "gt_zero_shot" and not r["task"] for r in recs):
-    zs_models = sorted(zs_models + ["gt_zero_shot"], key=_sort_key)
 
 
-def _zs_task(m):
-    # The ground-truth reference rows are stored with an empty task string.
-    return "" if m == "gt_zero_shot" else "zero_shot"
-W("## 2. Zero-shot WER_CLIP %\n")
-emit_table_header("Lang", zs_models)
-for lang in ZS_LANGS:
-    row = [lang] + [fmt_wer(idx.get((m, _zs_task(m), lang))) for m in zs_models]
-    W("| " + " | ".join(row) + " |")
-avg_row = ["**avg**"]
-for m in zs_models:
-    vals = [idx[(m, _zs_task(m), l)]["wer"][2] for l in ZS_LANGS
-            if (m, _zs_task(m), l) in idx and idx[(m, _zs_task(m), l)]["wer"]]
-    a = mean(vals)
-    if a is None:
-        avg_row.append("—")
-    elif len(vals) < len(ZS_LANGS):
-        # Partial coverage: an average over fewer languages is a different
-        # quantity — annotate it so it is never read against the full-basket ones.
-        avg_row.append(f"**{a:.2f}** ({len(vals)}/{len(ZS_LANGS)})")
-    else:
-        avg_row.append(f"**{a:.2f}**")
-W("| " + " | ".join(avg_row) + " |")
-W("")
-W("Averages are over whichever of the 9 languages each model covers; partial")
-W("baskets are marked `(n/9)` and are not comparable to full-coverage averages.")
-W("The `gt (fleurs-r)` column is real speech scored by the same ASR — the")
-W("achievable WER floor. zh/ja/ko are char-tokenized, so their \"WER\" is a")
-W("CER and the `avg` column mixes WER and CER units.\n")
-W(COND_LEGEND + "\n")
+def _headline_row(idx, m, task, langs, cols, name=None):
+    cells = [fmt(fn(idx, m, task, langs), nd) for _h, fn, nd in cols]
+    return "| " + " | ".join([name or marked_label(m)] + cells) + " |"
 
-W("### Zero-shot WER_L50 % (mean of utts with WER < 50%, ignores catastrophic tail)\n")
-W("Caveat: when *every* utterance of a leaf is ≥50% WER, `utils/average_wer.py`")
-W("falls back to reporting L50 over the full set — so a cell can exceed 50 for a")
-W("model that collapsed on that language.\n")
-emit_table_header("Lang", zs_models)
-for lang in ZS_LANGS:
-    row = [lang] + [fmt_l50(idx.get((m, _zs_task(m), lang))) for m in zs_models]
-    W("| " + " | ".join(row) + " |")
-W("")
+
+def _headline_header(cols):
+    # `|` inside a header cell (e.g. "Dur |log2|") must be escaped or it splits the column.
+    heads = ["System"] + [h.replace("|", "\\|") for h, _f, _n in cols]
+    return ["| " + " | ".join(heads) + " |", "|---|" + "|".join(["--:"] * len(cols)) + "|"]
+
+
+def dedup_counts():
+    """{task: (n_before, n_after)} from data/near_duplicates_removed.json + data/, or None."""
+    try:
+        with open(os.path.join(REPO_ROOT, "data", "near_duplicates_removed.json"),
+                  encoding="utf-8") as f:
+            removed = json.load(f)["removed"]
+        out = {}
+        for task in (CLEAN, ITW):
+            n_rem = sum(len(v) for k, v in removed.items() if k.split("/", 1)[0] == task)
+            tdir = os.path.join(REPO_ROOT, "data", task)
+            n_now = sum(len(data_uids(task, l)) for l in sorted(os.listdir(tdir))
+                        if os.path.isfile(os.path.join(tdir, l, "text")))
+            out[task] = (n_now + n_rem, n_now, n_rem)
+        return out
+    except (OSError, ValueError, KeyError):
+        return None
+
 
 SPK_EMBEDDER_NOTE = (
     "> Speaker-similarity gaps below ~1 point are embedder-dependent: a held-out "
@@ -214,267 +152,356 @@ SPK_EMBEDDER_NOTE = (
     "docs/controls_2026-08.md."
 )
 
-# --- 3. Zero-shot speaker similarity ---------------------------------------
-W("## 3. Zero-shot speaker similarity (×100, higher better)\n")
-emit_table_header("Lang", zs_models)
-for lang in ZS_LANGS:
-    row = [lang] + [fmt((idx.get((m, _zs_task(m), lang)) or {}).get("spk"), 1) for m in zs_models]
-    W("| " + " | ".join(row) + " |")
-W("")
-_preset_labels = sorted(f"`{label(m)}`" for m in zs_models
-                        if (condition(m) or ("", ""))[0] == "preset")
-if _preset_labels:
-    W(f"> Preset-voice engines ({', '.join(_preset_labels)}) are not cloning the")
-    W("> prompt speaker, so their speaker-similarity cells are not a meaningful signal.")
-W(SPK_EMBEDDER_NOTE)
-W("> The `gt (fleurs-r)` column is a second real clip of the same speaker — the")
-W("> same-speaker ceiling this metric can reach.\n")
-W(COND_LEGEND + "\n")
 
-# --- 4. Zero-shot MSR-UTMOS -------------------------------------------------
-W("## 4. Zero-shot MSR-UTMOS (higher better)\n")
-W("MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for that leaf.\n")
-emit_table_header("Lang", zs_models)
-for lang in ZS_LANGS:
-    row = [lang] + [fmt((idx.get((m, _zs_task(m), lang)) or {}).get("msr_utmos"), 2) for m in zs_models]
-    W("| " + " | ".join(row) + " |")
-W("")
-W("The `gt (fleurs-r)` column is real speech: the MOS predictor's anchor, not a")
-W("ceiling models must beat — read model cells against it.\n")
-W(COND_LEGEND + "\n")
+def render(recs, dedup=None):
+    """RESULTS_CURRENT.md text for a snapshot (list of records)."""
+    idx = index_records(recs)
+    buf = []
+    W = buf.append
 
-# --- Distributional prosody --------------------------------------------------
-W("### Distributional prosody\n")
-W("The primary distribution-matching readouts are **characters/s distance**")
-W("(2-Wasserstein distance to the reference speaking-rate distribution; lower is")
-W("better) and **MPM span** (0 = real-speech split-half floor, 1 =")
-W("contour-scrambled floor; lower is better). Both are available in the explorer's")
-W("speaking-rate and prosody-overlap views.\n")
-W("TTSDS2 **Pitch** is retained as an interpretable auxiliary readout: it compares")
-W("the per-utterance mean-F0 distribution against real speech (0..100; higher is")
-W("closer). Mean F0 is speaker-dependent, so read Pitch alongside speaker")
-W("similarity rather than as an independent quality axis.\n")
+    def emit_table_header(first_col, cols):
+        W("| " + first_col + " | " + " | ".join(marked_label(m) for m in cols) + " |")
+        W("|---|" + "|".join(["--:"] * len(cols)) + "|")
 
+    def per_lang_table(models, task_of, langs, cell):
+        emit_table_header("Lang", models)
+        for lang in langs:
+            W("| " + " | ".join([lang] + [cell(idx.get((m, task_of(m), lang))) for m in models]) + " |")
 
-def _pitch_models(task):
-    pairs = [(m, task) for m in models_for(task)
-             if (idx.get((m, task, "en")) or {}).get("ttsds_pitch") is not None]
-    baseline = f"gt_{task}"
-    if (idx.get((baseline, "", "en")) or {}).get("ttsds_pitch") is not None:
-        pairs.insert(0, (baseline, ""))
-    return pairs
-
-
-def _pitch_table(task, heading):
-    pitch_models = _pitch_models(task)
-    if not pitch_models:
-        return
-    W(f"**{heading}**\n")
-    W("| metric | " + " | ".join(label(model) for model, _ in pitch_models) + " |")
-    W("|---|" + "|".join(["--:"] * len(pitch_models)) + "|")
-    values = [fmt(idx[(model, disk_task, "en")].get("ttsds_pitch"), 2)
-              for model, disk_task in pitch_models]
-    W("| Pitch | " + " | ".join(values) + " |")
-    W("")
-
-
-_pitch_table("zero_shot", "TTSDS2 Pitch — Zero-shot/en")
-_pitch_table("zero_shot_voxblink", "TTSDS2 Pitch — VoxBlink/en")
-W("Inspect the underlying mean-F0 distributions with")
-W("`scripts/plot_ttsds_pitch_ridgeline.py`; methodology is documented in")
-W("[`docs/ttsds_pitch.md`](docs/ttsds_pitch.md).\n")
-
-# --- DS-WED -----------------------------------------------------------------
-def _dswed_rows():
-    rows = []
-    if not os.path.isdir(ROOT):
-        return rows
-    for m in sorted(os.listdir(ROOT)):
-        p = os.path.join(ROOT, m, "dswed", "zero_shot", "en", "dswed_mean.txt")
-        if not os.path.isfile(p):
-            continue
-        d = {}
-        for line in open(p, errors="replace"):
-            if ":" in line:
-                k, _, v = line.partition(":")
-                d[k.strip()] = v.strip()
-        try:
-            rows.append({
-                "model": m,
-                "mean": float(d.get("DS-WED mean", "nan")),
-                "std": float(d.get("DS-WED std", "nan")),
-                "median": float(d["DS-WED median"]) if "DS-WED median" in d else None,
-                "p90": float(d["DS-WED p90"]) if "DS-WED p90" in d else None,
-                "n": d.get("n_uids", "—"),
-                "k": d.get("k_seeds", "—"),
-            })
-        except ValueError:
-            continue
-    rows.sort(key=lambda r: r["mean"], reverse=True)  # most diverse first
-    return rows
-
-
-_dsrows = _dswed_rows()
-if _dsrows:
-    # Heading + prose gated together with the table: no dswed leaf dirs -> no
-    # orphan heading claiming results that don't exist.
-    W("### Prosody diversity — DS-WED (multi-seed, zero_shot/en)\n")
-    W("Pairwise mean DS-WED (arXiv:2509.19928) across K seeds per (text, prompt):")
-    W("weighted edit distance over HuBERT k-means tokens of same-text generations.")
-    W("**Higher = more prosodic variation** seed-to-seed. Read from")
-    W("`results/<model>/dswed/zero_shot/en/dswed_mean.txt` (`utils/score_dswed.py`).\n")
-    W("| Model | DS-WED mean | median | p90 | std | n | K |")
-    W("|---|--:|--:|--:|--:|--:|--:|")
-    for r in _dsrows:
-        W(f"| `{label(r['model'])}` | {r['mean']:.1f} | "
-          f"{fmt(r['median'], 1)} | {fmt(r['p90'], 1)} | {r['std']:.1f} | {r['n']} | {r['k']} |")
-    W("")
-    W("Median/p90 are robust to the long right tail (DS-WED is unbounded).\n")
-    W("![DS-WED per-utterance distributions](assets/plots/dswed_distributions.png)\n")
-
-# --- 5. Voxblink ------------------------------------------------------------
-vox_models = models_for("zero_shot_voxblink")
-if "gt_zero_shot_voxblink" not in vox_models and \
-        any(r["model"] == "gt_zero_shot_voxblink" for r in recs):
-    vox_models = ["gt_zero_shot_voxblink"] + vox_models
-
-
-def _vox_task(m):
-    # The ground-truth reference rows are stored with an empty task string.
-    return "" if m == "gt_zero_shot_voxblink" else "zero_shot_voxblink"
-
-
-W(f"## 5. VoxBlink2 multilingual zero-shot ({len(VOX_LANGS)} langs)\n")
-W("Mean over the aggregate languages (lower WER better). Means are over")
-W("whichever of the aggregate languages each model covers — the `langs` column")
-W("says how many; partial baskets are not comparable to full-coverage means.\n")
-
-
-def _fmt_gt_tl_wer():
-    r = idx.get(("gt_zero_shot_voxblink", "", "tl"))
-    if r and r.get("wer"):
-        return f"{r['wer'][2]:.1f}%"
-    return "n/a"
-
-
-W(f"> **Pruned lang**: `{'`, `'.join(VOX_LANGS_EXCLUDED)}` excluded from aggregates —")
-W("> when the exclusion was made, GT-on-GT WER exceeded 20% under the pre-routing")
-W("> ASR setup, i.e. the ASR pipeline could not reliably transcribe the reference")
-W(f"> audio. The routed pipeline now scores gt/tl at {_fmt_gt_tl_wer()} WER_CLIP;")
-W("> the exclusion is retained pending revalidation. Raw numbers are in the")
-W("> callout at the end of this section.\n")
-W("| Model | mean WER_CLIP | mean spk | mean MSR-UTMOS | langs |")
-W("|---|--:|--:|--:|--:|")
-for m in vox_models:
-    task = _vox_task(m)
-    wer_v, spk_v, msr_v = [], [], []
-    for lang in VOX_LANGS:
-        r = idx.get((m, task, lang))
-        if not r:
-            continue
-        if r["wer"]: wer_v.append(r["wer"][2])
-        if r.get("spk") is not None: spk_v.append(r["spk"])
-        if r.get("msr_utmos") is not None: msr_v.append(r["msr_utmos"])
-    n_langs = max(len(wer_v), len(spk_v), len(msr_v))
-    W(f"| `{marked_label(m)}` | {fmt(mean(wer_v), 2)} | "
-      f"{fmt(mean(spk_v), 1)} | {fmt(mean(msr_v), 2)} | "
-      f"{n_langs}/{len(VOX_LANGS)} |")
-W("")
-W("The `gt (voxblink)` row is real in-the-wild speech: its WER is the ASR floor,")
-W("its spk is the same-speaker ceiling, and its MSR-UTMOS shows what the MOS")
-W("predictor gives genuine in-the-wild audio. zh/ja/ko/th are char-tokenized, so")
-W("their \"WER\" is a CER and the mean column mixes WER and CER units.\n")
-W(COND_LEGEND + "\n")
-
-
-def _vox_per_lang(title, field, key=None, decimals=2):
-    W(f"### Per-language {title}\n")
-    W("| lang | " + " | ".join(marked_label(m) for m in vox_models) + " |")
-    W("|---|" + "|".join(["--:"] * len(vox_models)) + "|")
-    for lang in VOX_LANGS:
-        row = [lang]
-        for m in vox_models:
-            r = idx.get((m, _vox_task(m), lang))
-            v = None
-            if r:
-                if field == "wer":
-                    if r.get("wer"): v = r["wer"][key]
-                else:
-                    v = r.get(field)
-            row.append(fmt(v, decimals))
+    def avg_row(models, task_of, task, langs):
+        row = ["**avg**"]
+        for m in models:
+            n = n_covered(idx, m, task, "wer", langs)
+            a = macro(idx, m, task, "wer", langs)
+            row.append("—" if n == 0 else f"**{a:.2f}**" if a is not None
+                       else f"partial ({n}/{len(langs)})")
         W("| " + " | ".join(row) + " |")
+
+    # --- header -------------------------------------------------------------
+    W("# ZTTS2-Eval — Current Results Snapshot\n")
+    W(f"Benchmark version {BENCHMARK_VERSION}\n")
+    W("Regenerated from the `results/` directory tree by")
+    W("`scripts/results_doc/run.sh`. Numbers are read directly from")
+    W("`wav_res_ref_text.wer`, `spk_simi_scores.txt`, `spk_simi_scores.xutt.txt` (ITW),")
+    W("`msr_utmos_mean.txt` and the rhythm / pitch-range / paired-ITW CSVs. **WER_CLIP**")
+    W("(per-utt WER capped at 100% before averaging) is the robust mean; raw WER, WER_L50")
+    W("and the tail rate (share of utterances above 50% WER) are also tracked. Speaker")
+    W("similarity is cosine × 100 (ReDimNet); MSR-UTMOS is the MOS predictor.\n")
+    W("> Scores are not comparable with ZTTS1-Eval.\n")
+    W("What the scores in this document reflect:\n")
+    asr_q, asr_w = ASR_MODELS["qwen"], ASR_MODELS["whisper"]
+    W(f"- per-language ASR routing, enforced: {', '.join(f'`{l}`' for l in sorted(QWEN_LANGS))} "
+      f"on `{asr_q[0]}@{asr_q[1][:7]}`, every other language on `{asr_w[0]}@{asr_w[1][:7]}`; "
+      "a leaf scored with any other ASR is refused by the build;")
+    W("- digits expanded to words on both reference and hypothesis before WER;")
+    if dedup:
+        c, i = dedup.get(CLEAN), dedup.get(ITW)
+        W("- prompt/target near-duplicates removed "
+          f"(Clean {c[2]} removed, {c[0]:,} → {c[1]:,}; "
+          f"ITW {i[2]} removed, {i[0]:,} → {i[1]:,}; "
+          "list in `data/near_duplicates_removed.json`);")
+    else:
+        W("- prompt/target near-duplicates removed (list in `data/near_duplicates_removed.json`);")
+    W(f"- all {len(ITW_LANGS)} ITW languages in the aggregates, including `tl`;")
+    W("- ITW speaker similarity against a held-out recording of the same speaker "
+      "(prompt similarity kept as a secondary column);")
+    W("- pitch measured as a register-normalized pitch-range distance.\n")
+
+    # --- 0. Headline ----------------------------------------------------------
+    W("## 0. Headline\n")
+    W("Macro = unweighted mean over the set's language basket "
+      f"({len(CLEAN_LANGS)} Clean, {len(ITW_LANGS)} ITW); a system is ranked only when it "
+      "covers every language of the basket. Within a class tables are sorted by name, "
+      "not by score: pick the axis you care about. **×ceil** columns are "
+      "distances divided by the real-speech split-half ceiling (1.0 = indistinguishable "
+      "from real speech, lower is better). The figure shows accuracy (x) against rhythm "
+      "pause factor (left) and pitch-range distance (right); bottom-left is best.\n")
+    for task, title, extra in (
+            (CLEAN, "Clean (FLEURS-R)", ""),
+            (ITW, "ITW (VoxBlink2, in the wild)",
+             " Speaker similarity is scored against a held-out recording of the same "
+             "speaker (**SPK held-out**); **SPK prompt** is similarity to the prompt, and "
+             "the **copy gap** is their difference — a large gap means the system "
+             "reproduces the prompt's channel rather than the speaker. **Dur**, **Pause "
+             "Δ** and **Pitch-range |log2|** are per-utterance paired medians against the "
+             "real recording (lower is better).")):
+        langs = langs_for(task)
+        cols = HEADLINE_COLS[task]
+        W(f"### {title}\n")
+        if extra:
+            W(extra.strip() + "\n")
+        W(f"![WER vs prosody, {title}](assets/plots/tradeoff_{task}.png)\n")
+        models = models_for(recs, task)
+        full = [m for m in models if n_covered(idx, m, task, "wer", langs) == len(langs)]
+        partial = [m for m in models if m not in full]
+
+        gt = GT_NAME[task]
+        if any(r["model"] == gt for r in recs):
+            W("**Real-speech reference**\n")
+            W("\n".join(_headline_header(cols)))
+            W(_headline_row(idx, gt, task, langs, cols))
+            W("")
+        for cls, heading in CLASS_ORDER:
+            members = sorted((m for m in full if cls_of(m) == cls), key=lambda m: label(m).lower())
+            if not members:
+                continue
+            W(f"**{heading}**\n")
+            W("\n".join(_headline_header(cols)))
+            for m in members:
+                W(_headline_row(idx, m, task, langs, cols))
+            W("")
+        if partial:
+            W("**Partial coverage — not comparable**\n")
+            W("Missing WER for at least one basket language; no macro value is shown.\n")
+            W("| System | Langs with WER | Missing |")
+            W("|---|--:|---|")
+            for m in sorted(partial, key=lambda m: label(m).lower()):
+                have = {l for l in langs if rec_value(idx.get((m, task, l)), "wer") is not None}
+                miss = [l for l in langs if l not in have]
+                W(f"| {marked_label(m)} | {len(have)}/{len(langs)} | "
+                  f"{', '.join(f'`{l}`' for l in miss) if len(miss) <= 12 else str(len(miss)) + ' languages'} |")
+            W("")
+        W(COND_LEGEND + "\n")
+    W("MPM span is reported for the Clean set only: its anchors collapse on "
+      "in-the-wild audio (`docs/mpm_itw_limits.md`).\n")
+
+    # --- 1. Coverage matrix ----------------------------------------------------
+    W("## 1. Coverage matrix\n")
+    W("| Model | zero_shot | voxblink |")
+    W("|---|:-:|:-:|")
+    all_models = sorted({r["model"] for r in recs}, key=_sort_key)
+    for m in all_models:
+        def has(t, mm=m):
+            # Flat baselines (gt_*/whisper_*) encode their task in the dir name and
+            # carry task="" rows, so match them by name instead of by task field.
+            if mm in (f"gt_{t}", f"whisper_{t}"):
+                return True
+            return any(r["model"] == mm and r["task"] == t for r in recs)
+        zs = "✓" if has(CLEAN) else "—"
+        vox = "✓" if has(ITW) else "—"
+        W(f"| `{label(m)}` | {zs} | {vox} |")
     W("")
 
+    # --- 1b. Conditioning ------------------------------------------------------
+    W("## 1b. Conditioning\n")
+    W("The systems below are NOT all run under the same conditioning — what each one")
+    W("is given alongside the target text is a harness policy that differs per")
+    W("system (see `scripts/results_doc/rd_common.py:CONDITIONS` for the code")
+    W("provenance). WER is strongly sensitive to it: `omnivoice` scores 34.2 avg WER")
+    W("without the reference transcript vs 3.2 with it, on the same weights. Rows in")
+    W("the ranking tables carry the class markers († ◇ ‡) so classes are never")
+    W("compared undisclosed.\n")
+    W("| Model | ref transcript? | cloning class | sampling/config |")
+    W("|---|:-:|---|---|")
+    cond_classes = {
+        "with-transcript": "yes",
+        "no-transcript": "no",
+        "x-vector": "no",
+        "preset": "n/a",
+    }
+    for m in all_models:
+        cond = condition(m)
+        if cond is None:
+            continue  # gt_*/whisper_* baselines: real speech, nothing is conditioned
+        cls, prov = cond
+        cls_disp = {"no-transcript": "no-transcript clone †",
+                    "x-vector": "x-vector-only clone ◇",
+                    "preset": "preset voice ‡",
+                    "with-transcript": "with-transcript clone"}[cls]
+        W(f"| `{marked_label(m)}` | {cond_classes[cls]} | {cls_disp} | {prov} |")
+    W("")
+    W("Seeding: `zonos2_*` runs are fixed-seed (0); vLLM-Omni-served systems pass no")
+    W("seed or temperature (unseeded server-default sampling); native recipes note")
+    W("their sampling defaults above.\n")
 
-_vox_per_lang("WER_CLIP", "wer", key=2)
-_vox_per_lang("WER_L50", "wer", key=1)
-_vox_per_lang("speaker similarity (×100)", "spk", decimals=1)
-W(SPK_EMBEDDER_NOTE + "\n")
-_vox_per_lang("MSR-UTMOS (blank = not computed)", "msr_utmos", decimals=2)
+    # --- 2. Clean WER ------------------------------------------------------------
+    zs_models = models_for(recs, CLEAN)
+    # GT anchor: the gt_zero_shot baseline rows carry task="" (flat dir), so
+    # models_for() misses them — append explicitly; _sort_key buckets gt_* last.
+    if GT_NAME[CLEAN] not in zs_models and \
+            any(r["model"] == GT_NAME[CLEAN] and not r["task"] for r in recs):
+        zs_models = sorted(zs_models + [GT_NAME[CLEAN]], key=_sort_key)
 
-W("### Per-bin / per-length analysis\n")
-W("Per-MSR-UTMOS-bin WER_CLIP heatmaps (rows = languages, columns = MSR-UTMOS")
-W("quality bins, worst→best source audio):\n")
-W("![Voxblink per-bin WER_CLIP heatmaps](assets/plots/voxblink_perbin_heatmaps.png)\n")
-W("Same WER_CLIP bucketed by REF text-length quantiles per language:\n")
-W("![Voxblink per-text-length WER_CLIP heatmaps](assets/plots/voxblink_perlen_heatmaps.png)\n")
-W("Per-length on controlled content (`zero_shot`) vs in-the-wild (`voxblink`):\n")
-W("![Per-length: voxblink vs zero_shot](assets/plots/perlen_zeroshot_vs_voxblink.png)\n")
+    def zs_task(m):
+        # The ground-truth reference rows are stored with an empty task string.
+        return "" if m == GT_NAME[CLEAN] else CLEAN
 
-# --- Excluded-langs callout ----
-W("### Excluded-langs callout: `" + "`, `".join(VOX_LANGS_EXCLUDED) + "` (informational, not in aggregates)\n")
-W("Retained so the pruning decision is auditable. The exclusion reflects the ASR")
-W("pipeline's historical unreliability on the reference audio (not the TTS")
-W("models); compare the gt row here against the model rows before reading them.\n")
-W("| Model | " + " | ".join(VOX_LANGS_EXCLUDED) + " |")
-W("|---|" + "|".join(["--:"] * len(VOX_LANGS_EXCLUDED)) + "|")
-for m in vox_models:
-    row = [f"`{marked_label(m)}`"]
-    for lang in VOX_LANGS_EXCLUDED:
-        r = idx.get((m, _vox_task(m), lang))
-        v = None
-        if r and r.get("wer"):
-            v = r["wer"][2]
-        row.append(fmt(v, 2))
-    W("| " + " | ".join(row) + " |")
-W("")
+    n_clean = len(CLEAN_LANGS)
+    W(f"## 2. Zero-shot WER_CLIP % ({n_clean} languages)\n")
+    per_lang_table(zs_models, zs_task, CLEAN_LANGS, fmt_wer)
+    avg_row(zs_models, zs_task, CLEAN, CLEAN_LANGS)
+    W("")
+    W(f"The avg row is shown only for systems that cover all {n_clean} languages;")
+    W(f"others read `partial (n/{n_clean})` and are not comparable to full-coverage averages.")
+    W("The `gt (fleurs-r)` column is real speech scored by the same ASR — the")
+    W("achievable WER floor. zh/ja/ko/th are char-tokenized, so their \"WER\" is a")
+    W("CER and the `avg` column mixes WER and CER units.\n")
+    W(COND_LEGEND + "\n")
 
-# --- Methodology ------------------------------------------------------------
-W("## 6. Methodology notes\n")
-W("- **WER_CLIP** caps per-utterance WER at 100% before averaging — a robust mean")
-W("  insensitive to runaway hallucinations. `WER` (raw) and `WER_L50` (mean of")
-W("  utts <50% WER) live in the `.wer` summary line alongside it.")
-W("- **Unscoreable generations count as maximum error** (WER_CLIP 100) since")
-W("  2026-09-01, rather than dropping out of the mean — otherwise a leaf mean is a")
-W("  survivor mean and the most degenerate output is the output that disappears from")
-W("  its own score. Each leaf's `.wer` footer reports `N_TRANSCRIBED:`/`N_IMPUTED:`")
-W("  so the imputed share is always visible, and `assets/coreset/systems_*.csv`")
-W("  carries it per system. The unscored utterances were re-measured before the")
-W("  switch, not assumed: 43% of them transcribed on the retry. WER published")
-W("  before that date is not comparable on an affected leaf —")
-W("  see `docs/unscoreable_2026-09.md`.")
-W("- **WER prep** is minimal and applied identically to REF and HYP: apostrophes")
-W("  deleted, lowercase + Unicode punctuation strip; zh/ja/ko/th scored as CER")
-W("  (`utils/run_wer.py`).")
-W("- **Speaker similarity** = cosine × 100, ReDimNet (`PalabraAI/redimnet2`).")
-W("- **MSR-UTMOS** = sarulab-speech MSR-UTMOS (SFI HuBERT) MOS predictor.")
-W("- **Characters/s distance** = 2-Wasserstein distance between generated and")
-W("  reference speaking-rate distributions (`scripts/speaking_rate_dist.py`); lower is better.")
-W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
-W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`).")
-W("- **TTSDS2 Pitch** = normalized mean-F0 distribution similarity")
-W("  (`utils/score_ttsds_pitch.py`); interpret alongside speaker similarity.")
-W("- **DS-WED** = multi-seed prosody diversity over HuBERT k-means tokens")
-W("  (`utils/score_dswed.py`); higher = more seed-to-seed variation.")
-W("- ASR is Qwen3-ASR served via vLLM (`scripts/serve_asr.sh`).")
-W("- **Reliability gallery** — per-language edit-distance survival/tail plates for")
-W("  the GT baselines: [`assets/reliability_gallery.html`](assets/reliability_gallery.html)")
-W("  (`scripts/run_reliability.sh`).")
-W("- Empty cells (`—`) = test set not run for that model, or score file missing.")
-W("- Refresh by re-running `scripts/results_doc/run.sh` (or just `gen_md.py` if")
-W("  only the markdown layout changed).")
-W("")
+    W("### Zero-shot WER_L50 % (mean of utts with WER < 50%, ignores catastrophic tail)\n")
+    W("Caveat: when *every* utterance of a leaf is ≥50% WER, `utils/average_wer.py`")
+    W("falls back to reporting L50 over the full set — so a cell can exceed 50 for a")
+    W("model that collapsed on that language. The catastrophic tail itself is the")
+    W("**Tail >50%** column of §0.\n")
+    per_lang_table(zs_models, zs_task, CLEAN_LANGS, fmt_l50)
+    W("")
 
-with open(OUT, "w") as f:
-    f.write("\n".join(buf))
-print(f"Wrote {OUT} ({sum(len(b) for b in buf)} chars, {len(buf)} lines)")
+    # --- 3. Clean speaker similarity --------------------------------------------
+    W("## 3. Zero-shot speaker similarity (×100, higher better)\n")
+    per_lang_table(zs_models, zs_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "spk"), 1))
+    W("")
+    preset_labels = sorted(f"`{label(m)}`" for m in zs_models
+                           if (condition(m) or ("", ""))[0] == "preset")
+    if preset_labels:
+        W(f"> Preset-voice engines ({', '.join(preset_labels)}) are not cloning the")
+        W("> prompt speaker, so their speaker-similarity cells are not a meaningful signal.")
+    W(SPK_EMBEDDER_NOTE + "\n")
+    W(COND_LEGEND + "\n")
+
+    # --- 4. Clean MSR-UTMOS ------------------------------------------------------
+    W("## 4. Zero-shot MSR-UTMOS (higher better)\n")
+    W("MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for that leaf.\n")
+    per_lang_table(zs_models, zs_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "msr_utmos"), 2))
+    W("")
+    W("The `gt (fleurs-r)` column is real speech: the MOS predictor's anchor, not a")
+    W("ceiling models must beat — read model cells against it.\n")
+    W(COND_LEGEND + "\n")
+
+    # --- Prosody --------------------------------------------------------------------
+    W("### Prosody\n")
+    W("Prosody is read on four axes; all distances are to real speech, normalised by")
+    W("the real-speech split-half ceiling (×ceil: 1.0 = as close as two halves of real")
+    W("speech are to each other).\n")
+    W("- **Rhythm** — distance between the generated and real rhythm distributions in")
+    W("  mHuBERT space, reported as two factors: *pace* (speaking-rate distribution) and")
+    W("  *pause* (burstiness: pause and stall structure). Method and ceiling:")
+    W("  [`docs/rhythm.md`](docs/rhythm.md).")
+    W("- **Pitch range** — register-normalized: each utterance's F0 contour is expressed")
+    W("  in semitones around its own median and summarised by its p90−p10 range, so the")
+    W("  speaker's absolute register drops out and only expressiveness remains. Method:")
+    W("  [`docs/pitch_range.md`](docs/pitch_range.md).")
+    W("- **Characters/s** — 2-Wasserstein distance to the reference speaking-rate")
+    W("  distribution (explorer speaking-rate view).")
+    W("- **MPM span: Clean set only — anchors collapse on in-the-wild audio "
+      "(docs/mpm_itw_limits.md); values >1 are worse than contour-scrambled speech.** "
+      "0 = real-speech split-half floor, 1 = contour-scrambled floor.\n")
+    W("On the ITW set the real target recording exists for every item, so prosody is also")
+    W("measured *paired* per utterance (duration ratio, pause-count difference, pitch-range")
+    W("ratio against the target): the **Dur**, **Pause Δ** and **Pitch-range |log2|**")
+    W("columns of §0.\n")
+
+    # --- 5. ITW -----------------------------------------------------------------------
+    vox_models = models_for(recs, ITW)
+    if GT_NAME[ITW] not in vox_models and any(r["model"] == GT_NAME[ITW] for r in recs):
+        vox_models = [GT_NAME[ITW]] + vox_models
+
+    def vox_task(m):
+        # The ground-truth reference rows are stored with an empty task string.
+        return "" if m == GT_NAME[ITW] else ITW
+
+    def vox_per_lang(title, cell):
+        W(f"### Per-language {title}\n")
+        W("| lang | " + " | ".join(marked_label(m) for m in vox_models) + " |")
+        W("|---|" + "|".join(["--:"] * len(vox_models)) + "|")
+        for lang in ITW_LANGS:
+            W("| " + " | ".join([lang] + [cell(idx.get((m, vox_task(m), lang)))
+                                          for m in vox_models]) + " |")
+        W("")
+
+    W(f"## 5. VoxBlink2 multilingual zero-shot ({len(ITW_LANGS)} languages)\n")
+    W("Aggregates are in §0. The `gt (voxblink)` row is real in-the-wild speech: its WER")
+    W("is the ASR floor, its speaker similarity is the prompt scored against the real")
+    W("target recording (the same-speaker ceiling that **SPK held-out** is read against),")
+    W("and its MSR-UTMOS shows what the MOS predictor gives genuine in-the-wild audio.")
+    W("zh/ja/ko/th are char-tokenized, so their \"WER\" is a CER.\n")
+    vox_per_lang("WER_CLIP", fmt_wer)
+    vox_per_lang("WER_L50", fmt_l50)
+    vox_per_lang("speaker similarity, held-out recording (×100)",
+                 lambda r: fmt(rec_value(r, "spk_xutt"), 1))
+    vox_per_lang("speaker similarity, prompt (×100)", lambda r: fmt(rec_value(r, "spk"), 1))
+    W(SPK_EMBEDDER_NOTE + "\n")
+    vox_per_lang("MSR-UTMOS (blank = not computed)", lambda r: fmt(rec_value(r, "msr_utmos"), 2))
+    W(COND_LEGEND + "\n")
+
+    W("### Per-bin / per-length analysis\n")
+    W("Per-MSR-UTMOS-bin WER_CLIP heatmaps (rows = languages, columns = MSR-UTMOS")
+    W("quality bins, worst→best source audio):\n")
+    W("![Voxblink per-bin WER_CLIP heatmaps](assets/plots/voxblink_perbin_heatmaps.png)\n")
+    W("Same WER_CLIP bucketed by REF text-length quantiles per language:\n")
+    W("![Voxblink per-text-length WER_CLIP heatmaps](assets/plots/voxblink_perlen_heatmaps.png)\n")
+    W("Per-length on controlled content (`zero_shot`) vs in-the-wild (`voxblink`):\n")
+    W("![Per-length: voxblink vs zero_shot](assets/plots/perlen_zeroshot_vs_voxblink.png)\n")
+
+    # --- 6. Methodology ----------------------------------------------------------------
+    qwen_l = ", ".join(sorted(QWEN_LANGS))
+    W("## 6. Methodology notes\n")
+    W("- **WER_CLIP** caps per-utterance WER at 100% before averaging — a robust mean")
+    W("  insensitive to runaway hallucinations. `WER` (raw) and `WER_L50` (mean of")
+    W("  utts <50% WER) live in the `.wer` summary line alongside it.")
+    W("- **Tail >50%** is the share of utterances with WER above 50% (`WER_TAIL50:`")
+    W("  footer): the catastrophic-failure rate that the mean hides.")
+    W("- **Confidence intervals** on WER are sentence-clustered bootstraps: repeated")
+    W("  FLEURS sentences (the same text read by several speakers) resample together.")
+    W("- **Unscoreable generations count as maximum error** (WER_CLIP 100), rather than")
+    W("  dropping out of the mean — otherwise a leaf mean is a survivor mean and the")
+    W("  most degenerate output is the output that disappears from its own score. Each")
+    W("  leaf's `.wer` footer reports `N_TRANSCRIBED:`/`N_IMPUTED:` so the imputed share")
+    W("  is always visible; see `docs/unscoreable_2026-09.md`.")
+    W("- **WER prep** is applied identically to REF and HYP: apostrophes deleted,")
+    W("  lowercase, Unicode punctuation strip, and digits expanded to words with")
+    W("  `num2words` (languages without a `num2words` converter keep their digits —")
+    W("  `utils/text_norm.py:NUM2WORDS_LANGS`); zh/ja/ko/th scored as CER")
+    W("  (`utils/run_wer.py`).")
+    W(f"- **ASR** is routed per language and the routing is enforced: {qwen_l} use")
+    W(f"  `{asr_q[0]}` (revision `{asr_q[1]}`); every other language uses")
+    W(f"  `{asr_w[0]}` (revision `{asr_w[1]}`). Both are served via vLLM")
+    W("  (`scripts/serve_asr.sh`). Revisions, language baskets and the version stamp")
+    W("  live in `utils/benchmark.py`; every score file carries")
+    W(f"  `BENCHMARK_VERSION: {BENCHMARK_VERSION}` and its scorer pin, and `build_results.py`")
+    W("  refuses any input whose stamp does not match.")
+    W(f"- **Speaker similarity** = cosine × 100, ReDimNet (`{SPK_HUB_REPO}` @")
+    W(f"  `{SPK_HUB_REF[:7]}`, `{'/'.join(SPK_VARIANT)}`). On the Clean set the reference is the")
+    W("  prompt. On ITW the primary score (**SPK held-out**) is against a held-out")
+    W("  recording of the same speaker (`target_wav/`); the prompt similarity is kept as")
+    W("  **SPK prompt**, and **copy gap** = prompt − held-out.")
+    W("- **MSR-UTMOS** = sarulab-speech MSR-UTMOS (SFI HuBERT) MOS predictor, pinned")
+    W("  checkpoint (`MSR_UTMOS_CKPT`).")
+    W("- **Rhythm** = distance of the generated rhythm distribution (mHuBERT-147 features)")
+    W("  to real speech, as pace and pause factors in units of the real-speech split-half")
+    W("  ceiling (`scripts/rhythm_dist.py`, `docs/rhythm.md`); lower is better.")
+    W("- **Pitch range** = 2-Wasserstein distance between the per-utterance p90−p10")
+    W("  semitone-range distributions of generated and real speech, in units of the")
+    W("  split-half ceiling, on a fixed 500-utterance sample per language")
+    W("  (`scripts/pitch_range_dist.py`, `docs/pitch_range.md`).")
+    W("- **Paired ITW prosody** = per-utterance median |log2| duration ratio, mean absolute")
+    W("  pause-count difference and median |log2| pitch-range ratio of each generation")
+    W("  against the real target recording (`scripts/paired_itw.py`); ITW only.")
+    W("- **Characters/s distance** = 2-Wasserstein distance between generated and")
+    W("  reference speaking-rate distributions (`scripts/speaking_rate_dist.py`); lower is better.")
+    W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
+    W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`). Clean")
+    W("  set only — anchors collapse on in-the-wild audio (`docs/mpm_itw_limits.md`);")
+    W("  values >1 are worse than contour-scrambled speech.")
+    W("- **Reliability gallery** — per-language edit-distance survival/tail plates for")
+    W("  the GT baselines: [`assets/reliability_gallery.html`](assets/reliability_gallery.html)")
+    W("  (`scripts/run_reliability.sh`).")
+    W("- Empty cells (`—`) = test set not run for that model, or score file missing.")
+    W("- Refresh by re-running `scripts/results_doc/run.sh` (or just `gen_md.py` if")
+    W("  only the markdown layout changed).")
+    W("")
+    return "\n".join(buf)
+
+
+def main():
+    try:
+        recs = load_snapshot()
+    except OSError:
+        sys.exit("gen_md: results_snapshot.json missing -- run build_results.py first")
+    text = render(recs, dedup_counts())
+    with open(OUT, "w") as f:
+        f.write(text)
+    print(f"Wrote {OUT} ({len(text)} chars, {text.count(chr(10)) + 1} lines)")
+
+
+if __name__ == "__main__":
+    main()

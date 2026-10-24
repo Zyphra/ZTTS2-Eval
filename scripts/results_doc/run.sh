@@ -37,8 +37,8 @@ echo "[plot_perlen_mean]  voxblink cross-lang mean curves (simple+weighted)"
 $PY plot_perlen_mean.py
 echo "[plot_perlen_zeroshot] voxblink vs zero_shot side-by-side"
 $PY plot_perlen_zeroshot.py
-echo "[plot_dswed_dists]  DS-WED per-utt distribution (KDE + boxplot)"
-$PY "$REPO_ROOT/scripts/plot_dswed_dists.py"
+echo "[plot_tradeoff]     WER vs rhythm / pitch-range tradeoff plots"
+$PY plot_tradeoff.py
 echo "[gen_md]            write RESULTS_CURRENT.md"
 $PY gen_md.py
 echo "[run_reliability]   reliability plates + gallery from GT .wer.raw"
