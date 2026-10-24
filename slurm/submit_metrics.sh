@@ -6,7 +6,9 @@
 #   pitch_range  register-normalized pitch range (both sets, CPU); on the ITW set the
 #                same job also runs scripts/paired_itw.py so the shared pitch caches
 #                never race
-# Packs efficiently: CPU arrays share the node while MPM/rhythm use one GPU each. A
+# Walltimes stay <= 10 h: single-node jobs with < 5 GPUs are capped at that on the dev
+# partition at the site this was run on (job_submit policy), and 10 h also fits every
+# array element measured so far (MPM ~1-5 h). Packs efficiently: CPU arrays share the node while MPM/rhythm use one GPU each. A
 # dependent finalizer merges and publishes all outputs.
 #
 # Environment (all optional; unset = today's standalone behaviour):
@@ -112,9 +114,9 @@ for kind in ${kinds}; do
     case "${kind}" in
         speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
                      jobs+=("${speaking_job}") ;;
-        mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 24:00:00 1)
+        mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 10:00:00 1)
                      jobs+=("${mpm_job}") ;;
-        rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 12:00:00 1)
+        rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 10:00:00 1)
                      jobs+=("${rhythm_job}") ;;
         pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
                      jobs+=("${pitch_range_job}") ;;

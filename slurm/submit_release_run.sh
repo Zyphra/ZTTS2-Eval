@@ -48,7 +48,7 @@ if [ "${skip_targets}" != "1" ]; then
         --wrap ".venv/bin/python scripts/build_voxblink_targets.py --import-from results/gt_zero_shot_voxblink")
     if [ -n "${HF_TOKEN:-}" ]; then
         J_hf=$(sb --job-name=ztts-hf-upload --dependency="afterok:${J_tg}" \
-            --cpus-per-task=8 --mem=32G --time=12:00:00 \
+            --cpus-per-task=8 --mem=32G --time=10:00:00 \
             --wrap ".venv/bin/python scripts/upload_release_data.py")
     else
         echo "HF upload skipped: HF_TOKEN unset"
@@ -78,7 +78,7 @@ if [ -z "${J_m}" ] || [ -z "${J_g}" ]; then
 fi
 
 J_fin=$(sb --job-name=ztts-release-build --dependency="afterok:${J_m}:${J_g}" \
-    --cpus-per-task=112 --mem=400G --time=12:00:00 \
+    --cpus-per-task=112 --mem=400G --time=10:00:00 \
     --wrap "bash scripts/results_doc/run.sh && .venv/bin/python scripts/coreset/gen_results_md.py > RESULTS_CORESET.md.tmp && mv RESULTS_CORESET.md.tmp RESULTS_CORESET.md")
 
 cat > "${run_dir}/jobs.env" <<EOF
