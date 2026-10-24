@@ -320,7 +320,7 @@ class PerUidParserTest(unittest.TestCase):
 
     def test_wer_clip_matches_average_wer(self):
         from utils.per_uid import wer_clip
-        # average_wer.py:54 -- min(wer, 1.0), then x100 at aggregation time.
+        # average_wer.py:118 -- min(wer, 1.0); x100 at aggregation time (average_wer.py:131).
         self.assertAlmostEqual(wer_clip(0.25), 25.0)
         self.assertAlmostEqual(wer_clip(1.5), 100.0)
 

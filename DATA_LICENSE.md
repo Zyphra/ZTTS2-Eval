@@ -1,7 +1,7 @@
 # Data licensing
 
 The **code** in this repository is licensed under Apache-2.0 (see [`LICENSE`](LICENSE)).
-The **audio and text data** under `data/` (and the prompt audio published as the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval)) are *not* covered by that license — each source dataset carries its own terms, summarized below. By using these data you agree to the upstream licenses.
+The **audio and text data** under `data/` (and the prompt audio and held-out target recordings published as the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval)) are *not* covered by that license — each source dataset carries its own terms, summarized below. By using these data you agree to the upstream licenses.
 
 > **At a glance:** the FLEURS-R–derived set is CC-BY-4.0; the VoxBlink2-derived
 > set is **CC-BY-NC-SA 4.0 (non-commercial)** and is sourced from YouTube. If you
@@ -32,6 +32,12 @@ speaker-recognition corpus of YouTube-derived clips.
   rebuilt from your own VoxBlink2 copy via `scripts/prepare_voxblink2_eval_stage_a.py`
   and `scripts/prepare_voxblink2_eval_stage_b.py` (see the README). For takedown or
   privacy requests, contact the VoxBlink2 maintainers (see their site).
+- **Target recordings:** `data/zero_shot_voxblink/<lang>/target_wav/` holds, for each
+  item, the real recording behind the target text (same speaker as the prompt, a
+  different video). They are cut from the same VoxBlink2 clips and ship on
+  `Zyphra/ZTTS2-Eval` as the reference for the held-out speaker-similarity score;
+  they carry the same **CC-BY-NC-SA 4.0** terms, non-commercial use only. The
+  `target_wav.scp` / `target_provenance.json` index files are metadata only.
 - **Attribution:** Lin et al., *VoxBlink2: A 100K+ Speaker Recognition Corpus and
   the Open-Set Speaker-Identification Benchmark*, Interspeech 2024.
 

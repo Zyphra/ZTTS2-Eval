@@ -26,8 +26,14 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   snapshot, resolved live-first then published (see [Sharing](#sharing)) —
   `results_snapshot.json`, `voxblink_perbin.json`, `voxblink_bin_counts.json`,
   `reliability.json`, `speaking_rate.json`, `mpm_dist.json`, and `panels.json`
-  (coreset panel provenance). The board exposes the retained TTSDS2 Pitch score
-  from `ttsds_pitch.csv`.
+  (coreset panel provenance). The board columns are WER, tail rate (`Tail>50%`,
+  from `WER_TAIL50`), speaker similarity — **SPK held-out** (ITW, against the real
+  recording; `spk_simi_scores.xutt.txt`) and **SPK prompt** (`spk_simi_scores.txt`) —
+  MSR-UTMOS, **MPM (Clean only)**, the rhythm **pace** and **pause** factors and the
+  **pitch range** factor (each as a multiple of the real-speech split-half ceiling,
+  from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`), and, on the
+  In-The-Wild set, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
+  `Range |log2|`, from `paired_itw_<lang>.csv`).
 - **Reliability views** are the interactive twins of the `scripts/tufte_*` plates
   (p99 + bootstrap CI, survival overlay, small multiples, slopegraph), rendered as
   native OWID-styled SVG from `reliability.json` — built by

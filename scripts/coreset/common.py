@@ -2,8 +2,8 @@
 
 The one thing every stage here must agree on is **the estimator**, so it lives in a
 single place. ZTTS2-Eval's published score is a per-language mean over utterances
-(utils/average_wer.py:63-66) followed by an *unweighted macro-average over languages*
-(scripts/results_doc/gen_md.py:146-152):
+(`wers_clip` in utils/average_wer.py) followed by an *unweighted macro-average over languages*
+(`macro` in scripts/results_doc/rd_common.py):
 
     S_m = (1/|L|) * sum_l  (1/N_l) * sum_{i in l} y_mi
 

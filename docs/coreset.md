@@ -1,16 +1,31 @@
 # Coreset panels — running ZTTS2-Eval at 1/10th the cost
 
-Running ZTTS2-Eval in full means 57,388 generations on the Clean set (FLEURS-R, 35
-languages) and 17,319 on the In-The-Wild set (VoxBlink2, 20 languages), before scoring.
+Running ZTTS2-Eval in full means 57,366 generations on the Clean set (FLEURS-R, 35
+languages) and 17,155 on the In-The-Wild set (VoxBlink2, 20 languages), before scoring.
 This document describes four smaller **panels** that estimate the same numbers, how they
 were selected, how accurate they actually are, and — importantly — what they cannot do.
 
 | Panel | Task name | Items | vs full set | Purpose |
 |---|---|--:|--:|---|
 | Clean Mini | `zero_shot_mini` | 3,500 | 16× | estimate the full Clean score |
-| ITW Mini | `zero_shot_voxblink_mini` | 2,000 | 8.7× | estimate the full In-The-Wild score |
+| ITW Mini | `zero_shot_voxblink_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
 | Clean Delta | `zero_shot_delta` | 200 | 287× | detect a change between two checkpoints |
-| ITW Delta | `zero_shot_voxblink_delta` | 200 | 87× | detect a change between two checkpoints |
+| ITW Delta | `zero_shot_voxblink_delta` | 192 | 89× | detect a change between two checkpoints |
+
+> **After the near-duplicate filter.** The ITW panels were selected at k = 2,000 / 200
+> and exported at 1,941 / 194 items (`k_actual`). Removing the prompt/target
+> near-duplicates from the full set (`scripts/drop_near_duplicates.py`,
+> `data/near_duplicates_removed.json`) dropped 22 items from ITW Mini and 2 from ITW
+> Delta, so they now carry **1,919 / 192** items; the per-language weights were
+> renormalized to sum to 1 and `k_actual` decremented. No Clean panel item was
+> affected. The panels were **not** re-selected: the system matrix they were validated
+> on is not part of the release. The validation tables below (and in
+> `RESULTS_CORESET.md`) therefore predate both the near-duplicate filter and the
+> enforced-routing rescore, and describe the panels as selected.
+>
+> **Speaker similarity.** On the In-The-Wild set a panel estimates the *prompt*
+> similarity (`spk_simi_scores.txt`), not the held-out-recording similarity that is the
+> primary ITW score of the full benchmark.
 
 > All four panels are selected from **routing-corrected** scores. Building the matrix
 > surfaced that the 2026-07-30 ASR-routing fix had covered only 6 of the 28 FLEURS-R
@@ -86,8 +101,8 @@ Three further things the explorer does for panels, all about not misreading them
 ## The estimator
 
 ZTTS2-Eval's published score is a per-language mean over utterances
-(`utils/average_wer.py:63-66`) followed by an **unweighted macro-average over languages**
-(`scripts/results_doc/gen_md.py:146-152`):
+(`utils/average_wer.py`) followed by an **unweighted macro-average over languages**
+(`scripts/results_doc/gen_md.py`):
 
 ```
 S_m = (1/|L|) · Σ_l (1/N_l) · Σ_{i∈l} y_mi
@@ -178,7 +193,7 @@ demonstrate one way or the other.
 Full tables in [`RESULTS_CORESET.md`](../RESULTS_CORESET.md). Mean absolute error of the
 Mini panels against the full benchmark, on **held-out model families**:
 
-| metric | Clean (k=3,500) | In-The-Wild (k=2,000) | full-set spread, for scale |
+| metric | Clean (k=3,500) | In-The-Wild (k=2,000 requested) | full-set spread, for scale |
 |---|--:|--:|---|
 | WER_CLIP | **0.290** (SE 0.035) | **0.201** (SE 0.019) | systems span 4.6 – 72 |
 | speaker similarity ×100 | **0.202** (SE 0.019) | **0.131** (SE 0.016) | systems span 13 – 88 |
@@ -234,10 +249,11 @@ Read these before quoting a panel number.
   single-generation data. Every cell of the matrix is one generation, so the "denoised"
   fingerprint is really "the part a rank-r model can explain". Multi-seed regeneration on
   a small item subset would resolve this and is the natural next step.
-- **TTSDS2 prosody, which is replaced by pitch range, is out of scope.** It is not present in the current
-  `results/` tree, and TTSDS is distributional — it is not decomposable to per-item scores,
-  so it cannot be estimated from a weighted subset. A panel can still be *scored* with it,
-  but the result is the panel's own distribution, not an estimate of the full set's.
+- **Distributional prosody is out of scope.** Char/s, rhythm, pitch range and MPM
+  span (and the TTSDS2 prosody that pitch range replaced) are distributions, not sums
+  of per-item scores, so they cannot be estimated from a weighted subset. A panel can
+  still be *scored* with them, but the result is the panel's own distribution, not an
+  estimate of the full set's.
 - **Refresh trigger.** The panels are selected from 11 systems observed up to 2026-08.
   Re-run `scripts/coreset/run.sh` when the system pool grows materially, and re-check the
   error-vs-k curves on the new families before trusting the old sizes.
@@ -269,7 +285,8 @@ the panels do.
 
 `utils/run_wer.py` sends a language to Whisper-large-v3 with the language forced when it
 is **not** in `QWEN_LANGS` (today `zh ko th vi hi fa`; at the time of this analysis `en`
-and `yo` were also on Qwen) and `ASR_ROUTING=1`. The ground-truth
+and `yo` were also on Qwen, and routing was opt-in via `ASR_ROUTING=1` — it is now the
+enforced default). The ground-truth
 baselines were scored that way from the beginning. The synthesized audio was not: the
 2026-07-30 fix re-scored only the six languages where misrouting was most visible
 (`bg ca hr nb sk uk`), leaving **22 of the 28** FLEURS-R languages that need routing still
@@ -297,6 +314,10 @@ The diagnosis is unambiguous rather than inferred:
 the GPUs of one allocation (WER only — speaker similarity and MSR-UTMOS are
 language-agnostic and unaffected). The In-The-Wild sweep was run after the `eval_job.sh`
 routing patch and appears unaffected.
+
+The benchmark-version-2 release supersedes these partial rescores:
+`scripts/rescore_all.sh` redoes every leaf (WER with routed ASR, both speaker-sim
+passes, MSR-UTMOS) so that all score files carry the version stamp.
 
 ## A data-integrity note
 

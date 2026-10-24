@@ -6,10 +6,12 @@ in-the-wild set from a local copy of the raw VoxBlink2 audio.
 
 > **Sizing.** The pipeline below (Stage A at 2000 speakers/lang → Stage B
 > round-robin across 5 MSR-UTMOS bins) samples up to ~1500 prompts/language across
-> the 21 entries of `DEFAULT_LANGS` in `scripts/prepare_voxblink2_eval_stage_a.py`.
-> The released set drops `yo` (removed 2026-08-29: its transcripts were Nigerian
-> English mislabeled by Whisper LID), leaving 20 languages and 17,319 prompts, 7 of
-> which reach the full 1500. The large per-language N is deliberate:
+> the 20 entries of `DEFAULT_LANGS` in `scripts/prepare_voxblink2_eval_stage_a.py`.
+> `yo` is not in the set (removed 2026-08-29: its transcripts were Nigerian
+> English mislabeled by Whisper LID). The released set has 20 languages and 17,155
+> prompts after the prompt/target near-duplicate filter (Stage B skips such pairs;
+> `scripts/drop_near_duplicates.py` removed 164 from the earlier 17,319); the 7
+> largest languages keep 1,463–1,496 of the sampled 1,500. The large per-language N is deliberate:
 > TTS error metrics are tail-driven (dominated by rare catastrophic generations),
 > so more samples materially stabilize the estimate. Reading the audio requires the
 > `chmod` step below (run as the audio-tree owner) on the remaining VoxBlink2
@@ -21,7 +23,7 @@ local VoxBlink2 audio tree. Point `VOXBLINK2_AUDIO_ROOT` at the audio tree
 pool, Stage A (select speaker cross-video pairs per language), and Stage B (score
 the chosen slices with MSR-UTMOS and stratified-sample). Stage B selects prompts
 **round-robin across 5 MSR-UTMOS bins spanning 1.0–4.0, up to ~1,500 prompts/language**
-(one per speaker), for the 21 `DEFAULT_LANGS` entries (20 after dropping `yo`).
+(one per speaker), for the 20 `DEFAULT_LANGS` entries.
 
 ```bash
 export VOXBLINK2_AUDIO_ROOT=/path/to/VoxBlink2/audio
@@ -41,8 +43,14 @@ xargs -d'\n' -n1 -P16 chmod o+r  < data/zero_shot_voxblink/_stage_a/files_to_chm
 # Stage B: MSR-UTMOS-score, stratified-sample, write text/prompt_text/prompt_wav.scp/waveform/
 python scripts/prepare_voxblink2_eval_stage_b.py
 
-# Extract the ground-truth target audio (for the GT baseline scoring run)
+# Extract the real target recordings behind each `text` line (the held-out
+# speaker-similarity reference and the ground-truth baseline); writes
+# data/zero_shot_voxblink/<lang>/target_wav/<uid>.wav
 python scripts/extract_voxblink_gt.py
+
+# Validate them against the manifest and write target_wav.scp + target_provenance.json
+# (same-video pairs, ambiguous prompt texts, missing wavs and duration mismatches are excluded)
+python scripts/build_voxblink_targets.py
 ```
 
 ## The enriched candidate pool

@@ -105,25 +105,30 @@ Qwen where Whisper is marginally better on VoxBlink, and keeps 4 clean langs —
 one routing shared by GT and models). MSR-UTMOS and speaker-sim are ASR-independent and
 unchanged.
 
-**Caveat for the leaderboard:** the model results in `RESULTS_CURRENT.md` were scored
-all-Qwen. Comparing them to these routed GT numbers is apples-to-oranges on the tail
-langs; the models need re-scoring with the same routing before the `model − GT` deltas
-there are valid again.
+**Caveat for the leaderboard:** when this comparison was made the model results in
+`RESULTS_CURRENT.md` had been scored all-Qwen, so comparing them to the routed GT
+numbers was apples-to-oranges on the tail langs. Benchmark version 2 closes this:
+`scripts/rescore_all.sh` rescores every model leaf and the GT baselines with the same
+enforced routing, and `build_results.py` refuses a leaf whose `ASR:` footer stamp does
+not match the language's routed backend.
 
 ### Using it
 
-The scoring drivers start a Whisper server themselves when `ASR_ROUTING=1` or
-`WHISPER_GPU` is set (`maybe_start_whisper` in `scripts/serve_asr.sh`), or reuse one
-given by `WHISPER_BASE_URL`; otherwise every language uses Qwen3-ASR:
+Routing is the default. The scoring drivers start a Whisper server themselves
+(`maybe_start_whisper` in `scripts/serve_asr.sh`; it co-locates on the Qwen server's
+GPU, 0.35 memory utilisation each, when no other GPU has ≥50 GB free), or reuse one
+given by `WHISPER_BASE_URL`. A Whisper-routed language with no Whisper server is an
+error, never a silent fall-back to Qwen. `ASR_ROUTING=0` is a diagnostic all-Qwen
+mode whose results are not benchmark-comparable and are refused by `build_results.py`.
 
 ```bash
-export ASR_ROUTING=1 ASR_GPU=0 WHISPER_GPU=0 ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
 DECODE_DIR=results/<system>/zero_shot bash run_infer_zonos2_eval.sh --task zero_shot --test_set en
 # or reuse a running Whisper server:
 export WHISPER_BASE_URL=http://127.0.0.1:8001/v1
 ```
 
-Knobs: `ASR_ROUTING`/`WHISPER_GPU`, `WHISPER_BASE_URL`, `WHISPER_MODEL`, and
+Knobs: `WHISPER_GPU`, `WHISPER_BASE_URL`, `WHISPER_MODEL`, `ASR_REVISION` /
+`WHISPER_REVISION` (default: the revisions pinned in `utils/benchmark.py`), and
 `QWEN_LANGS` (space-separated override of the keep-on-Qwen set; default
 `zh ko th vi hi fa` — `en` moved to Whisper on 2026-08-29 after the scorer-swap
 control in [controls_2026-08.md](controls_2026-08.md); `yo` was removed from the

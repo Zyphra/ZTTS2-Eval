@@ -9,29 +9,33 @@ voice-cloning TTS model. It is the second release of the benchmark and supersede
 [ZTTS1-Eval](https://github.com/Zyphra/ZTTS1-Eval), which was introduced alongside
 [ZONOS2](https://github.com/Zyphra/ZONOS2).
 
-It pairs a controlled **Clean set** (FLEURS-R read speech, 35 languages, 57,388
+It pairs a controlled **Clean set** (FLEURS-R read speech, 35 languages, 57,366
 prompts) with an **In-The-Wild set** (VoxBlink2 YouTube speech, 20 languages,
-17,319 prompts), then scores generated speech for content accuracy (Qwen3-ASR or
-Whisper-large-v3, routed per language), speaker similarity (ReDimNet2), audio
+17,155 prompts), then scores generated speech for content accuracy (Qwen3-ASR or
+Whisper-large-v3, routed per language), speaker similarity (ReDimNet2; on the
+In-The-Wild set against a held-out real recording of the same speaker), audio
 quality (MSR-UTMOS), and distributional prosody. The prosody layer asks not just
 whether a system says the right words in the right voice, but whether it preserves
-speaking-rate, pitch, and contour distributions — whether the output sounds like
-*real speech*.
+speaking-rate, rhythm, pitch-range, and contour distributions — whether the output
+sounds like *real speech*. This is **benchmark version 2**: every score is stamped
+with it and with the pinned scorer revisions it was computed with
+([`utils/benchmark.py`](utils/benchmark.py)).
 
 What sets it apart:
 
-* **Breadth and depth** — 35 Clean + 20 In-The-Wild languages; 1,197–2,092
+* **Breadth and depth** — 35 Clean + 20 In-The-Wild languages; 1,196–2,089
   prompts per Clean language and up to 1,500 per In-The-Wild language; a
   quality-stratified in-the-wild set.
 * **Scoring that holds at that breadth** — per-language ASR routing validated on
   real speech, untranscribable outputs counted as errors, ground-truth floors and
-  confidence intervals, measured scorer-bias controls.
-* **Cheap to iterate** — coreset panels estimate full-set scores with 8.7–16×
+  confidence intervals, measured scorer-bias controls, pinned scorer revisions and
+  version-stamped scores.
+* **Cheap to iterate** — coreset panels estimate full-set scores with 8.9–16×
   fewer generations.
 
 On clean read-aloud speech the cloning models bunch together; in the wild the
 picture diverges sharply. Per-language metrics, Clean-set numbers, and the
-retained distributional-prosody readouts are in
+distributional-prosody readouts are in
 [RESULTS_CURRENT.md](RESULTS_CURRENT.md) — per-system conditioning class and
 sampling config are in its "§1b. Conditioning" table; the per-language heatmaps
 live in [`assets/plots/`](assets/plots/) and the interactive explorer (below).
@@ -81,7 +85,7 @@ listener-validated exception. ZTTS2-Eval targets four gaps:
 |MiniMax multilingual|24|Common Voice, 2 speakers per language|100 sentences per language|WER · SIM|—|—|
 |TTSDS2|14|clean, noisy, in-the-wild, children's|20 systems, 11,000+ listener ratings|distribution factors|factor-wise distances to real speech|correlation with listeners|
 |ZTTS1-Eval|9 clean / 17 wild|read speech / VoxBlink2|4,500 + 1,618|Qwen3-ASR · ReDimNet · MSR-UTMOS|TTSDS2 composite, DS-WED|GT WER floor|
-|**ZTTS2-Eval**|**35 clean / 20 wild**|**FLEURS-R / VoxBlink2 in 5 quality bins**|**57,388 + 17,319**|**Qwen3-ASR or Whisper-large-v3, routed per language · ReDimNet2 · MSR-UTMOS**|**char/s distance, MPM span**|**GT and split-half floors, failed outputs = max error, bootstrap CIs, scorer controls**|
+|**ZTTS2-Eval**|**35 clean / 20 wild**|**FLEURS-R / VoxBlink2 in 5 quality bins**|**57,366 + 17,155**|**Qwen3-ASR or Whisper-large-v3, routed per language · ReDimNet2 · MSR-UTMOS**|**char/s distance, mHuBERT rhythm, register-normalized pitch range, MPM span (Clean only); per-utterance paired prosody vs the real recording (ITW)**|**GT and split-half floors, failed outputs = max error, bootstrap CIs, scorer controls, version-stamped, pinned scorers**|
 
 ## What's new since ZTTS1-Eval
 
@@ -90,20 +94,21 @@ the June 2026 benchmark introduced alongside ZONOS2.
 
 |Area|ZTTS1-Eval|ZTTS2-Eval|Details|
 |---|---|---|---|
-|Clean set|9 languages × 500 prompts (4,500) + `hard_en`/`hard_zh` text sets (124)|35 languages, each sampled to the maximum its disjoint FLEURS-R train+test pool allows: 1,197–2,092 per language, 57,388 total; hard sets not carried over|[Data](#data)|
-|In-the-wild set|17 languages, 84–120 prompts each (1,618), 10 UTMOS bins|20 languages (+ nl, uk, vi), up to 1,500 prompts each (17,319), 5 round-robin MSR-UTMOS bins|[Data](#data), [rebuild recipe](docs/voxblink2_rebuild.md)|
-|ASR|Qwen3-ASR for every language; language hint for 9, auto-detect elsewhere|Qwen3-ASR for zh ko th vi hi fa; Whisper-large-v3 with the language forced for all others, English included|[ASR comparison](docs/asr_whisper_vs_qwen.md), [tail modes](docs/wer_tail_error_modes.md)|
-|Text prep|traditional→simplified fold on zh hypotheses only|identical on reference and hypothesis: case, punctuation, apostrophes; CER for zh ja ko th; orthographic fold for ar fa he|[edit nature](docs/edit_nature.md)|
+|Clean set|9 languages × 500 prompts (4,500) + `hard_en`/`hard_zh` text sets (124)|35 languages, each sampled to the maximum its disjoint FLEURS-R train+test pool allows: 1,196–2,089 per language, 57,366 total after dropping 22 prompt/target near-duplicates; hard sets not carried over|[Data](#data)|
+|In-the-wild set|17 languages, 84–120 prompts each (1,618), 10 UTMOS bins|20 languages (+ nl, uk, vi), up to 1,500 prompts sampled per language (17,155 after dropping 164 prompt/target near-duplicates), 5 round-robin MSR-UTMOS bins, plus a held-out real recording of the same speaker for every item|[Data](#data), [rebuild recipe](docs/voxblink2_rebuild.md)|
+|ASR|Qwen3-ASR for every language; language hint for 9, auto-detect elsewhere|Qwen3-ASR for zh ko th vi hi fa; Whisper-large-v3 with the language forced for all others, English included; routing enforced, model revisions pinned|[ASR comparison](docs/asr_whisper_vs_qwen.md), [tail modes](docs/wer_tail_error_modes.md)|
+|Text prep|traditional→simplified fold on zh hypotheses only|identical on reference and hypothesis: case, punctuation, apostrophes, digits → words (num2words); CER for zh ja ko th; orthographic fold for ar fa he|[edit nature](docs/edit_nature.md)|
 |Failed transcriptions|skipped, so the mean covers survivors only|scored as maximum error (WER_CLIP 100); `.wer` footers report `N_TRANSCRIBED`/`N_IMPUTED`|[unscoreable](docs/unscoreable_2026-09.md)|
-|Prosody|TTSDS2 composite (Allosaurus rate, HuBERT rate, Pitch, MPM) + DS-WED|characters/s 2-Wasserstein distance; MPM span between a real split-half floor and a contour-scrambled floor (Clean only)|[MPM limits](docs/mpm_itw_limits.md)|
+|Prosody|TTSDS2 composite (Allosaurus rate, HuBERT rate, Pitch, MPM) + DS-WED|char/s distance, mHuBERT rhythm, register-normalized pitch range (each as a multiple of the real-speech split-half ceiling), MPM span (Clean only); per-utterance paired prosody vs the real recording (ITW)|[rhythm](docs/rhythm.md), [pitch range](docs/pitch_range.md), [MPM limits](docs/mpm_itw_limits.md)|
 |Ground truth|GT WER floor|GT WER floor + disjoint 50/50 split-half floor for every distributional metric|[Metrics](#metrics)|
 |Uncertainty and controls|none published|bootstrap CIs, generation-variance study, seen-speaker and scorer self-favoritism controls, documented confounds|[controls](docs/controls_2026-08.md), [Provenance](#provenance--known-confounds)|
-|Cost|full sets only|coreset panels: Mini (16× / 8.7× fewer generations), Delta (287× / 87×), validated on held-out model families|[Coreset](docs/coreset.md)|
+|Cost|full sets only|coreset panels: Mini (16× / 8.9× fewer generations), Delta (287× / 89×), validated on held-out model families|[Coreset](docs/coreset.md)|
 |Diagnostics|explorer built from your own `results/`|+ reliability gallery of per-language error tails; explorer ships a committed snapshot|[gallery](assets/reliability_gallery.html)|
 |Data distribution|prompt audio in git|metadata in git, prompt audio on Hugging Face via `scripts/download_data.py`|[Data](#data)|
 
 ZTTS1-Eval and ZTTS2-Eval scores are not comparable — prompts, ASR routing, text
-prep and failure handling all changed; compare systems within one release.
+prep, failure handling, the speaker-similarity reference and the prosody metrics all
+changed; compare systems within one release.
 
 ## Data
 
@@ -119,7 +124,7 @@ We release two evaluation sets:
   ru) plus a higher-resource tier (pt, ar, hi, tr, pl, id, th, fil, nl, vi, cs,
   sv, da, fi, el, hu, ro, uk, nb, he, bg, hr, sk, ca, ms, fa). Each language is
   sampled to the maximum its FLEURS-R train+test pool allows with prompt and
-  target kept disjoint (~1.2k–2.1k utterances per language, ~57k total). Lives at
+  target kept disjoint (1,196–2,089 utterances per language, 57,366 total). Lives at
   `data/zero_shot/<lang>/`. The prompt is a duration-filtered clip; the target
   is the *text* of a random other utterance of the same language — FLEURS-R
   metadata carries no speaker IDs, so no speaker or session pairing is implied.
@@ -129,16 +134,28 @@ We release two evaluation sets:
   content, and prosodic diversity. VoxBlink2 is composed of in-the-wild YouTube
   clips with highly variable quality, so prompts are selected round-robin across 5
   uniform bins spanning a 1–4 MSR-UTMOS range rather than letting clean prompts
-  dominate the distribution. Each language is sampled up to ~1,500 prompts (7 of
-  the largest reach the full 1,500; smaller languages take their available ceiling
-  — ~17.3k prompts total). Lives at `data/zero_shot_voxblink/<lang>/`. The large
+  dominate the distribution. Each language is sampled up to 1,500 prompts (the 7
+  largest languages keep 1,463–1,496 after the near-duplicate filter below; smaller
+  languages take their available ceiling, down to 108 — 17,155 prompts total). Lives
+  at `data/zero_shot_voxblink/<lang>/`. The large
   per-language N is deliberate: TTS error metrics are tail-driven — dominated by
   rare catastrophic generations — so more samples give a materially more stable
   estimate.
   Prompt and target text come from two different videos of the same speaker —
   the only set with real same-speaker pairing (the Clean set's target is
   text-only, with no speaker linkage to the prompt), so cross-recording
-  speaker-similarity claims rest on this set.
+  speaker-similarity claims rest on this set. The real recording behind each
+  target text ships too (`target_wav/`): it is the reference for the held-out
+  speaker-similarity score.
+
+**Near-duplicate filter.** Items whose prompt transcript and target text are the
+same sentence (equal after case/punctuation folding, or ≥ 0.8 `difflib` ratio;
+`utils/text_norm.near_duplicate`) are removed from both sets and from the coreset
+panels, because a system can score well on them by repeating its prompt: 22 Clean and
+164 In-The-Wild items (Clean 57,388 → 57,366; In-The-Wild 17,319 → 17,155). They
+are listed in [`data/near_duplicates_removed.json`](data/near_duplicates_removed.json);
+the prep scripts skip such pairs, and `python scripts/drop_near_duplicates.py`
+re-applies the filter idempotently.
 
 Each language directory uses the layout the scoring pipeline expects:
 
@@ -147,23 +164,32 @@ text            # "<uttid> <target_text>"      (what the TTS model synthesizes)
 prompt_text     # "<uttid> <reference_text>"
 prompt_wav.scp  # "<uttid> <path_to_prompt.wav>"
 waveform/       # prompt_audio_<N>.wav          (reference speaker prompts)
+target_wav.scp  # In-The-Wild only: "<uttid> <path_to_real_target.wav>"
+target_wav/     # In-The-Wild only: <uttid>.wav (held-out real recording of the same speaker)
 ```
 
-The prompt audio (`waveform/`, 24 GB) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/download_data.py` (both sets), or a subset with `--tasks zero_shot_voxblink --langs en zh`. The coreset panel directories symlink into these trees.
+The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/download_data.py` (both sets), or a subset with `--tasks zero_shot_voxblink --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
 
 ## Metrics
 
 ZTTS2-Eval reports the standard intelligibility, speaker, and quality scores with
-updated scorers, then adds a slightly more detailed prosody layer for
-speaking-rate, pitch, contour, and generation diversity.
+pinned scorers, then adds a prosody layer for speaking rate, rhythm, pitch range,
+and contour. Scorer revisions, language baskets, and the ASR routing table are
+defined once in [`utils/benchmark.py`](utils/benchmark.py).
 
 * **Content accuracy** — Character / Word Error Rate of the ASR transcription
   against the target text (CER for zh, ja, ko, th), after identical text prep on
   both sides. ASR is routed per language: **Qwen3-ASR** (`Qwen/Qwen3-ASR-1.7B`)
   for `zh ko th vi hi fa`, **Whisper-large-v3** with the language forced for every
   other language including English ([docs/asr_whisper_vs_qwen.md](docs/asr_whisper_vs_qwen.md)).
-  Routing is on when `ASR_ROUTING=1` (see Quick start); without it every language
-  is scored by Qwen3-ASR and numbers are not comparable to the published ones.
+  Routing is the default and is enforced: scoring a Whisper-routed language
+  without a Whisper server is an error, not a silent fallback to Qwen. Setting
+  `ASR_ROUTING=0` scores everything with Qwen3-ASR as a diagnostic; its results are
+  not comparable and `build_results.py` refuses them. Both models are pinned to a
+  Hugging Face revision.
+  **Digits are expanded to words** (num2words) on both reference and hypothesis
+  before alignment, so `20` and `twenty` match. Languages num2words does not cover
+  stay in digits on both sides: bg el fil hi hr ms tl zh.
   Ground truth is scored through the same pipeline as a
   reference floor. Many systems score *below* human-speech WER on the
   In-The-Wild set, i.e. read more cleanly than real people speak. Read WER
@@ -172,28 +198,60 @@ speaking-rate, pitch, contour, and generation diversity.
   error** (WER_CLIP 100), not as a missing utterance — otherwise a leaf mean is a
   survivor mean and the most degenerate output is the output that disappears from
   its own score. Each `.wer` footer reports `N_TRANSCRIBED:`/`N_IMPUTED:` so the
-  imputed share is always visible. See `docs/unscoreable_2026-09.md`; WER published
-  before 2026-09-01 is not comparable on an affected leaf.
-* **Speaker similarity** — cosine similarity between speaker embeddings of the
-  generated and reference speech, extracted with **ReDimNet**
-  ([ReDimNet2](https://github.com/PalabraAI/redimnet2), loaded via torch.hub).
+  imputed share is always visible. See `docs/unscoreable_2026-09.md`.
+  The footer also reports `WER_TAIL50` — the **tail rate**, the percentage of
+  utterances with WER above 50%. Confidence intervals on WER are bootstrapped over
+  reference *sentences*: utterances that share a target sentence (FLEURS repeats
+  sentences across speakers) resample together.
+* **Speaker similarity** — cosine similarity between ReDimNet2 speaker embeddings
+  ([ReDimNet2](https://github.com/PalabraAI/redimnet2), loaded via torch.hub at a
+  pinned commit; `b6`, `vb2+vox2_v0`).
+  On the **In-The-Wild set the primary score compares the generation with a
+  held-out real recording of the same speaker** (the item's `target_wav`, from a
+  different video than the prompt), so a system cannot score well merely by
+  reproducing the prompt's channel and session. Similarity to the **prompt** is kept
+  as a secondary column, and the **copy gap** (prompt − held-out) shows how much a
+  system leans on the prompt recording. The ceiling for the held-out score is the
+  real prompt against the real target of the same item. The Clean set has no
+  same-speaker target, so it reports prompt similarity only. Coreset panels estimate
+  the prompt similarity.
 * **Audio quality** — **MSR-UTMOS** ([msr-utmos](https://github.com/sarulab-speech/msr-utmos),
-  a parallel MOS predictor).
+  a parallel MOS predictor; checkpoint pinned to a commit).
 * **Speaking-rate distance** — 2-Wasserstein distance between generated and
-  reference characters-per-second distributions. Lower is better; the
-  reference split-half distance is the finite-sample ceiling.
-* **MPM span** — Masked Prosody Model distance normalized per language between
-  the real-speech split-half floor (0) and a contour-scrambled floor (1). Lower
-  is better.
-* **TTSDS2 Pitch** — similarity of generated and reference mean-F0
-  distributions on TTSDS2's 0–100 scale. It is interpretable in Hz but
-  speaker-dependent, so read it alongside speaker similarity. From
-  [TTSDS2](https://github.com/ttsds/ttsds).
+  reference characters-per-second distributions, computed at the same half-vs-half
+  geometry as the ceiling. Lower is better; the reference split-half distance is the
+  finite-sample ceiling.
+* **Rhythm** — per-utterance timing statistics of the run-length distribution of
+  deduplicated mHuBERT-147 k-means tokens, scored as the 2-Wasserstein distance to
+  the reference at split-half geometry and reported as a multiple of the real-speech
+  split-half ceiling (`× ceiling`; 1 = as close to real speech as two halves of real
+  speech are to each other). Two dimensions are reported: the **pause/stall factor**
+  (burstiness of the run lengths) and the **pace factor** (token rate). Lower is
+  better. See [docs/rhythm.md](docs/rhythm.md).
+* **Pitch range** — per-utterance register-normalized pitch range: p90 − p10 of the
+  voiced F0 (pYIN) in semitones around the utterance's own median, so it measures
+  how much the melody moves and ignores whether the voice is high or low. Scored as
+  the 2-Wasserstein distance to the prompt recordings at split-half geometry, in
+  `× ceiling`, on a fixed 500-utterance sample per (set, language). Lower is better.
+  See [docs/pitch_range.md](docs/pitch_range.md).
+* **Paired prosody (In-The-Wild only)** — every In-The-Wild item has a real
+  recording of the same speaker saying the target sentence, so prosody is also
+  compared utterance by utterance against it (same 500-utterance sample): median
+  |log2 duration ratio|, mean |pause-count difference| (a pause is an internal gap
+  ≥ 0.2 s), and median |log2 pitch-range ratio|. 0 means the generation matches the
+  real recording; lower is better.
+* **MPM span (Clean set only)** — Masked Prosody Model distance normalized per
+  language between the real-speech split-half floor (0) and a contour-scrambled
+  floor (1). Lower is better, and **values above 1 are worse than the same speech
+  with its contour scrambled**. It is not computed on the In-The-Wild set: the
+  anchors collapse on in-the-wild audio
+  ([docs/mpm_itw_limits.md](docs/mpm_itw_limits.md)).
 
 The `gt_zero_shot*` rows use a reproducible, disjoint random 50/50 split of each
 reference corpus rather than comparing ground truth with itself. Seed and
 language determine the split; `slurm/submit_ground_truth_metrics.sh` refreshes
-both retained distributional metrics (char/s and MPM).
+the char/s and MPM halves. For rhythm and pitch range the split-half ceiling is the
+1× line that systems are measured against.
 
 ## Provenance & known confounds
 
@@ -283,31 +341,39 @@ python3 tests/smoke_test.py
 # 1. install deps for the local vLLM-Omni path + full scoring (GPU host)
 uv sync --extra omni --extra scorers && source .venv/bin/activate
 
-# 2. fetch the prompt audio for the set you'll run (drop the flags for all 24 GB)
-python scripts/download_data.py --tasks zero_shot --langs en
+# 2. fetch the audio for the set you'll run: prompts + held-out target recordings
+#    (drop the flags for everything, 24 GB+)
+python scripts/download_data.py --tasks zero_shot_voxblink --langs en
 
-# 3. generate a few utterances with one local model (English, first 5 items)
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot --test_set en --limit 5
+# 3. generate the English slice of the In-The-Wild Mini coreset panel (50 items)
+#    with one local model
+bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot_voxblink_mini --test_set en
 
 # 4. score that DECODE_DIR (script name is historical and model-agnostic). It
-#    auto-starts/stops the ASR servers; the export routes each language to
-#    Qwen3-ASR or Whisper-large-v3 as the published numbers do (both on GPU 0,
-#    same settings as slurm/eval_job.sh). Without it, every language uses Qwen3-ASR.
-export ASR_ROUTING=1 ASR_GPU=0 WHISPER_GPU=0 ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
-DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot bash run_infer_zonos2_eval.sh \
-    --task zero_shot --test_set en
+#    auto-starts/stops the ASR servers and routes each language to Qwen3-ASR or
+#    Whisper-large-v3 as the published numbers do; both co-locate on GPU 0 by
+#    default (same settings as slurm/eval_job.sh). It also scores speaker
+#    similarity against the held-out real recordings.
+DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot_voxblink_mini \
+    bash run_infer_voxblink_eval.sh --task zero_shot_voxblink_mini --test_set en
 
-# 5. browse results in the explorer
+# 5. weighted estimate of the FULL In-The-Wild score, with a bootstrap CI
+python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/zero_shot_voxblink_mini
+
+# 6. browse results in the explorer
 python scripts/results_doc/build_results.py    # builds the explorer snapshot from results/
 python explorer/serve.py --port 8000           # open http://localhost:8000
 ```
 
 > **Explorer note:** the explorer prefers the live build cache
 > (`scripts/results_doc/_cache/results_snapshot.json`, generated from your
-> `results/` tree in step 5) and falls back to the **committed** snapshot in
+> `results/` tree in step 6) and falls back to the **committed** snapshot in
 > `explorer/snapshot/` — so a fresh clone serves a populated explorer out of the
 > box. Data outside the published allowlist (see
 > `scripts/results_doc/publish_snapshot.py`) appears only after a local build.
+> `build_results.py` refuses score files that are not stamped with the current
+> benchmark version, so score every leaf with the scripts above rather than
+> copying score files in.
 
 The bundled explorer (`python explorer/serve.py`) provides a leaderboard
 sortable by any metric, a model × language heatmap, VoxBlink2 quality-bin
@@ -331,15 +397,18 @@ uv run python scripts/prepare_fleurs_r.py --overwrite
 This downloads FLEURS-R for all 35 curated languages and writes `text`,
 `prompt_text`, `prompt_wav.scp`, and `waveform/` into each language directory. By
 default each language is sampled to the maximum its pooled train+test splits allow
-(prompts and targets stay disjoint); pass `--count N` to cap it, or `--langs` to
+(prompts and targets stay disjoint, and near-duplicate prompt/target pairs are
+skipped); pass `--count N` to cap it, or `--langs` to
 restrict the set. It requires HuggingFace access to `google/fleurs-r`
 (`huggingface-cli login` or `--hf-token`).
 
 ### VoxBlink2 set
 
 The released `data/zero_shot_voxblink/` directories are already prepared: they
-include the target/reference text, manifest, and MSR-UTMOS binning cache used by
-the evaluation scripts; the prompt audio comes from `scripts/download_data.py`.
+include the target/reference text, manifest, the `target_wav.scp` /
+`target_provenance.json` index of the held-out recordings, and the MSR-UTMOS binning
+cache used by the evaluation scripts; the prompt audio and the held-out target
+recordings (`target_wav/`) come from `scripts/download_data.py`.
 Rebuilding this set from raw VoxBlink2 requires a
 local VoxBlink2 audio tree and a pre-computed enriched candidate pool, so the full
 recipe lives in [docs/voxblink2_rebuild.md](docs/voxblink2_rebuild.md).
@@ -348,18 +417,20 @@ recipe lives in [docs/voxblink2_rebuild.md](docs/voxblink2_rebuild.md).
 
 Evaluation has two complementary layers: the standard intelligibility, speaker
 match, and MOS pass, plus a prosody pass that measures whether the generated
-corpus keeps the reference distribution's pitch, rate, and contour behavior.
+corpus keeps the reference distribution's speaking-rate, rhythm, pitch-range, and
+contour behavior.
 
 ```bash
 # remember to point DECODE_DIR at your generated audio in the run scripts
 
 # WER, speaker similarity, and MSR-UTMOS — Clean set (FLEURS-R).
 # The script name is historical; it scores any compatible DECODE_DIR.
-# (auto-starts and stops the ASR servers; export the ASR_ROUTING settings from
-#  the Quick start to score as the published numbers do)
+# (auto-starts and stops the ASR servers — Qwen3-ASR plus Whisper-large-v3 for the
+#  routed languages; the run fails if the Whisper server cannot start)
 bash run_infer_zonos2_eval.sh
 
-# Same metrics on the In-The-Wild set (VoxBlink2)
+# Same metrics on the In-The-Wild set (VoxBlink2); speaker similarity is also
+# scored against the held-out real recordings (spk_simi_scores.xutt.txt)
 bash run_infer_voxblink_eval.sh
 ```
 
@@ -367,6 +438,16 @@ bash run_infer_voxblink_eval.sh
 # Characters/s distributional distance (defaults to zero_shot/en)
 python scripts/speaking_rate_dist.py
 python scripts/speaking_rate_dist.py --test-set zero_shot_voxblink --lang en
+
+# mHuBERT rhythm (GPU): pause/stall and pace factors vs the real-speech ceiling
+python scripts/rhythm_dist.py --test-set zero_shot_voxblink --lang en
+
+# register-normalized pitch range (CPU; fixed 500-utterance sample)
+python scripts/pitch_range_dist.py --test-set zero_shot_voxblink --lang en
+
+# per-utterance paired prosody vs the real recording (In-The-Wild only; run after
+# pitch_range_dist.py, it shares the pitch caches)
+python scripts/paired_itw.py --lang en
 
 # UTMOS shift: signed mean shift (dmean, with CI and the reference split-half band)
 # and spread ratio of a system's per-utterance MSR-UTMOS distribution vs. the
@@ -376,7 +457,7 @@ python scripts/utmos_shift.py --test-set zero_shot_voxblink --lang en
 # MSR-UTMOS level-sensitivity probe (gain sweep); writes assets/probes/utmos_level.csv
 python scripts/probe_utmos_level.py
 
-# MPM span against the real/scrambled anchors
+# MPM span against the real/scrambled anchors (Clean set only)
 python utils/score_mpm_shuffle_floor.py \
     --ref-dir data/zero_shot/en/waveform \
     --synth-dir results/omni_qwen3-tts-1.7b/zero_shot/en/wavs \
@@ -385,6 +466,16 @@ python utils/score_mpm_shuffle_floor.py \
 
 The explorer exposes characters/s distance and MPM span as dedicated
 distribution views.
+
+**Version stamps and rescoring.** Every score file records what produced it: the
+`.wer` footer carries `BENCHMARK_VERSION` and `ASR` (model@revision), the
+`spk_simi_scores*.txt` files `#BENCHMARK_VERSION` and `#SPK_MODEL`, and
+`msr_utmos_ci.txt` `BENCHMARK_VERSION` and `MSR_UTMOS_CKPT`. The scoring drivers
+treat a leaf with a missing or stale stamp as unscored and redo it;
+`python3 -m utils.benchmark problems <leaf_dir> <lang>` lists why a leaf is stale.
+`scripts/rescore_all.sh` rescores every leaf under `results/`, and
+`slurm/submit_release_run.sh` is the whole release DAG on SLURM (see
+[slurm/README.md](slurm/README.md)).
 
 Because TTS error metrics are tail-driven, the ground-truth baselines ship with a
 **reliability gallery** — edit-distance survival/tail plates per language (and per
@@ -405,15 +496,21 @@ holding out entire model families:
 | Panel | Task name | Items | vs full | Purpose |
 |---|---|--:|--:|---|
 | Clean Mini | `zero_shot_mini` | 3,500 | 16× | estimate the full Clean score |
-| ITW Mini | `zero_shot_voxblink_mini` | 2,000 | 8.7× | estimate the full In-The-Wild score |
+| ITW Mini | `zero_shot_voxblink_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
 | Clean Delta | `zero_shot_delta` | 200 | 287× | detect a change between checkpoints |
-| ITW Delta | `zero_shot_voxblink_delta` | 200 | 87× | detect a change between checkpoints |
+| ITW Delta | `zero_shot_voxblink_delta` | 192 | 89× | detect a change between checkpoints |
+
+The In-The-Wild panels were requested at 2,000 / 200 items; they export 1,919 / 192
+after the near-duplicate filter dropped 22 / 2 of their selected items (weights
+renormalized per language; no Clean panel item was affected). On the In-The-Wild set
+a panel estimates the prompt similarity, not the held-out one.
 
 On **held-out model families**, the Mini panels estimate the full benchmark to within
 **0.29 / 0.20 WER_CLIP** (Clean / In-The-Wild), **0.20 / 0.13** speaker similarity, and
 **0.007** MSR-UTMOS. The In-The-Wild panel picks the better of two systems 100% of the
 time when they differ by ≥0.5 WER points. Quoting a panel's bootstrap CI, the full-set
-value falls inside it 93–97% of the time against a nominal 95%.
+value falls inside it 93–97% of the time against a nominal 95%. These validation
+figures predate the near-duplicate filter and the enforced-routing rescore.
 
 They are ordinary task directories, so nothing in the pipeline changes:
 
@@ -475,8 +572,14 @@ scripts read.
 Current numbers are in [RESULTS_CURRENT.md](RESULTS_CURRENT.md); the repository
 structure is mapped in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-> **Reproducibility:** the *scoring* models are version-pinned (Qwen3-ASR model
-> id, ReDimNet via torch.hub, the `sfi-utmos` git commit in `pyproject.toml`). The
+> **Reproducibility:** this is benchmark version 2, defined in one place,
+> [`utils/benchmark.py`](utils/benchmark.py): the language baskets, the ASR routing
+> table, and the pinned revisions of the *scoring* models (Qwen3-ASR and
+> Whisper-large-v3 weights, ReDimNet2 via torch.hub, the MSR-UTMOS checkpoint,
+> mHuBERT-147) — plus the `sfi-utmos` git commit in `pyproject.toml`. Every score
+> file is stamped with the version and scorer it came from, and
+> `scripts/results_doc/build_results.py` refuses unstamped or stale inputs (leaves
+> may be listed in `scripts/results_doc/excluded_leaves.txt`). The
 > *generation* model ids in `run_generate_omni.sh` (`model_spec`) are best-effort
 > and unpinned — pin them to a Hugging Face revision (`<id>@<commit>`) and record
 > the revision if you need to reproduce a specific row of `RESULTS_CURRENT.md`. The

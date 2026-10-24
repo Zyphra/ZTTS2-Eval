@@ -24,9 +24,9 @@ gpu=0
 port=1919
 model_path=
 # Default to the 9 langs shared with zero_shot; the noisy voxblink-only tail
-# (pt ar hi tr tl pl id th yo nl uk vi) is off by default. Re-enable via the full list or
+# (pt ar hi tr tl pl id th nl uk vi) is off by default. Re-enable via the full list or
 # an explicit --test_set.
-#   full 21: "en zh de es fr it ja ko ru pt ar hi tr tl pl id th yo nl uk vi"
+#   full 20: "en zh de es fr it ja ko ru pt ar hi tr tl pl id th nl uk vi"
 test_set="en zh de es fr it ja ko ru"
 out_root="results/zonos2/zero_shot_voxblink"
 workers=16     # zonos2 mini-sglang handles many concurrent requests; bump for ~1.6k-prompt run

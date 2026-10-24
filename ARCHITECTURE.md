@@ -7,13 +7,23 @@ This is a reference document — it describes the codebase, it does not prescrib
 
 **ZTTS2-Eval** — a multilingual, in-the-wild zero-shot text-to-speech (TTS)
 evaluation benchmark. The pipeline is **prepare data → generate audio (TTS models)
-→ score**. Core metrics:
+→ score**. Everything is defined once in `utils/benchmark.py` (benchmark version `2`:
+frozen language baskets, ASR routing table, pinned scorer revisions, footer-stamp
+checks). Core metrics:
 
 - **WER/CER** — ASR transcription routed per language (Qwen3-ASR for `zh ko th vi hi fa`,
-  Whisper-large-v3 with forced language otherwise, when `ASR_ROUTING=1`) + `jiwer`.
-- **Speaker similarity** — ReDimNet embeddings, cosine (voice cloning fidelity).
+  Whisper-large-v3 with forced language otherwise; routing is on by default and a
+  Whisper-routed language without a Whisper server is an error) + `jiwer`. Digits are
+  expanded to words on both sides (`utils/text_norm.py`, num2words); footers carry the
+  tail rate `WER_TAIL50`; CIs are bootstrapped over reference sentences.
+- **Speaker similarity** — ReDimNet2 embeddings, cosine. Clean set: against the prompt.
+  ITW set: primary against the held-out real recording of the same speaker
+  (`target_wav/`), secondary against the prompt.
 - **Audio quality** — MSR-UTMOS (sarulab-speech SFI HuBERT).
-- **Distributional prosody** (optional) — char/s distance and MPM span.
+- **Distributional prosody** — char/s distance, mHuBERT rhythm, register-normalized
+  pitch range (all as W2 at split-half geometry against a real-speech ceiling),
+  per-utterance paired prosody vs the real recording (ITW only), and MPM span (Clean
+  set only).
 
 A stdlib web explorer browses the resulting scores.
 
@@ -32,8 +42,11 @@ A stdlib web explorer browses the resulting scores.
   `run_infer_*.sh` entry points, `scripts/**` (`.py` + `.sh`, incl. `results_doc/`),
   `utils/*.py` + `*.sh`, `explorer/`, `docs/`, `assets/`, and the top-level reports.
 - The `data/` metadata is tracked; the prompt wavs (`data/{zero_shot,zero_shot_voxblink}/<lang>/waveform/`)
+  and the ITW held-out target recordings (`data/zero_shot_voxblink/<lang>/target_wav/`)
   are gitignored and fetched from the Hugging Face dataset `Zyphra/ZTTS2-Eval` by
-  `scripts/download_data.py`. The VoxBlink2 selection
+  `scripts/download_data.py`; `target_wav.scp` and `target_provenance.json` are
+  tracked, as is `data/near_duplicates_removed.json` (the prompt/target
+  near-duplicates dropped from both sets and the panels). The VoxBlink2 selection
   provenance is kept (`data/zero_shot_voxblink/_stage_a/manifest.tsv`), and
   `_msr_utmos_cache.tsv` is tracked too — it is the shipped MSR-UTMOS binning cache
   the eval scripts read. Only the `_stage_a/*_to_chmod.txt` lists are gitignored
@@ -58,7 +71,8 @@ ZTTS2-Eval/
 ├── results/        (gitignored) # generated wavs + score files
 ├── third_party/    (gitignored) # vendored model sources (for example fish-speech)
 ├── docs/                        # metric/data guides and README index
-├── tests/smoke_test.py          # no-GPU smoke test for the shared utils modules
+├── slurm/                       # SLURM launchers: eval, scoring, metrics, release DAG
+├── tests/                       # no-GPU tests: smoke_test.py, test_scoring.py, ...
 ├── assets/                      # plots
 ├── logs/           (gitignored) # run logs
 ├── pyproject.toml, uv.lock      # uv project + lockfile
@@ -86,11 +100,16 @@ ZTTS2-Eval/
   `zero_shot_voxblink` task.
 
 ### Evaluation → scores written next to the wavs
-- **`run_infer_zonos2_eval.sh`** → starts Qwen3-ASR (plus Whisper-large-v3 when `ASR_ROUTING=1` / `WHISPER_GPU` is set) via `scripts/serve_asr.sh`,
-  then runs WER (`scripts/run_score_wer.sh` → `utils/run_wer.py`), speaker
+- **`run_infer_zonos2_eval.sh`** → starts Qwen3-ASR and Whisper-large-v3 via
+  `scripts/serve_asr.sh` (routing is on by default; `ASR_ROUTING=0` is a diagnostic
+  all-Qwen mode that `build_results.py` refuses), then runs WER
+  (`scripts/run_score_wer.sh` → `utils/run_wer.py`), speaker
   similarity (`scripts/eval_speaker_similarity.py`), and MSR-UTMOS
-  (`utils/score_msr_utmos.py`). Reads `DECODE_DIR`.
-- **`run_infer_voxblink_eval.sh`** → the same metric set for `zero_shot_voxblink`.
+  (`utils/score_msr_utmos.py`) through the shared, version-aware loop in
+  `scripts/lib_infer_scoring.sh`. Reads `DECODE_DIR`.
+- **`run_infer_voxblink_eval.sh`** → the same metric set for `zero_shot_voxblink`, plus
+  the held-out speaker-similarity pass against `target_wav.scp`. Both entry points
+  default `--test_set` to the task's frozen basket (`python3 -m utils.benchmark langs <task>`).
 
 ---
 
@@ -101,20 +120,40 @@ ZTTS2-Eval/
 `generate_inworld.py`.
 
 **Scoring drivers:**
-- `eval_speaker_similarity.py` — ReDimNet via torch.hub; cosine sim → `spk_simi_scores.txt`.
+- `eval_speaker_similarity.py` — ReDimNet2 via torch.hub (pinned commit); cosine sim →
+  `spk_simi_scores.txt` (vs the prompt) and, on ITW, `spk_simi_scores.xutt.txt` (vs the
+  held-out target recording).
 - `utils/score_msr_utmos.py` — MSR-UTMOS MOS predictor → `msr_utmos_scores.txt` (the
   canonical scorer wired into `run_infer_*` and `run_gt_zero_shot.sh`).
+- `lib_infer_scoring.sh` — `score_lang_dir` and the version-aware resume gates (a leaf
+  whose stamps are missing or stale is rescored).
+- `rescore_all.sh` — full rescore of every `results/<sys>/<task>/<lang>` leaf over
+  node × GPU shards (WER, both speaker-sim passes, MSR-UTMOS).
+- `run_gt_zero_shot.sh` — scores the ground-truth baselines (`--task zero_shot` or
+  `zero_shot_voxblink`; ITW GT is the real target recording vs. the prompt).
 
-**Data preparation:** `download_data.py` (fetches the released prompt audio from the Hugging Face Hub), `prepare_fleurs_r.py` (builds `zero_shot/` from
+**Data preparation:** `download_data.py` (fetches the released prompt audio and ITW
+target recordings from the Hugging Face Hub), `prepare_fleurs_r.py` (builds `zero_shot/` from
 google/fleurs-r, max-out sample per language), `build_voxblink2_enriched.py`
 (rebuilds the enriched candidate pool from xtx + transcript artifacts),
 `prepare_voxblink2_eval_stage_a.py` (select candidates),
 `prepare_voxblink2_eval_stage_b.py` (MSR-UTMOS stratified sample, round-robin across
 5 bins up to ~1500/lang),
-`extract_voxblink_gt.py`. The VoxBlink2 prep reads a local audio tree via
+`extract_voxblink_gt.py` (extracts the real target recordings to `target_wav/` from a
+local raw VoxBlink2 tree), `build_voxblink_targets.py` (validates them against the
+manifest and writes `target_wav.scp` / `target_provenance.json`),
+`drop_near_duplicates.py` (idempotent prompt/target near-duplicate filter over both
+sets and the panels), `upload_release_data.py` (publishes target recordings and
+prompt deletions to the HF dataset). The VoxBlink2 prep reads a local audio tree via
 `VOXBLINK2_AUDIO_ROOT` and an enriched candidate pool via `VOXBLINK2_ENRICHED`.
 
-**Aggregation / plotting:** `speaking_rate_dist.py`.
+**Prosody / aggregation / plotting:** `speaking_rate_dist.py` (char/s; also hosts the
+shared `ceiling` / `w2_fair` split-half W2), `rhythm_dist.py` (mHuBERT-147 k-means
+rhythm; `plot_rhythm_*.py`, `validate_rhythm_metric.py`), `pitch_range_dist.py`
+(register-normalized pitch range on a fixed 500-uid sample → `pitch_range_<set>_<lang>.csv`;
+`plot_pitch_carpet.py` is its contour view), `paired_itw.py` (per-utterance paired
+prosody of ITW generations vs the real recording → `paired_itw_<lang>.csv`). Each CSV
+row carries `benchmark_version`.
 
 **Reliability plates:** `tufte_common.py` (shared loader — reconstructs exact
 per-utterance edit counts from `wav_res_ref_text.wer.raw` using `run_wer.py`'s
@@ -129,7 +168,7 @@ late step of `results_doc/run.sh` (the run ends with the snapshot publish).
 
 **Run wrappers (`.sh`):** `run_score_wer.sh`,
 `run_full_zonos2_generic.sh`,
-`setup_ttsds_env.sh`, `wer_groundtruth.sh`.
+`setup_ttsds_env.sh` (the venv MPM needs), `wer_groundtruth.sh`.
 
 **Servers (sourced, not executed):** `serve_asr.sh` (`start/stop_asr_server`,
 env `ASR_*`), `serve_omni.sh` (`start/stop_omni_server`, env `OMNI_*`).
@@ -147,10 +186,18 @@ tabs/newlines in the ASR hypothesis — the failure that leaves a footerless `.w
 aggregators silently drop a leaf. See `docs/coreset.md`.
 
 **`scripts/results_doc/`** — report pipeline: `build_results.py`
-(→ `_cache/results_snapshot.json`), `build_perbin.py`, `build_perlen*.py`,
-`plot_*.py`, `gen_md.py`
+(→ `_cache/results_snapshot.json`; refuses any input whose version/scorer stamp is
+missing or stale, except leaves listed in `excluded_leaves.txt`), `build_perbin.py`,
+`build_perlen*.py`, `plot_*.py` (incl. `plot_tradeoff.py`, the WER-vs-naturalness
+figure → `assets/plots/tradeoff_<task>.png`), `gen_md.py`
 (→ RESULTS_CURRENT.md, model-agnostic), `run.sh`. The pipeline reads from a
 populated `results/` tree; the `_cache/` snapshot is gitignored.
+
+**`slurm/`** — `submit_eval.sh`/`eval_job.sh` (generate + score one model per job),
+`score_job.sh` (one-GPU wrapper for any scoring driver), `submit_metrics.sh` /
+`submit_ground_truth_metrics.sh` (distributional-metric arrays; composable through
+`METRICS_*` env), and `submit_release_run.sh` (the whole release DAG: targets, HF
+upload, full rescore, GT, metrics, final build). See `slurm/README.md`.
 
 ---
 
@@ -164,15 +211,21 @@ to `sys.path` and `from utils.X import ...`.
   per-utterance score-file parsers, stdlib-only so `explorer/serve.py` and the coreset
   tooling share one implementation. Every parser returns `{}` for a missing file, because
   partial leaves are normal.
+- **Benchmark definition:** `benchmark.py` — `BENCHMARK_VERSION`, `CLEAN_LANGS` /
+  `ITW_LANGS` baskets (`langs_for(task)`), `QWEN_LANGS` / `asr_backend`, pinned scorer
+  revisions, stamp builders, `leaf_problems` (why a leaf is stale), and `sample_uids`
+  (the fixed per-(set, lang) sample). Stdlib only; CLI `python3 -m utils.benchmark
+  version | langs <task> | problems <leaf> <lang>`.
 - **WER:** `run_wer.py` (Qwen3-ASR / Whisper client + jiwer; env `ASR_BASE_URL`/`ASR_MODEL`/
-  `ASR_CONCURRENCY`, routing via `WHISPER_BASE_URL`/`QWEN_LANGS`), `average_wer.py`, `get_wav_res_ref_text.py`.
+  `ASR_CONCURRENCY`, routing via `ASR_ROUTING`/`WHISPER_BASE_URL`/`QWEN_LANGS`),
+  `text_norm.py` (shared text prep: digit expansion, orthographic folds,
+  `near_duplicate`), `average_wer.py` (footers: `WER`, `WER_L50`, `WER_CLIP`, CIs,
+  `N_IMPUTED`, `WER_TAIL50`, `BENCHMARK_VERSION`, `ASR`), `get_wav_res_ref_text.py`.
 - **Audio quality:** `score_msr_utmos.py` (MSR-UTMOS parallel MOS predictor;
   `score_wav()` scores one file, batch loop in the module CLI).
-- **Prosody:** `score_mpm_shuffle_floor.py` (real-to-scrambled MPM span).
-  Character/s distributional distance lives in `scripts/speaking_rate_dist.py`.
-- **Shell helpers:** `cal_wer.sh` (WER pipeline wrapper, called by
-  `scripts/run_score_wer.sh`), `parse_options.sh` (Kaldi-style `--name value`
-  argument parser, sourced by every `run_*.sh` entry point).
+- **Prosody:** `score_mpm_shuffle_floor.py` (real-to-scrambled MPM span, Clean only),
+  `pitch_range.py` (pYIN register-normalized pitch range, TSV-cached).
+  Char/s, rhythm, pitch-range drivers and the paired-ITW script live in `scripts/`.
 
 ---
 
@@ -196,19 +249,33 @@ text            # "<uttid> <target_text>"
 prompt_text     # "<uttid> <reference_speaker_text>"
 prompt_wav.scp  # "<uttid> <path_to_prompt.wav>"
 waveform/       # prompt_audio_<N>.wav  (reference speaker prompts)
+target_wav.scp  # ITW only: "<uttid> <path_to_real_target.wav>"
+target_wav/     # ITW only: held-out real recordings (HF dataset, gitignored)
 ```
-- `zero_shot/` covers 35 languages.
-- `zero_shot_voxblink/` covers 20 languages (up to ~1500 prompts/lang — 7 of the
-  largest reach 1500, smaller languages take their ceiling, ~17.3k total) plus
-  `_stage_a/`; bins are sorted worst→best MSR-UTMOS.
+- `zero_shot/` covers 35 languages (57,366 items after the near-duplicate filter).
+- `zero_shot_voxblink/` covers 20 languages (up to 1500 prompts/lang sampled — the 7
+  largest keep 1,463–1,496, smaller languages take their ceiling; 17,155 items after
+  the near-duplicate filter) plus `_stage_a/`; bins are sorted worst→best MSR-UTMOS.
+- `zero_shot_{mini,delta}/` and `zero_shot_voxblink_{mini,delta}/` are the coreset
+  panels: `panel.json` holds the item weights; their `waveform/` entries symlink into
+  the full-set trees and the ITW panels' `target_wav.scp` lists the panel's subset of
+  the full set's `target_wav/` files.
 
 ---
 
 ## Output conventions (`results/`, gitignored)
 
 Each leaf dir contains: `wavs/`, `wav.scp`, `wav_res_ref_text.wer[.raw]`,
-`spk_simi_scores.txt`, `msr_utmos_scores.txt` + `msr_utmos_mean.txt`. MPM-span
-aggregates live in their dedicated results subtrees. Model generations nest as
+`spk_simi_scores.txt` (vs the prompt), `spk_simi_scores.xutt.txt` (ITW only: vs the
+held-out target recording), `msr_utmos_scores.txt` + `msr_utmos_mean.txt` +
+`msr_utmos_ci.txt`, and the metric caches `pitch_range.tsv` (pitch range per sampled
+uid). Every score file carries its stamp: the `.wer` footer ends with `WER_TAIL50`
+(% of utterances with WER > 50%), `BENCHMARK_VERSION` and `ASR`
+(`<backend> <model>@<revision>`); the speaker files start with `#BENCHMARK_VERSION` /
+`#SPK_MODEL`; `msr_utmos_ci.txt` carries `BENCHMARK_VERSION` and `MSR_UTMOS_CKPT`.
+Distribution metrics write `results/{rhythm,pitch_range}_<set>_<lang>.csv`,
+`results/paired_itw_<lang>.csv` (each row with `benchmark_version`) and the MPM span
+aggregates in their dedicated results subtrees. Model generations nest as
 `results/<model>/<task>/<lang>/` (`omni_<model>/`, `zonos2_<ckpt>/`, hosted-provider
 dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 `results/gt_zero_shot/<lang>/`, `results/whisper_zero_shot_voxblink/<lang>/`, etc.
@@ -218,9 +285,12 @@ dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 
 ## Code organization facts
 
-- **Minimal tests:** `tests/smoke_test.py` (stdlib `unittest`, no GPU/network)
-  covers the shared `utils.scp` helpers, the `average_wer` aggregation, the
-  wav/text join, and the explorer API. Run: `python tests/smoke_test.py`.
+- **Tests:** `tests/smoke_test.py` (stdlib `unittest`, no GPU/network) covers the
+  shared `utils.scp` helpers, the `average_wer` aggregation, the wav/text join, and
+  the explorer API; `tests/test_scoring.py` pins the version-2 scoring (digit
+  expansion, near-duplicates, routing hard-failure, footer stamps, clustered
+  bootstrap, split-half W2, MPM span, pitch range). Run: `python tests/smoke_test.py`
+  and `python -m unittest discover -s tests -t . -p 'test_*.py'`.
 - **`utils/` is a package** (`utils/__init__.py`); `scripts/*.py` reach it with a
   uniform repo-root `sys.path` bootstrap + `from utils.X import ...`.
 - **Config is distributed**, not centralized: environment variables (`ASR_*`,

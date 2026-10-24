@@ -31,11 +31,21 @@
    and reported against the reference split-half **ceiling**
    (`x_ceiling` = d_ref / ceiling). Full-vs-full W2 has a lower noise floor
    than a split-half ceiling and flattered every system (fish-s2-pro: 0.86×
-   full-vs-full → 1.14× matched). NB `speaking_rate_dist.py` still scores
-   full-vs-full; its own docstring carries the same warning.
+   full-vs-full → 1.14× matched). `speaking_rate_dist.py` (char/s) and
+   `pitch_range_dist.py` score with the same `w2_fair`, so all three
+   distributional prosody metrics share one geometry. `--min-utts` defaults to
+   100 here and in the other two, so the small ITW languages (vi, uk, th, nl)
+   are scored rather than skipped.
 7. d_ref is direction-blind, so two directional columns ride along:
    `{dim}_std_ratio` (system std / ref std; < 1 = over-regularized) and
    `long_pct` (% of utterances with any ≥200 ms run — pause incidence).
+
+Two of the four dimensions are the headline in the results report
+(`RESULTS_CURRENT.md`, tradeoff figures, explorer): the **pause/stall factor**
+(`burstiness_x_ceiling` in the CSV) and the **pace factor** (`rate_x_ceiling`),
+both as multiples of the real-speech split-half ceiling. Rows carry a
+`benchmark_version` column, and only the uids of the current `text` are scored.
+Contour is covered by [pitch_range.md](pitch_range.md).
 
 ## Validation (constructed ground truth, zero_shot/en, 300v300 split)
 
@@ -64,8 +74,8 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
   works: pad-then-trim is a no-op even when the padding is −45 dB hiss rather
   than digital zeros. Internal pauses are untouched by design — they are the
   `burstiness`/`long_frac` signal.
-- **Reversal is detected**, unlike TTSDS Pitch (which scored backwards GT at
-  97.2). Reversed transients re-segment the token stream. Strictly this means
+- **Reversal is detected**, unlike a mean-F0 pitch score (the retired mean-F0
+  metric scored backwards GT at 97.2). Reversed transients re-segment the token stream. Strictly this means
   the dims are not *pure* timing — they also see segmentation stability — but
   moving on reversed speech is the desirable direction.
 - Selectivity is partial: a tempo change moves all four dims (npvi/burstiness
@@ -88,7 +98,7 @@ visibly holds the small WERs (1.6–2.8), the erratic corner the blow-ups.
 
 ![held-time ridgeline](../assets/plots/rhythm_dwelltime_ridgeline_zero_shot_voxblink_en.png)
 
-`scripts/plot_rhythm_ridgeline.py` — the rhythm analogue of the pitch
+`scripts/plot_rhythm_ridgeline.py` — the rhythm analogue of a pitch
 ridgeline. Each ridge is the distribution of *listening time* over mHuBERT
 segment duration (log x), ≥50 ms only, normalized by total audio time — so
 ridge AREA = the share of a system's audio spent holding a sound, and the

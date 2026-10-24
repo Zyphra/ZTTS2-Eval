@@ -44,6 +44,54 @@ plus the per-lang `wav_res_ref_text.wer`, `spk_simi_scores.txt`, `msr_utmos_mean
   model list and submits one job per model. See its header for the full option list.
 - `eval_job.sh` — the per-model job body run by `sbatch`. Carries `#SBATCH` defaults
   (overridden by the submitter's CLI flags) and reads its config from `EJ_*` env vars.
+- `metrics_job.sh` / `metrics_finalize.sh`, `ground_truth_metrics_job.sh` /
+  `ground_truth_metrics_finalize.sh` — array/finalizer bodies of the distributional
+  metrics (below).
+- `score_job.sh`, `submit_release_run.sh` — scoring and release jobs (below).
+
+## Scoring and release jobs (benchmark version 2)
+
+These rescore existing result leaves instead of generating. Submit every one with
+`--chdir=<repo root>` (`--export=ALL`); partition, account and QoS are never
+hard-coded and come from the submitter.
+
+- **`score_job.sh`** — one-GPU job body that runs any scoring driver passed as its
+  arguments, with its own ASR/Whisper port window (the same `20000 + (job id % 10000) * 4`
+  scheme as `eval_job.sh`) and the allocated GPU pinned as index 0:
+  ```bash
+  sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
+         bash scripts/run_gt_zero_shot.sh --task zero_shot_voxblink
+  sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
+         env DECODE_DIR=logs/smoke/zero_shot_voxblink bash run_infer_voxblink_eval.sh --test_set en
+  ```
+- **`scripts/rescore_all.sh`** — array job (8 GPUs per node, `--requeue`) that fully
+  rescores every `results/<system>/<task>/<lang>` leaf — WER with the routed ASR, both
+  speaker-similarity passes, MSR-UTMOS — so every score file carries the benchmark
+  version stamp. Leaves are dealt round-robin over node × GPU shards
+  (`sbatch --array=0-3 --chdir="$(pwd -P)" --export=ALL scripts/rescore_all.sh`), each
+  shard with its own ASR and Whisper servers. The resume gates are version-aware, so a
+  requeued or rerun job resumes at the first stale leaf. Leaf failures are listed in
+  `logs/slurm/rescore-all-<array job>-failed.txt` and do not fail the job (a shard
+  whose server cannot start does).
+- **`submit_metrics.sh` / `submit_ground_truth_metrics.sh`** — arrays for the
+  distributional metrics: `speaking` (char/s), `mpm` (Clean only), `rhythm` (GPU) and
+  `pitch_range` (CPU; on the In-The-Wild set the same job also runs
+  `scripts/paired_itw.py`), and for the ground-truth halves `speaking_gt`, `mpm_gt`.
+  They compose through the environment: `METRICS_PARTITION` / `METRICS_ACCOUNT` /
+  `METRICS_QOS` (site), `METRICS_KINDS` (which arrays to submit), `METRICS_DEPENDENCY`
+  (an `--dependency` string applied to every array), and `METRICS_FINALIZE` (`0` skips
+  the finalizer). The last stdout line is `METRICS_JOBS=<id>[:<id>...]`.
+- **`submit_release_run.sh`** — the whole release DAG, run from the repo root on the
+  login node: build the target recordings (`build_voxblink_targets.py`), upload them to
+  the HF dataset when `HF_TOKEN` is set, full rescore (`rescore_all.sh`), the two GT
+  scorings (`run_gt_zero_shot.sh`), the `mpm`, `rhythm`, `pitch_range` and `mpm_gt`
+  metrics with the right dependencies, and a final job that runs
+  `scripts/results_doc/run.sh` and rebuilds `RESULTS_CORESET.md`. Site values come from
+  `RELEASE_PARTITION`, `RELEASE_ACCOUNT`, `RELEASE_QOS`; `RELEASE_RESCORE_NODES` (default
+  4) sizes the rescore array and `RELEASE_SKIP_TARGETS=1` skips the target/upload jobs on
+  a restart. Job ids are written to `logs/slurm/release-run-<timestamp>/jobs.env`. Run
+  the pinned-model downloads (Qwen3-ASR, Whisper-large-v3, mHuBERT-147, ReDimNet2,
+  MSR-UTMOS) on the login node first if compute nodes are offline.
 
 ## How GPUs are handled
 
@@ -93,7 +141,7 @@ client failed to connect`. Pointing at a private dir makes CUDA drive the GPU di
 
 ## Partition, account, and time
 
-`--partition` and `--account` are unset by default, so jobs go to the cluster's defaults; pass them (or `METRICS_PARTITION` / `METRICS_ACCOUNT` for the metric submitters) to target a queue. With `--time` empty, jobs get 24 h; set `--time` to change it. Override resources with `--cpus`, `--mem`, `--gpus`.
+`--partition` and `--account` are unset by default, so jobs go to the cluster's defaults; pass them (or `METRICS_PARTITION` / `METRICS_ACCOUNT` / `METRICS_QOS` for the metric submitters, `RELEASE_PARTITION` / `RELEASE_ACCOUNT` / `RELEASE_QOS` for `submit_release_run.sh`) to target a queue. With `--time` empty, jobs get 24 h; set `--time` to change it. Override resources with `--cpus`, `--mem`, `--gpus`.
 
 ## zonos2 server
 

@@ -1,8 +1,9 @@
 """Pitch carpet: small multiples of per-utterance MELODY texture.
 
-The pitch sibling of the rhythm carpet (plot_rhythm_carpet.py). TTSDS2 Pitch
-only compares per-file MEAN F0 — a backwards recording scores 97.2 — so this
-view shows exactly what that misses: the contour. One panel per system, the
+The pitch sibling of the rhythm carpet (plot_rhythm_carpet.py), and the picture behind
+the pitch-range metric (utils/pitch_range.py, scripts/pitch_range_dist.py; see
+docs/pitch_range.md). A per-file MEAN-F0 comparison cannot see melody at all, so this
+view shows the contour. One panel per system, the
 SAME ~70 VoxBlink utterances as thin strips; each strip is the utterance's F0
 track drawn in semitones around its own median (register removed, melody
 kept). Monotone systems are flat threads, real speech is waves; the per-panel
