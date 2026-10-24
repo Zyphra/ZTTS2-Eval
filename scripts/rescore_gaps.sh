@@ -193,7 +193,7 @@ if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[rescore-gaps] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 [ -n "${WHISPER_BASE_URL:-}" ] || { echo "[rescore-gaps] ERROR: WHISPER_BASE_URL unset -- routing OFF, aborting"; exit 1; }
 echo "[rescore-gaps] routing via ${WHISPER_BASE_URL}"
 

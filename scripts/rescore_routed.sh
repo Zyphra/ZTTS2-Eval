@@ -45,7 +45,7 @@ export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[rescore] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 [ -n "${WHISPER_BASE_URL:-}" ] || { echo "[rescore] ERROR: WHISPER_BASE_URL unset -- routing OFF, aborting"; exit 1; }
 echo "[rescore] routing via ${WHISPER_BASE_URL}; langs='${LANGS}'"
 

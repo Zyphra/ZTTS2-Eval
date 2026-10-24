@@ -77,11 +77,12 @@ export WHISPER_PORT=$(( port_base + 2 ))
 export ASR_GPU=0
 export SCORE_GPU=0
 # Per-language ASR routing, matching how the GT baselines were scored: langs NOT in
-# QWEN_LANGS (en zh ko th vi hi fa yo) are transcribed by Whisper large-v3 with a
+# QWEN_LANGS (utils/benchmark.py: zh ko th vi hi fa) are transcribed by Whisper
+# large-v3 with a
 # FORCED language instead of Qwen3-ASR auto-detect. Without this, synth for langs
 # like uk/bg/hr/ca/nb/sk is auto-detected and misrouted to a phonetic neighbour
 # (uk->Czech, bg->Russian, ca->Spanish), inflating WER to 50-99% while GT stays low.
-# Whisper co-locates on the same cgroup GPU at 0.5 mem-util (WHISPER_GPU=0).
+# Whisper co-locates on the same cgroup GPU at 0.35 mem-util (WHISPER_GPU=0).
 export ASR_ROUTING=1
 export WHISPER_GPU=0
 # ASR + Whisper co-locate on the one cgroup GPU during scoring (the TTS server is

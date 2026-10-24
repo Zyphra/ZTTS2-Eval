@@ -15,6 +15,8 @@ dependencies = [
     "zhon",
     "zhconv",
     "editdistance>=0.5.2",
+    # digit -> word expansion on both sides of the WER text prep (utils/text_norm.py)
+    "num2words==0.5.14",
     # audio quality (MSR-UTMOS) + speaker similarity
     "torch",
     "torchaudio",
@@ -39,6 +41,7 @@ dependencies = [
     "tqdm",
     "PyYAML>=5.1.2",
     "pyloudnorm>=0.2.0",
+    "scikit-learn",          # scripts/rhythm_dist.py
     "pyarrow>=25.0.1",
 ]
 
@@ -70,19 +73,16 @@ cartesia = [
     "requests",
 ]
 
-# Extra prosody / MOS scorers run from the main .venv by run_infer_*_eval.sh:
-#   dswed     -> utils/score_dswed.py      (DS-WED prosody diversity)
+# Extra MOS scorer run from the main .venv by run_infer_*_eval.sh:
 #   sfi-utmos -> utils/score_msr_utmos.py  (MSR-UTMOS parallel MOS predictor)
-# Heavy transitive deps (lightning, descript-audio-codec, ...), so kept optional;
+# Heavy transitive deps (lightning, ...), so kept optional;
 # install with:  uv sync --extra scorers
 scorers = [
-    "dswed==1.0.0",
     "sfi-utmos @ git+https://github.com/sarulab-speech/msr-utmos.git@ccf5e98815c33a456b4f5f18f6002322a7729433",
 ]
 
-# Plotting deps for the results-doc figures (scripts/results_doc/plot_*.py,
-# scripts/plot_dswed_dists.py, scripts/plot_ttsds_pitch_ridgeline.py). Kept out
-# of the core deps so the benchmark runs headless; install with: uv sync --extra viz
+# Plotting deps for the results-doc figures (scripts/results_doc/plot_*.py).
+# Kept out of the core deps so the benchmark runs headless; install with: uv sync --extra viz
 viz = [
     "matplotlib",
     "scipy",

@@ -96,7 +96,7 @@ done
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[e2e] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 
 for sys in ${E2E_SYSTEMS}; do
     have=""

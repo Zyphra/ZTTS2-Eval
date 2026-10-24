@@ -24,10 +24,10 @@ from utils.scp import load_scp_items as load_scp  # noqa: E402
 # implementation lives in utils/average_wer.py (memory-chunked, same B/seed);
 # ndigits=4 reproduces this scorer's historical rounding bit-for-bit.
 from utils.average_wer import CI_BOOT, CI_SEED, boot_ci95  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, MSR_UTMOS_CKPT  # noqa: E402
 
-DEFAULT_CKPT = (
-    "https://huggingface.co/sarulab-speech/MSR-UTMOS_w2v2_fold0/resolve/main/model.ckpt"
-)
+# Pinned to a commit of the checkpoint repo (utils/benchmark.py).
+DEFAULT_CKPT = MSR_UTMOS_CKPT
 N_LISTENERS = 10
 
 
@@ -143,6 +143,8 @@ def main():
         # its regex parsers (build_results.MSR_CI_RE, report_gt) match anywhere.
         f.write(f"N_SCORED: {len(scores)}\n")
         f.write(f"N_EXPECTED: {len(items)}\n")
+        f.write(f"BENCHMARK_VERSION: {BENCHMARK_VERSION}\n")
+        f.write(f"MSR_UTMOS_CKPT: {args.ckpt}\n")
     print(f"MSR-UTMOS mean: {mean:.4f}  95%CI [{lo}, {hi}]  (n={len(scores)}/{len(items)})")
 
     min_cov = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))

@@ -10,9 +10,9 @@
 #   ASR_MODEL             HuggingFace model id           (default Qwen/Qwen3-ASR-1.7B)
 #   ASR_HOST ASR_PORT     bind address                   (default 127.0.0.1:8000)
 #   ASR_GPU               GPU index for the server       (default 0)
-#   ASR_GPU_MEM_UTIL      vLLM --gpu-memory-utilization   (default 0.5; vLLM default
-#                         0.9 would starve the speaker-sim / MSR-UTMOS steps on the
-#                         same GPU -- raise it only if the server has a GPU to itself)
+#   ASR_GPU_MEM_UTIL      vLLM --gpu-memory-utilization   (default 0.35, the published
+#                         co-location value: Qwen + Whisper + speaker-sim/MSR-UTMOS share
+#                         one GPU; vLLM default 0.9 would starve the scorers)
 #   ASR_STARTUP_TIMEOUT   seconds to wait for readiness   (default 600)
 #   ASR_LOG               server log file                (default /tmp/vllm_asr_<port>.log)
 #   ASR_EXTRA_ARGS        extra flags appended to `vllm serve` (default empty),
@@ -42,10 +42,23 @@ if [ -z "${ASR_GPU}" ]; then
         echo "[asr] auto-selected GPU ${ASR_GPU} (>= ${_free} MiB free)"
     fi
 fi
-ASR_GPU_MEM_UTIL=${ASR_GPU_MEM_UTIL:-0.5}
+ASR_GPU_MEM_UTIL=${ASR_GPU_MEM_UTIL:-0.35}
+# Per-language ASR routing is the benchmark default (utils/run_wer.py enforces it).
+ASR_ROUTING=${ASR_ROUTING:-1}
+# Pinned model revisions (utils/benchmark.py). Only meaningful for the pinned model id;
+# a swapped-in model is served unpinned and stamped "unpinned" by run_wer.py.
+_pin() {  # <backend> <model> -> pinned revision when <model> is the pinned id, else ""
+    python3 - "$1" "$2" <<'PYEOF' 2>/dev/null
+import sys
+from utils.benchmark import ASR_MODELS
+mid, rev = ASR_MODELS[sys.argv[1]]
+print(rev if sys.argv[2] == mid else "")
+PYEOF
+}
+ASR_REVISION=${ASR_REVISION-$(_pin qwen "${ASR_MODEL}")}
 ASR_STARTUP_TIMEOUT=${ASR_STARTUP_TIMEOUT:-600}
 ASR_BASE_URL="http://${ASR_HOST}:${ASR_PORT}/v1"
-export ASR_BASE_URL ASR_MODEL
+export ASR_BASE_URL ASR_MODEL ASR_ROUTING ASR_REVISION
 
 # vLLM defaults to FlashInfer for sampling; on this host FlashInfer's JIT CUDA
 # build (via ninja) fails, so force vLLM's native sampler. Export
@@ -110,6 +123,7 @@ start_asr_server() {
     TMPDIR="${ASR_TMPDIR}" CUDA_VISIBLE_DEVICES="${ASR_GPU}" "${ASR_VLLM_BIN}" serve "${ASR_MODEL}" \
         --host "${ASR_HOST}" --port "${ASR_PORT}" \
         --gpu-memory-utilization "${ASR_GPU_MEM_UTIL}" \
+        ${ASR_REVISION:+--revision ${ASR_REVISION} --tokenizer-revision ${ASR_REVISION}} \
         ${ASR_EXTRA_ARGS} \
         > "${logf}" 2>&1 &
     VLLM_PID=$!
@@ -156,13 +170,16 @@ stop_asr_server() {
 # its own GPU/port/PID so it never clobbers the Qwen server above.
 #   WHISPER_ASR_MODEL   model to serve            (default openai/whisper-large-v3)
 #   WHISPER_PORT        bind port                 (default 8001)
-#   WHISPER_GPU         GPU index                 (default: auto-pick, != ASR_GPU)
-#   WHISPER_GPU_MEM_UTIL vLLM --gpu-memory-utilization (default 0.5)
+#   WHISPER_GPU         GPU index                 (default: auto-pick != ASR_GPU; when no
+#                       other GPU has room, co-locate on ASR_GPU)
+#   WHISPER_GPU_MEM_UTIL vLLM --gpu-memory-utilization (default 0.35)
 #   WHISPER_LOG         server log file           (default /tmp/vllm_whisper_<port>.log)
 WHISPER_ASR_MODEL=${WHISPER_ASR_MODEL:-openai/whisper-large-v3}
 WHISPER_PORT=${WHISPER_PORT:-8001}
 WHISPER_GPU=${WHISPER_GPU:-}
-WHISPER_GPU_MEM_UTIL=${WHISPER_GPU_MEM_UTIL:-0.5}
+WHISPER_GPU_MEM_UTIL=${WHISPER_GPU_MEM_UTIL:-0.35}
+WHISPER_REVISION=${WHISPER_REVISION-$(_pin whisper "${WHISPER_ASR_MODEL}")}
+export WHISPER_REVISION
 WHISPER_VLLM_PID=""
 
 start_whisper_server() {
@@ -181,7 +198,10 @@ start_whisper_server() {
     if [ -z "${gpu}" ]; then
         gpu=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits 2>/dev/null \
               | awk -F', ' -v skip="${ASR_GPU:-99}" '$1!=skip && $2>=50000{print $1; exit}')
-        [ -z "${gpu}" ] && { echo "[whisper] ERROR: no free GPU (!= ASR_GPU) for Whisper" >&2; return 1; }
+        if [ -z "${gpu}" ]; then
+            gpu="${ASR_GPU}"
+            echo "[whisper] co-locating on GPU ${ASR_GPU}"
+        fi
     fi
 
     echo "[whisper] starting ${WHISPER_ASR_MODEL} on ${ASR_HOST}:${WHISPER_PORT} (GPU ${gpu}, log ${logf})"
@@ -189,6 +209,7 @@ start_whisper_server() {
     TMPDIR="${WHISPER_TMPDIR}" CUDA_VISIBLE_DEVICES="${gpu}" "${ASR_VLLM_BIN}" serve "${WHISPER_ASR_MODEL}" \
         --host "${ASR_HOST}" --port "${WHISPER_PORT}" \
         --gpu-memory-utilization "${WHISPER_GPU_MEM_UTIL}" \
+        ${WHISPER_REVISION:+--revision ${WHISPER_REVISION} --tokenizer-revision ${WHISPER_REVISION}} \
         ${ASR_EXTRA_ARGS} \
         > "${logf}" 2>&1 &
     WHISPER_VLLM_PID=$!
@@ -225,16 +246,17 @@ stop_whisper_server() {
     WHISPER_TMPDIR=""
 }
 
-# Convenience for the scoring drivers: enable per-lang routing only when asked --
-# ASR_ROUTING=1, or WHISPER_GPU set, or an external WHISPER_BASE_URL already given.
-# Off by default, so GT and existing single-server runs are byte-for-byte unchanged.
+# Scoring-driver entry point. Routing is the benchmark default: the Whisper server is
+# started unless ASR_ROUTING=0 (diagnostic all-Qwen mode, not benchmark-comparable).
+# A failed start is an error -- callers do `maybe_start_whisper || exit 1`.
 maybe_start_whisper() {
     if [ -n "${WHISPER_BASE_URL:-}" ]; then
         echo "[whisper] routing on: using external server ${WHISPER_BASE_URL}"
         return 0
     fi
-    if [ "${ASR_ROUTING:-0}" != "1" ] && [ -z "${WHISPER_GPU:-}" ]; then
+    if [ "${ASR_ROUTING:-1}" = "0" ]; then
+        echo "[whisper] ASR_ROUTING=0: all languages on Qwen3-ASR; results are not benchmark-comparable and build_results.py will refuse them"
         return 0
     fi
-    start_whisper_server || echo "[whisper] WARN: start failed; continuing all-Qwen" >&2
+    start_whisper_server || { echo "[whisper] ERROR: Whisper server failed to start" >&2; return 1; }
 }

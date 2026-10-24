@@ -13,6 +13,8 @@ from openai import OpenAI, BadRequestError
 # (see docs/edit_nature.md). Apostrophes are deleted (not spaced) because
 # contractions are orthography, not pronunciation.
 from text_norm import base_lang, prepare, process_one  # noqa: E402,F401
+from benchmark import (ASR_MODELS, BENCHMARK_VERSION, QWEN_LANGS as _QWEN_DEFAULT,  # noqa: E402
+                       asr_backend, asr_stamp)
 
 wav_res_text_path = sys.argv[1]
 res_path = sys.argv[2]
@@ -97,10 +99,11 @@ def impute_row(wav_res_path, text_ref, reason):
 # --- Per-language ASR routing (see docs/asr_whisper_vs_qwen.md) ------------------
 # Whisper large-v3 with forced language beats Qwen3-ASR on the European/Slavic/
 # cross-script langs (the GT WER tail) by 8-72 WER points, while Qwen3-ASR wins CJK,
-# Hindi, Thai, Vietnamese, Yoruba and ties the easy Western langs. When a Whisper
-# server is configured via WHISPER_BASE_URL, langs NOT in QWEN_LANGS route to it;
-# with WHISPER_BASE_URL unset, everything uses Qwen -- i.e. prior behaviour, so GT
-# and existing single-server runs are unchanged.
+# Hindi, Thai, Vietnamese and ties the easy Western langs. Routing is ON by default
+# (utils/benchmark.py: QWEN_LANGS stay on Qwen, everything else goes to Whisper) and
+# it is a hard failure when a lang routes to Whisper but no Whisper server is
+# configured. ASR_ROUTING=0 sends everything to Qwen -- a diagnostic mode whose
+# numbers are not benchmark-comparable (the stamp in the .wer footer says so).
 WHISPER_BASE_URL = os.environ.get("WHISPER_BASE_URL", "")
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "openai/whisper-large-v3")
 
@@ -114,7 +117,8 @@ WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "openai/whisper-large-v3")
 # slightly lower Qwen GT floor, which is common-mode. `yo` dropped from the set:
 # the language was removed from the benchmark the same day (LID mislabel).
 QWEN_LANGS = set((os.environ.get("QWEN_LANGS")
-                  or "zh ko th vi hi fa").split())
+                  or " ".join(sorted(_QWEN_DEFAULT))).split())
+ASR_ROUTING = os.environ.get("ASR_ROUTING", "1") != "0"
 
 # Qwen accepts an ISO hint only for these (its production config); others auto-detect.
 QWEN_LANG_HINT = {"en": "en", "zh": "zh", "de": "de", "es": "es", "fr": "fr",
@@ -131,11 +135,28 @@ WHISPER_LANG_CODE = {
     "yo": "yo",
 }
 
-use_whisper = bool(WHISPER_BASE_URL) and base not in QWEN_LANGS
+expected = asr_backend(base, QWEN_LANGS)
+if ASR_ROUTING and expected == "whisper" and not WHISPER_BASE_URL:
+    sys.exit(f"[wer] ERROR: {lang} routes to Whisper-large-v3 but WHISPER_BASE_URL is unset; "
+             "start it via scripts/serve_asr.sh (maybe_start_whisper) or set ASR_ROUTING=0 "
+             "(all-Qwen, not comparable to published numbers)")
+use_whisper = ASR_ROUTING and expected == "whisper"
 if use_whisper:
     BACKEND, _url, MODEL, iso = "whisper", WHISPER_BASE_URL, WHISPER_MODEL, WHISPER_LANG_CODE.get(base)
 else:
     BACKEND, _url, iso = "qwen", BASE_URL, QWEN_LANG_HINT.get(base)
+
+
+def _revision(backend):
+    """Pinned revision when the served model is the pinned one, else 'unpinned'."""
+    env = os.environ.get("WHISPER_REVISION" if backend == "whisper" else "ASR_REVISION")
+    if env:
+        return env
+    pinned_id, pinned_rev = ASR_MODELS[backend]
+    return pinned_rev if MODEL == pinned_id else "unpinned"
+
+
+ASR_STAMP = asr_stamp(BACKEND, MODEL, _revision(BACKEND))
 print(f"[wer] {lang}: backend={BACKEND} model={MODEL} lang_force={iso or 'auto'}",
       file=sys.stderr)
 
@@ -336,7 +357,8 @@ def run_asr(wav_res_text_path, res_path):
     # SCORE_MIN_COVERAGE). The .raw format itself is untouched -- its parsers
     # (per_uid, perlen/perbin builders) see rows only.
     with open(res_path + ".meta", "w") as f:
-        json.dump({"n_expected": len(params), "n_transcribed": n_scored,
+        json.dump({"benchmark_version": BENCHMARK_VERSION, "asr": ASR_STAMP,
+                   "n_expected": len(params), "n_transcribed": n_scored,
                    "n_imputed": len(imputed), "n_rows": n_scored + len(imputed),
                    "impute_policy": bool(WER_IMPUTE),
                    "unscored": [{"wav": os.path.basename(w), "reason": r,

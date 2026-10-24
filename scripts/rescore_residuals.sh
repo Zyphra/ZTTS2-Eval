@@ -41,7 +41,7 @@ export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[residuals] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 [ -n "${WHISPER_BASE_URL:-}" ] || { echo "[residuals] ERROR: WHISPER_BASE_URL unset"; exit 1; }
 # QWEN_LANGS is left at the run_wer.py default so the backfill routes each language
 # exactly the way the published scores are routed (en on Whisper since control C1).

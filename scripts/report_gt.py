@@ -15,10 +15,11 @@ import argparse
 import glob
 import os
 import re
+import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# Keep in sync with run_wer.py's default QWEN_LANGS.
-QWEN_LANGS = set("en zh ko th vi hi fa yo".split())
+sys.path.insert(0, REPO)
+from utils.benchmark import QWEN_LANGS  # noqa: E402
 SETS = {"clean": "gt_zero_shot", "voxblink": "gt_zero_shot_voxblink"}
 
 WER_RE = re.compile(r"^WER:\s*([\d.]+)")

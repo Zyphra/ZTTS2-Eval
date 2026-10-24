@@ -17,18 +17,21 @@ can create a spurious win:
          ASR error, violating the pronunciation-neutral rule.
    Gated by ORTHO_NORM_LANGS (default "ar fa he"); set empty to disable.
 
-2. `prepare` — apostrophe deletion, Unicode punctuation -> space, lowercase, and
+2. `prepare` — digits -> words (num2words, see `expand_numbers`), apostrophe deletion,
+   Unicode punctuation -> space, lowercase, and
    tokenization: whitespace words, or single characters (CER) for zh/ja/ko/th.
    zh additionally folds traditional -> simplified (zhconv) on BOTH sides: a
    handful of data/*/zh/text lines are traditional, and folding only the ASR
    hypothesis (the old run_wer.py behaviour) made those utterances score ~100%
    CER regardless of the audio.
 """
+import difflib
 import os
 import re
 import sys
 import unicodedata
 
+import num2words as _n2w
 import zhconv
 from jiwer import process_words
 
@@ -101,6 +104,64 @@ def base_lang(leaf_name):
     return fallback
 
 
+# --- number expansion ----------------------------------------------------------------
+# ASR output and references disagree on digits vs words ("20" vs "twenty") and that
+# disagreement is not a pronunciation error, so both sides are expanded identically
+# before scoring. Languages num2words cannot handle are left in digits.
+_N2W_CODE = {"nb": "no"}
+NUM2WORDS_LANGS = frozenset(
+    l for l in KNOWN_LANGS if _N2W_CODE.get(l, l) in _n2w.CONVERTER_CLASSES)
+_NUM_RE = re.compile(r"(?<![\w])(\d+(?:[.,]\d+)*)(st|nd|rd|th)?(?![\w])")
+_SEP_RE = re.compile(r"[.,]")
+
+
+def _say(value, code, **kw):
+    return " " + _n2w.num2words(value, lang=code, **kw) + " "
+
+
+def expand_numbers(text, base):
+    """Replace digit tokens by words; identity for languages without num2words support."""
+    if base not in NUM2WORDS_LANGS:
+        return text
+    code = _N2W_CODE.get(base, base)
+
+    def repl(m):
+        tok, suffix = m.group(1), m.group(2)
+        if suffix and base != "en":
+            return m.group(0)
+        try:
+            groups = _SEP_RE.split(tok)
+            if len(groups) > 1 and all(len(g) == 3 for g in groups[1:]) \
+                    and not groups[0].startswith("0"):
+                tok = "".join(groups)               # 1,000 / 1.000.000 -> integer
+            elif len(groups) == 2:
+                return _say(f"{groups[0]}.{groups[1]}", code)   # decimal
+            elif len(groups) > 2:
+                return " ".join(_say(int(g), code) for g in groups)
+            n = int(tok)
+            if base == "en" and suffix:
+                return _say(n, code, to="ordinal")
+            if base == "en" and 1100 <= n <= 2099 and len(tok) == 4:
+                return _say(n, code, to="year")
+            return _say(n, code)
+        except Exception:  # num2words: NotImplementedError/OverflowError/... -> keep digits
+            return m.group(0)
+
+    return _NUM_RE.sub(repl, text)
+
+
+def text_key(text):
+    """Case/punctuation-insensitive key for matching the same sentence."""
+    return re.sub(r"[\W_]+", " ", text.lower()).strip()
+
+
+def near_duplicate(a, b, threshold=0.8):
+    """True when two texts are the same sentence up to case/punctuation, or their
+    text_keys are >= `threshold` similar (difflib ratio)."""
+    ka, kb = text_key(a), text_key(b)
+    return ka == kb or difflib.SequenceMatcher(None, ka, kb).ratio() >= threshold
+
+
 def prepare(text, base):
     """Return a space-joined token string ready for jiwer.process_words(ref, hyp)."""
     if base == "zh":
@@ -108,6 +169,7 @@ def prepare(text, base):
         # only the hypothesis turned traditional-script references into ~100% CER).
         text = zhconv.convert(text, "zh-cn")
     text = normalize_ortho(text, base)
+    text = expand_numbers(text, base)
     text = _APOS_RE.sub("", text)
     text = "".join(" " if unicodedata.category(c).startswith("P") else c for c in text)
     if base in CHAR_LANGS:

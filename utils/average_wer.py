@@ -4,6 +4,10 @@ import sys
 
 import numpy as np
 
+# Runs as a script from utils/ and is also imported as utils.average_wer.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.text_norm import text_key  # noqa: E402
+
 # 95% CI on the per-utterance mean via a seeded percentile bootstrap. Per-utt WER
 # is bounded-below, skewed and heavy-tailed (a few >1.0 utts), so a normal-approx
 # SE understates the interval; the bootstrap needs no distributional assumption.
@@ -45,20 +49,39 @@ def manifest_for(raw_path):
     return cand if os.path.isfile(cand) else None
 
 
-def boot_ci95(vals, scale=1.0, B=CI_BOOT, seed=CI_SEED, ndigits=3):
+def boot_ci95(vals, scale=1.0, B=CI_BOOT, seed=CI_SEED, ndigits=3, clusters=None):
+    """Percentile-bootstrap 95% CI of the mean of `vals`.
+
+    With `clusters` (one hashable key per value) whole clusters are resampled with
+    replacement and each draw is sum(cluster sums) / sum(cluster counts), so rows
+    that share a key (the same FLEURS sentence read by several speakers) move
+    together. Without it the draw is the plain per-row bootstrap, byte-identical to
+    the original implementation.
+    """
     a = np.asarray(vals, dtype=float)
     if a.size == 0:
         return float("nan"), float("nan")
     rng = np.random.default_rng(seed)
+    if clusters is not None:
+        _, inv = np.unique(np.asarray(list(clusters), dtype=object).astype(str),
+                           return_inverse=True)
+        sums = np.bincount(inv, weights=a)
+        counts = np.bincount(inv).astype(float)
+        n = sums.size
+    else:
+        n = a.size
     # resample in row-chunks to cap peak memory on large n (chunked draws consume
     # the generator stream identically to one (B, n) draw, so results are exact)
-    step = max(1, 2_000_000 // max(a.size, 1))
+    step = max(1, 2_000_000 // max(n, 1))
     out = []
     done = 0
     while done < B:
         m = min(step, B - done)
-        idx = rng.integers(0, a.size, size=(m, a.size))
-        out.append(a[idx].mean(axis=1))
+        idx = rng.integers(0, n, size=(m, n))
+        if clusters is not None:
+            out.append(sums[idx].sum(axis=1) / counts[idx].sum(axis=1))
+        else:
+            out.append(a[idx].mean(axis=1))
         done += m
     means = np.concatenate(out) * scale
     return (round(float(np.percentile(means, 2.5)), ndigits),
@@ -69,6 +92,7 @@ def main(infile, outfile):
     fout = open(outfile, "w")
     fout.write("utt" + '\t' + "wav_res" + '\t' + 'res_wer' + '\t' + 'text_ref' + '\t' + 'text_res' + '\t' + 'res_wer_ins' + '\t' + 'res_wer_del' + '\t' + 'res_wer_sub' + '\n')
     wers = []
+    keys = []  # text_key(reference) per row: sentence clusters for the bootstrap
     wers_below50 = []
     wers_clip = []
     inses = []
@@ -95,6 +119,7 @@ def main(infile, outfile):
             inses.append(inse_f)
             deles.append(dele_f)
             subses.append(subs_f)
+            keys.append(text_key(text_ref))
             fout.write(line)
 
     if not wers:
@@ -110,8 +135,10 @@ def main(infile, outfile):
 
     fout.write(f"WER: {wer}, WER_L50: {wer_below50}, WER_CLIP: {wer_clip}\n")
     # 95% bootstrap CI, on a separate line so the strict WER: parsers above are untouched.
-    wer_lo, wer_hi = boot_ci95(wers, 100.0)
-    clip_lo, clip_hi = boot_ci95(wers_clip, 100.0)
+    # Resampled by reference sentence: FLEURS prompts repeat across speakers, so rows
+    # that share a sentence are not independent draws.
+    wer_lo, wer_hi = boot_ci95(wers, 100.0, clusters=keys)
+    clip_lo, clip_hi = boot_ci95(wers_clip, 100.0, clusters=keys)
     fout.write(f"WER_CI95: [{wer_lo}, {wer_hi}], WER_CLIP_CI95: [{clip_lo}, {clip_hi}], "
                f"n: {len(wers)}, boot: {CI_BOOT}, seed: {CI_SEED}\n")
 
@@ -121,11 +148,13 @@ def main(infile, outfile):
     # row count, i.e. claims full coverage like before.
     n_scored = len(wers)
     n_expected = None
+    meta = {}
     meta_path = infile + ".meta"
     if os.path.isfile(meta_path):
         try:
             with open(meta_path) as f:
-                n_expected = int(json.load(f)["n_expected"])
+                meta = json.load(f)
+            n_expected = int(meta["n_expected"])
         except (OSError, ValueError, KeyError) as e:
             print(f"warning: unreadable {meta_path}: {e}", file=sys.stderr)
     if n_expected is None:
@@ -145,6 +174,13 @@ def main(infile, outfile):
     # imputation for audio the reference ASR could not transcribe at all.
     fout.write(f"N_TRANSCRIBED: {n_scored - n_imputed}\n")
     fout.write(f"N_IMPUTED: {n_imputed}\n")
+    # Share of utterances with WER above 50% (the catastrophic tail).
+    fout.write(f"WER_TAIL50: {100 * n_higher_than_50 / n_scored:.3f}\n")
+    # Version stamps (scorer pins): absent for a legacy sidecar, which makes that
+    # leaf stale by definition (utils/benchmark.leaf_problems).
+    if "benchmark_version" in meta and "asr" in meta:
+        fout.write(f"BENCHMARK_VERSION: {meta['benchmark_version']}\n")
+        fout.write(f"ASR: {meta['asr']}\n")
     fout.close()
 
     print(f"WER: {wer}%\n")

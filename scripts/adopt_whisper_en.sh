@@ -30,7 +30,7 @@ export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 # The ASR (Qwen) server still serves any leaf that mixes langs; Whisper does en.
 start_asr_server || { echo "[adopt-en] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 [ -n "${WHISPER_BASE_URL:-}" ] || { echo "[adopt-en] ERROR: WHISPER_BASE_URL unset"; exit 1; }
 
 repo="$(pwd -P)"

@@ -36,6 +36,8 @@ import torchaudio
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # Ordered (uttid, path) list parser; '<uttid> <wav_path>' per line.
 from utils.scp import load_scp_items as load_scp  # noqa: E402
+from utils.benchmark import (BENCHMARK_VERSION, SPK_HUB_REF, SPK_HUB_REPO,  # noqa: E402
+                             spk_stamp)
 
 TARGET_SR = 16000
 
@@ -54,7 +56,8 @@ def load_wav(wav_path):
     return wav
 
 
-def score_system(hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, ref_cache):
+def score_system(hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, ref_cache,
+                 stamp):
     """Score one hyp scp into log_file; returns (n_scored, n_expected, avg_hyp).
 
     prompt_cache (uttid -> prompt embedding) and ref_cache (uttid -> prompt-vs-ref
@@ -103,6 +106,10 @@ def score_system(hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, 
         n_expected = len(hyp_wavs)
         out.write(f"#N_SCORED: {len(hyp_scores)}\n")
         out.write(f"#N_EXPECTED: {n_expected}\n")
+        # Version stamps (two-field '#' lines, skipped by every parser): benchmark
+        # version and the pinned embedder, checked by utils.benchmark.leaf_problems.
+        out.write(f"#BENCHMARK_VERSION: {BENCHMARK_VERSION}\n")
+        out.write(f"#SPK_MODEL: {stamp}\n")
     return len(hyp_scores), n_expected, avg_hyp
 
 
@@ -133,19 +140,21 @@ def main():
     ap.add_argument("--dataset", default="vb2+vox2_v0")
     args = parse_args(ap)
 
-    model = torch.hub.load("PalabraAI/redimnet2", "redimnet2",
+    # Pinned to a commit of the hub repo so the embedder cannot drift under us.
+    model = torch.hub.load(f"{SPK_HUB_REPO}:{SPK_HUB_REF}", "redimnet2",
                            model_name=args.model_name, train_type=args.train_type,
-                           dataset=args.dataset, pretrained=True, trust_repo=True)
+                           dataset=args.dataset, pretrained=True, trust_repo=True,
+                           skip_validation=True)
     model = model.to(args.device).eval()
 
     @torch.no_grad()
     def embed(wav):
         return model(wav.to(args.device)).reshape(-1)  # (batch=1, emb_dim) -> (emb_dim,)
 
-    run(args, embed)
+    run(args, embed, spk_stamp(args.model_name, args.train_type, args.dataset))
 
 
-def run(args, embed):
+def run(args, embed, stamp):
     """Score every --hyp_wavs scp into its --log_file; exits non-zero on low coverage."""
     prompt_wavs = dict(load_scp(args.prompt_wavs))
     ref_wavs = (dict(load_scp(args.ref_wavs))
@@ -157,7 +166,7 @@ def run(args, embed):
     for hyp_scp, log_file in zip(args.hyp_wavs, args.log_file):
         start = time.time()
         n_scored, n_expected, avg_hyp = score_system(
-            hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, ref_cache)
+            hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, ref_cache, stamp)
         print(f"speaker similarity: avg hyp = {avg_hyp * 100.0:.2f}  "
               f"(n={n_scored}/{n_expected})"
               + (f"  -> {log_file} ({time.time() - start:.0f}s)" if multi else ""), flush=True)

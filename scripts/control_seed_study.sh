@@ -57,7 +57,7 @@ export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[seed-study] ERROR: ASR server failed"; exit 1; }
-maybe_start_whisper
+maybe_start_whisper || exit 1
 
 PY=.venv/bin/python
 . scripts/lib_infer_scoring.sh

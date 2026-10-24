@@ -26,7 +26,7 @@ if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
 . scripts/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || exit 1
-maybe_start_whisper   # per-lang routing when ASR_ROUTING=1 / WHISPER_GPU set (else no-op)
+maybe_start_whisper || exit 1
 
 # Pick a GPU for the MSR-UTMOS torch model (>=5 GB free, not the ASR GPU).
 SCORE_GPU="${SCORE_GPU:-}"
