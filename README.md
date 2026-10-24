@@ -81,7 +81,7 @@ listener-validated exception. ZTTS2-Eval targets four gaps:
 |MiniMax multilingual|24|Common Voice, 2 speakers per language|100 sentences per language|WER · SIM|—|—|
 |TTSDS2|14|clean, noisy, in-the-wild, children's|20 systems, 11,000+ listener ratings|distribution factors|factor-wise distances to real speech|correlation with listeners|
 |ZTTS1-Eval|9 clean / 17 wild|read speech / VoxBlink2|4,500 + 1,618|Qwen3-ASR · ReDimNet · MSR-UTMOS|TTSDS2 composite, DS-WED|GT WER floor|
-|**ZTTS2-Eval**|**35 clean / 20 wild**|**FLEURS-R / VoxBlink2 in 5 quality bins**|**57,388 + 17,319**|**Qwen3-ASR or Whisper-large-v3, routed per language · ReDimNet2 · MSR-UTMOS**|**char/s distance, MPM span, TTSDS2 Pitch, DS-WED**|**GT and split-half floors, failed outputs = max error, bootstrap CIs, scorer controls**|
+|**ZTTS2-Eval**|**35 clean / 20 wild**|**FLEURS-R / VoxBlink2 in 5 quality bins**|**57,388 + 17,319**|**Qwen3-ASR or Whisper-large-v3, routed per language · ReDimNet2 · MSR-UTMOS**|**char/s distance, MPM span**|**GT and split-half floors, failed outputs = max error, bootstrap CIs, scorer controls**|
 
 ## What's new since ZTTS1-Eval
 
@@ -95,7 +95,7 @@ the June 2026 benchmark introduced alongside ZONOS2.
 |ASR|Qwen3-ASR for every language; language hint for 9, auto-detect elsewhere|Qwen3-ASR for zh ko th vi hi fa; Whisper-large-v3 with the language forced for all others, English included|[ASR comparison](docs/asr_whisper_vs_qwen.md), [tail modes](docs/wer_tail_error_modes.md)|
 |Text prep|traditional→simplified fold on zh hypotheses only|identical on reference and hypothesis: case, punctuation, apostrophes; CER for zh ja ko th; orthographic fold for ar fa he|[edit nature](docs/edit_nature.md)|
 |Failed transcriptions|skipped, so the mean covers survivors only|scored as maximum error (WER_CLIP 100); `.wer` footers report `N_TRANSCRIBED`/`N_IMPUTED`|[unscoreable](docs/unscoreable_2026-09.md)|
-|Prosody|TTSDS2 composite (Allosaurus rate, HuBERT rate, Pitch, MPM) + DS-WED|characters/s 2-Wasserstein distance; MPM span between a real split-half floor and a contour-scrambled floor (Clean only); TTSDS2 Pitch; DS-WED|[Pitch](docs/ttsds_pitch.md), [MPM limits](docs/mpm_itw_limits.md)|
+|Prosody|TTSDS2 composite (Allosaurus rate, HuBERT rate, Pitch, MPM) + DS-WED|characters/s 2-Wasserstein distance; MPM span between a real split-half floor and a contour-scrambled floor (Clean only)|[MPM limits](docs/mpm_itw_limits.md)|
 |Ground truth|GT WER floor|GT WER floor + disjoint 50/50 split-half floor for every distributional metric|[Metrics](#metrics)|
 |Uncertainty and controls|none published|bootstrap CIs, generation-variance study, seen-speaker and scorer self-favoritism controls, documented confounds|[controls](docs/controls_2026-08.md), [Provenance](#provenance--known-confounds)|
 |Cost|full sets only|coreset panels: Mini (16× / 8.7× fewer generations), Delta (287× / 87×), validated on held-out model families|[Coreset](docs/coreset.md)|
@@ -189,15 +189,11 @@ speaking-rate, pitch, contour, and generation diversity.
   distributions on TTSDS2's 0–100 scale. It is interpretable in Hz but
   speaker-dependent, so read it alongside speaker similarity. From
   [TTSDS2](https://github.com/ttsds/ttsds).
-* **DS-WED** (Discretized Speech Weighted Edit Distance,
-  [arXiv:2509.19928](https://arxiv.org/abs/2509.19928)) — quantifies generation
-  diversity by measuring the semantic-unit (HuBERT k-means token) distance between
-  multiple generations of the same text.
 
 The `gt_zero_shot*` rows use a reproducible, disjoint random 50/50 split of each
 reference corpus rather than comparing ground truth with itself. Seed and
 language determine the split; `slurm/submit_ground_truth_metrics.sh` refreshes
-all three retained distributional metrics.
+both retained distributional metrics (char/s and MPM).
 
 ## Provenance & known confounds
 
@@ -259,7 +255,7 @@ source .venv/bin/activate     # or prefix the commands below with `uv run`
 #   uv sync --extra omni --extra scorers
 #
 # optional extras (install only what you need):
-#   uv sync --extra scorers   # DS-WED + MSR-UTMOS scorers
+#   uv sync --extra scorers   # MSR-UTMOS scorer
 #   uv sync --extra viz       # matplotlib/scipy for the plots
 #   uv sync --extra omni      # vllm-omni local multi-model TTS serving
 #   uv sync --extra gemini    # (or --extra elevenlabs / cartesia / inworld)
@@ -385,16 +381,10 @@ python utils/score_mpm_shuffle_floor.py \
     --ref-dir data/zero_shot/en/waveform \
     --synth-dir results/omni_qwen3-tts-1.7b/zero_shot/en/wavs \
     --out results/_mpm_shuffle_floor/zero_shot_en.tsv
-
-# Auxiliary mean-F0 distribution match
-bash scripts/setup_ttsds_env.sh
-bash scripts/run_ttsds_pitch.sh zero_shot en
-python scripts/plot_ttsds_pitch_ridgeline.py
 ```
 
-See [docs/ttsds_pitch.md](docs/ttsds_pitch.md) for Pitch scoring and its
-speaker-similarity caveat. The explorer exposes characters/s distance and MPM
-span as dedicated distribution views.
+The explorer exposes characters/s distance and MPM span as dedicated
+distribution views.
 
 Because TTS error metrics are tail-driven, the ground-truth baselines ship with a
 **reliability gallery** — edit-distance survival/tail plates per language (and per

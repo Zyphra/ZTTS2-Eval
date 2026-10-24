@@ -117,7 +117,7 @@ def build_panel(test_set, lang, args):
             continue
         keep = rates[rates <= args.cap]
         trunc = 100.0 * (rates.size - keep.size) / rates.size
-        d_ref = sr.w2(keep, ref)
+        d_ref = sr.w2_fair(keep, ref)
         lo, hi = sr.boot_ci(keep, ref, args.n_boot)
         series.append({
             "name": name,
@@ -200,7 +200,7 @@ def main():
     ap.add_argument("--langs", nargs="*", default=None, help="subset of langs; default = all present")
     ap.add_argument("--cap", type=float, default=40.0)
     ap.add_argument("--top-db", type=float, default=35.0)
-    ap.add_argument("--min-utts", type=int, default=250)
+    ap.add_argument("--min-utts", type=int, default=100)
     ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--n-boot", type=int, default=400)
     ap.add_argument("--out", default=OUT, help="output JSON path")

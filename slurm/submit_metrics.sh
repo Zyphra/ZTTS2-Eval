@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
-# Submit all retained distributional metrics for every populated system leaf.
-# Packs efficiently: CPU arrays share the node while MPM uses
-# up to six H100s. A dependent finalizer merges and publishes all outputs.
+# Submit the retained distributional metrics for every populated system leaf:
+#   speaking     char/s distribution (both sets)
+#   mpm          MPM span (Clean set ONLY, see below)
+#   rhythm       mHuBERT rhythm distribution (both sets, GPU)
+#   pitch_range  register-normalized pitch range (both sets, CPU); on the ITW set the
+#                same job also runs scripts/paired_itw.py so the shared pitch caches
+#                never race
+# Packs efficiently: CPU arrays share the node while MPM/rhythm use one GPU each. A
+# dependent finalizer merges and publishes all outputs.
+#
+# Environment (all optional; unset = today's standalone behaviour):
+#   METRICS_PARTITION / METRICS_ACCOUNT / METRICS_QOS   sbatch --partition/--account/--qos
+#   METRICS_KINDS       arrays to submit (default "speaking mpm rhythm pitch_range")
+#   METRICS_DEPENDENCY  sbatch --dependency string applied to every array
+#   METRICS_FINALIZE    1 (default) submits the finalizer; 0 skips it
+# The last stdout line is always METRICS_JOBS=<id>[:<id>...]: the array job ids, plus the
+# finalizer's when one is submitted.
 set -euo pipefail
 
 if [ ! -f slurm/metrics_job.sh ]; then
@@ -9,23 +23,30 @@ if [ ! -f slurm/metrics_job.sh ]; then
     exit 1
 fi
 
-# SLURM partition/account: unset = the cluster's defaults (METRICS_PARTITION / METRICS_ACCOUNT override).
+# SLURM site: unset = the cluster's defaults.
 partition="${METRICS_PARTITION:-}"
 account="${METRICS_ACCOUNT:-}"
+qos="${METRICS_QOS:-}"
 site_args=()
 if [ -n "${partition}" ]; then site_args+=(--partition="${partition}"); fi
 if [ -n "${account}" ]; then site_args+=(--account="${account}"); fi
+if [ -n "${qos}" ]; then site_args+=(--qos="${qos}"); fi
+kinds="${METRICS_KINDS:-speaking mpm rhythm pitch_range}"
+dependency="${METRICS_DEPENDENCY:-}"
+finalize="${METRICS_FINALIZE:-1}"
 run_id="$(date +%Y%m%d-%H%M%S)"
 run_dir="$(pwd -P)/logs/slurm/metrics-${run_id}"
 shard_dir="${run_dir}/speaking_shards"
 mkdir -p "${run_dir}" "${shard_dir}"
 
 speaking_manifest="${run_dir}/speaking.tsv"
-pitch_manifest="${run_dir}/pitch.tsv"
 mpm_manifest="${run_dir}/mpm.tsv"
+rhythm_manifest="${run_dir}/rhythm.tsv"
+pitch_range_manifest="${run_dir}/pitch_range.tsv"
 : > "${speaking_manifest}"
-: > "${pitch_manifest}"
 : > "${mpm_manifest}"
+: > "${rhythm_manifest}"
+: > "${pitch_range_manifest}"
 
 shopt -s nullglob
 for task in zero_shot zero_shot_voxblink; do
@@ -35,7 +56,8 @@ for task in zero_shot zero_shot_voxblink; do
         wav_dirs=(results/*/"${task}"/"${lang}"/wavs)
         [ "${#wav_dirs[@]}" -gt 0 ] || continue
         printf '%s\t%s\n' "${task}" "${lang}" >> "${speaking_manifest}"
-        printf '%s\t%s\n' "${task}" "${lang}" >> "${pitch_manifest}"
+        printf '%s\t%s\n' "${task}" "${lang}" >> "${rhythm_manifest}"
+        printf '%s\t%s\n' "${task}" "${lang}" >> "${pitch_range_manifest}"
         # MPM span is FLEURS-R only, deliberately. Its two anchors (real split-half
         # floor, contour-scrambled ceiling) collapse on in-the-wild audio: the usable
         # range is 18.68 on FLEURS-R en vs 7.63 on VoxBlink2 en, so identical prosody
@@ -73,6 +95,9 @@ submit_array() {
         --chdir="${METRICS_REPO}"
         --output="${run_dir}/${kind}-%A_%a.out"
         --export=ALL)
+    if [ -n "${dependency}" ]; then
+        cmd+=(--dependency="${dependency}")
+    fi
     if [ "${gpus}" -gt 0 ]; then
         cmd+=(--gpus="${gpus}")
     fi
@@ -81,31 +106,52 @@ submit_array() {
     printf '%s' "${job_id}"
 }
 
-speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
-pitch_job=$(submit_array pitch "${pitch_manifest}" 8 4 8G 10:00:00 0)
-mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 24:00:00 1)
+jobs=()
+speaking_job=""; mpm_job=""; rhythm_job=""; pitch_range_job=""
+for kind in ${kinds}; do
+    case "${kind}" in
+        speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
+                     jobs+=("${speaking_job}") ;;
+        mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 24:00:00 1)
+                     jobs+=("${mpm_job}") ;;
+        rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 12:00:00 1)
+                     jobs+=("${rhythm_job}") ;;
+        pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
+                     jobs+=("${pitch_range_job}") ;;
+        *) echo "unknown METRICS_KINDS entry '${kind}'" >&2; exit 1 ;;
+    esac
+done
+if [ "${#jobs[@]}" -eq 0 ]; then
+    echo "METRICS_KINDS selects nothing" >&2
+    exit 1
+fi
 
-export METRICS_KIND=finalize
-finalize_job=$(sbatch --parsable \
-    --job-name=ztts-metrics-finalize \
-    ${site_args[@]+"${site_args[@]}"} \
-    --dependency="afterok:${speaking_job}:${pitch_job}:${mpm_job}" \
-    --cpus-per-task=4 --mem=16G --time=01:00:00 \
-    --chdir="${METRICS_REPO}" \
-    --output="${run_dir}/finalize-%j.out" \
-    --export=ALL \
-    slurm/metrics_finalize.sh)
+finalize_job=""
+if [ "${finalize}" != "0" ]; then
+    dep_ids=$(IFS=:; printf '%s' "${jobs[*]}")
+    export METRICS_KIND=finalize
+    finalize_job=$(sbatch --parsable \
+        --job-name=ztts-metrics-finalize \
+        ${site_args[@]+"${site_args[@]}"} \
+        --dependency="afterok:${dep_ids}" \
+        --cpus-per-task=4 --mem=16G --time=01:00:00 \
+        --chdir="${METRICS_REPO}" \
+        --output="${run_dir}/finalize-%j.out" \
+        --export=ALL \
+        slurm/metrics_finalize.sh)
+    jobs+=("${finalize_job}")
+fi
 
 cat > "${run_dir}/jobs.env" <<EOF
 METRICS_RUN_DIR=${run_dir}
 SPEAKING_JOB=${speaking_job}
-PITCH_JOB=${pitch_job}
 MPM_JOB=${mpm_job}
+RHYTHM_JOB=${rhythm_job}
+PITCH_RANGE_JOB=${pitch_range_job}
 FINALIZE_JOB=${finalize_job}
 EOF
 
+all_ids=$(IFS=,; printf '%s' "${jobs[*]}")
 printf 'run directory: %s\n' "${run_dir}"
-printf 'jobs: speaking=%s pitch=%s mpm=%s finalize=%s\n' \
-    "${speaking_job}" "${pitch_job}" "${mpm_job}" "${finalize_job}"
-printf 'watch: squeue -j %s,%s,%s,%s\n' \
-    "${speaking_job}" "${pitch_job}" "${mpm_job}" "${finalize_job}"
+printf 'watch: squeue -j %s\n' "${all_ids}"
+printf 'METRICS_JOBS=%s\n' "$(IFS=:; printf '%s' "${jobs[*]}")"

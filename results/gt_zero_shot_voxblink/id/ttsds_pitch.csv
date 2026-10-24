@@ -1,2 +1,0 @@
-benchmark_name,benchmark_category,dataset,score,time_taken,noise_dataset,reference_dataset
-Pitch,PROSODY,gt_zero_shot_voxblink_50_50,92.80107116699219,35.2650351524353,noise_all_ones,gt_zero_shot_voxblink_id_other_half

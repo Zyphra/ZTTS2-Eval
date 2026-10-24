@@ -169,11 +169,26 @@ def ceiling(ref, n_splits=32, seed=0):
     ]))
 
 
+def w2_fair(x, ref, n_splits=32, seed=0):
+    """W2 at the ceiling's half-vs-half geometry: mean over random n/2-vs-n/2
+    subsamples of both sides. Comparing full samples against a split-half
+    ceiling flatters systems (the W2 noise floor shrinks with n)."""
+    rng = np.random.default_rng(seed)
+    half = len(ref) // 2
+    return float(np.mean([
+        w2(x[rng.choice(len(x), min(half, len(x)), replace=False)],
+           ref[rng.choice(len(ref), half, replace=False)])
+        for _ in range(n_splits)
+    ]))
+
+
 def boot_ci(x, ref, n_boot=400, seed=0):
+    """Bootstrap CI of the split-half-geometry distance (same geometry as d_ref)."""
     rng = np.random.default_rng(seed)
     bs = np.array([
-        w2(x[rng.integers(0, x.size, x.size)], ref[rng.integers(0, ref.size, ref.size)])
-        for _ in range(n_boot)
+        w2_fair(x[rng.integers(0, x.size, x.size)], ref[rng.integers(0, ref.size, ref.size)],
+                n_splits=4, seed=b)
+        for b in range(n_boot)
     ])
     return float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
 
@@ -237,6 +252,9 @@ def find_systems(test_set, lang, only=None):
             if name.endswith(f"/{test_set}"):               # nested -> drop the /<set> segment
                 name = name[: -len(f"/{test_set}")]
             out[name] = d
+    # whisper_* dirs are ASR-comparison diagnostics, not TTS systems
+    for name in [n for n in out if n.startswith("whisper_")]:
+        del out[name]
     # a "system" that is really the reference recordings tells us nothing about pacing
     for name in [n for n, d in out.items() if is_reference_audio(d, test_set, lang)]:
         print(f"  skip {name} ({test_set}/{lang}): wavs are the reference prompt audio",
@@ -257,7 +275,7 @@ def main():
                     help="char/s above this = truncated generation, excluded from d_ref (default 40; "
                          "reference median is ~16)")
     ap.add_argument("--top-db", type=float, default=35.0, help="librosa.effects.trim threshold (default 35)")
-    ap.add_argument("--min-utts", type=int, default=250)
+    ap.add_argument("--min-utts", type=int, default=100)
     ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--n-boot", type=int, default=400)
     args = ap.parse_args()
@@ -289,7 +307,7 @@ def main():
             continue
         keep = rates[rates <= args.cap]
         trunc = 100.0 * (rates.size - keep.size) / rates.size
-        d_ref = w2(keep, ref)
+        d_ref = w2_fair(keep, ref)
         lo, hi = boot_ci(keep, ref, args.n_boot)
         rows.append(dict(system=name, n=rates.size, char_s_median=float(np.median(keep)),
                          pad_s=pad, truncation_pct=trunc, d_ref=d_ref, ci_lo=lo, ci_hi=hi,

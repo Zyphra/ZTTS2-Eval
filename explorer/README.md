@@ -42,7 +42,7 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   `results/<model>/<task>/<lang>/` for model generations, or the flat
   `results/<model>/<lang>/` for the GT/whisper baselines (e.g. `gt_zero_shot/en`) —
   reading `wav.scp`, `wav_res_ref_text.wer`, `msr_utmos_scores.txt`,
-  `spk_simi_scores.txt`, and optionally `pause_metadata.tsv` / `dswed_per_uid.tsv`.
+  `spk_simi_scores.txt`, and optionally `pause_metadata.tsv`.
 - **Targets / reference voice:** `data/<task>/<lang>/` — `text`, `prompt_text`, `prompt_wav.scp`
 - **Audio:** streamed from `results/.../wavs/*.wav` (generated) and
   `data/.../waveform/*.wav` (reference) via `/api/audio` with HTTP Range support.

@@ -46,40 +46,6 @@ case "${METRICS_KIND}" in
             --out "${out}"
         ;;
 
-    pitch)
-        py="${TTSDS_VENV:-$HOME/.venvs/ttsds}/bin/python"
-        if [ ! -x "${py}" ]; then
-            echo "missing TTSDS interpreter ${py}" >&2
-            exit 1
-        fi
-        shopt -s nullglob
-        wav_dirs=(results/*/"${task}"/"${lang}"/wavs)
-        if [ "${#wav_dirs[@]}" -eq 0 ]; then
-            echo "no systems for ${task}/${lang}" >&2
-            exit 1
-        fi
-        for wav_dir in "${wav_dirs[@]}"; do
-            if ! has_audio "${wav_dir}"; then
-                echo "[skip] empty ${wav_dir}"
-                continue
-            fi
-            rel="${wav_dir#results/}"
-            model="${rel%%/*}"
-            leaf="${wav_dir%/wavs}"
-            out="${leaf}/ttsds_pitch.csv"
-            if [ -s "${out}" ]; then
-                echo "[skip] ${model} ${task}/${lang}: ${out}"
-                continue
-            fi
-            "${py}" utils/score_ttsds_pitch.py \
-                --synth-dir "${wav_dir}" \
-                --ref-dir "${ref_dir}" \
-                --label "${model}" \
-                --ref-label "ref_${task}_${lang}" \
-                --out "${out}"
-        done
-        ;;
-
     mpm)
         py="${TTSDS_VENV:-$HOME/.venvs/ttsds}/bin/python"
         if [ ! -x "${py}" ]; then
@@ -87,6 +53,11 @@ case "${METRICS_KIND}" in
             exit 1
         fi
         shopt -s nullglob
+        # Score only the uids still in data/<task>/<lang>/text: systems' wav dirs also
+        # hold generations for items removed by the near-duplicate filter. Symlink the
+        # kept ones into a scratch dir per system.
+        work=$(mktemp -d "${TMPDIR:-/tmp}/ztts-mpm.XXXXXX")
+        trap 'rm -rf "${work}"' EXIT
         wav_dirs=(results/*/"${task}"/"${lang}"/wavs)
         if [ "${#wav_dirs[@]}" -eq 0 ]; then
             echo "no systems for ${task}/${lang}" >&2
@@ -100,7 +71,19 @@ case "${METRICS_KIND}" in
             fi
             rel="${wav_dir#results/}"
             model="${rel%%/*}"
-            args+=(--synth-dir "${wav_dir}" --label "${model}")
+            filt="${work}/${model}/wavs"
+            mkdir -p "${filt}"
+            .venv/bin/python - "${wav_dir}" "data/${task}/${lang}/text" "${filt}" <<'PYEOF'
+import os, sys
+src, text, dst = sys.argv[1:4]
+with open(text, encoding="utf-8") as f:
+    uids = [ln.split(None, 1)[0] for ln in f if ln.strip()]
+for u in uids:
+    p = os.path.join(src, u + ".wav")
+    if os.path.exists(p):
+        os.symlink(os.path.realpath(p), os.path.join(dst, u + ".wav"))
+PYEOF
+            args+=(--synth-dir "${filt}" --label "${model}")
         done
         if [ "${#args[@]}" -eq 0 ]; then
             echo "no non-empty systems for ${task}/${lang}" >&2
@@ -113,6 +96,23 @@ case "${METRICS_KIND}" in
             --out "results/_mpm_shuffle_floor/${task}_${lang}.tsv" \
             --dist-out "results/_mpm_shuffle_floor/${lang}_dist.json" \
             --lang "${lang}"
+        ;;
+
+    rhythm)
+        .venv/bin/python scripts/rhythm_dist.py \
+            --test-set "${task}" --lang "${lang}" \
+            --workers "${SLURM_CPUS_PER_TASK:-16}"
+        ;;
+
+    pitch_range)
+        .venv/bin/python scripts/pitch_range_dist.py \
+            --test-set "${task}" --lang "${lang}" \
+            --workers "${SLURM_CPUS_PER_TASK:-28}"
+        if [ "${task}" = zero_shot_voxblink ]; then
+            # Same job as pitch_range_dist so the shared per-leaf pitch caches never race.
+            .venv/bin/python scripts/paired_itw.py --lang "${lang}" \
+                --workers "${SLURM_CPUS_PER_TASK:-28}"
+        fi
         ;;
 
     *)

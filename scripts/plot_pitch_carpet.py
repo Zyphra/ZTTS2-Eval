@@ -30,41 +30,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 
 from tufte_common import PAPER, INK, MUT, GREY, MID, BLUE  # noqa: E402
 from plot_rhythm_scatter import SHORT  # noqa: E402
 from plot_rhythm_carpet import PANELS, AMBER  # noqa: E402
-from rhythm_dist import _load_trim  # noqa: E402
 from speaking_rate_dist import find_systems  # noqa: E402
+from utils.pitch_range import (SR, HOP, f0_track, semitone_dev,  # noqa: E402
+                               utt_range_st)
 
-SR = 16000
-HOP = 320          # 20 ms, same grid as the rhythm views
-FMIN, FMAX = 60.0, 400.0
 ST_CLIP = 6.0      # semitone display band: ±6 st around the utterance median
 ST_BIG = 4.0       # |dev| beyond this is a big melodic move -> amber ink
 
-
-def _f0_worker(args):
-    """Worker: (path,) -> float32 f0 array (NaN = unvoiced), or None."""
-    path, = args
-    try:
-        import librosa
-        from scipy.signal import medfilt
-        _, wav = _load_trim((path, 35.0))
-        if wav is None or len(wav) < 8000:
-            return None
-        f0, _, _ = librosa.pyin(wav, fmin=FMIN, fmax=FMAX, sr=SR,
-                                frame_length=1024, hop_length=HOP)
-        if f0 is None or np.all(np.isnan(f0)):
-            return None
-        # width-3 median filter on voiced runs kills single-frame octave blips
-        v = np.where(np.isnan(f0), 0.0, f0)
-        vm = medfilt(v, 3)
-        f0 = np.where(np.isnan(f0), np.nan, np.where(vm > 0, vm, f0))
-        return f0.astype(np.float32)
-    except Exception:
-        return None
 
 
 def load_tracks(cache_dir, raw, wav_dir, uids, workers):
@@ -75,26 +53,14 @@ def load_tracks(cache_dir, raw, wav_dir, uids, workers):
         z = np.load(p, allow_pickle=False)
         if all(u in z for u in uids):
             return {u: z[u] for u in uids if z[u].size}
-    paths = [(os.path.join(wav_dir, u + ".wav"),) for u in uids]
+    paths = [os.path.join(wav_dir, u + ".wav") for u in uids]
     with ProcessPoolExecutor(workers) as ex:
-        res = list(ex.map(_f0_worker, paths, chunksize=1))
+        res = list(ex.map(f0_track, paths, chunksize=1))
     tracks = {u: (f0 if f0 is not None else np.zeros(0, dtype=np.float32))
               for u, f0 in zip(uids, res)}
     np.savez_compressed(p, **tracks)
     return {u: f for u, f in tracks.items() if f.size}
 
-
-def semitone_dev(f0):
-    """Semitones relative to the utterance's own voiced median (NaN unvoiced)."""
-    voiced = f0[np.isfinite(f0)]
-    if voiced.size < 10:
-        return None
-    return 12.0 * np.log2(f0 / np.median(voiced))
-
-
-def utt_range_st(st):
-    v = st[np.isfinite(st)]
-    return float(np.percentile(v, 90) - np.percentile(v, 10))
 
 
 def main():

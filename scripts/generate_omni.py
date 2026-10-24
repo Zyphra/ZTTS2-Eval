@@ -154,8 +154,8 @@ def build_request(mode, target_text, lang, prompt_path, prompt_text, voice,
         body["model"] = model
     # vLLM-Omni accepts OpenAI-style sampling params; only send when set so
     # the server defaults still apply for ordinary runs. seed makes runs
-    # reproducible per-utt; varying seed across runs gives the prosodic
-    # diversity that DS-WED measures.
+    # reproducible per-utt; varying seed across runs gives different
+    # prosodic realisations of the same text and prompt.
     if seed is not None:
         body["seed"] = int(seed)
     if temperature is not None:

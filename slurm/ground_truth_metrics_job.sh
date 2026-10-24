@@ -34,7 +34,7 @@ case "${METRICS_KIND}" in
             --out "${METRICS_SHARD_DIR}/${task}_${lang}.json"
         ;;
 
-    pitch_gt|mpm_gt)
+    mpm_gt)
         py="${TTSDS_VENV:-$HOME/.venvs/ttsds}/bin/python"
         if [ ! -x "${py}" ]; then
             echo "missing TTSDS interpreter ${py}" >&2
@@ -45,21 +45,12 @@ case "${METRICS_KIND}" in
         "${py}" utils/ground_truth_split.py \
             --src "${ref_dir}" --left "${work}/left" --right "${work}/right" \
             --seed "${seed}" --key "${task}/${lang}"
-        if [ "${METRICS_KIND}" = pitch_gt ]; then
-            out="results/gt_${task}/${lang}/ttsds_pitch.csv"
-            mkdir -p "${out%/*}"
-            "${py}" utils/score_ttsds_pitch.py \
-                --synth-dir "${work}/left" --ref-dir "${work}/right" \
-                --label "gt_${task}_50_50" --ref-label "gt_${task}_${lang}_other_half" \
-                --out "${out}"
-        else
-            out="results/_mpm_ground_truth/${task}_${lang}.tsv"
-            mkdir -p "${out%/*}"
-            "${py}" utils/score_mpm_shuffle_floor.py \
-                --ref-dir "${work}/right" \
-                --synth-dir "${work}/left" --label "gt_${task}" \
-                --out "${out}" --seed "${seed}"
-        fi
+        out="results/_mpm_ground_truth/${task}_${lang}.tsv"
+        mkdir -p "${out%/*}"
+        "${py}" utils/score_mpm_shuffle_floor.py \
+            --ref-dir "${work}/right" \
+            --synth-dir "${work}/left" --label "gt_${task}" \
+            --out "${out}" --seed "${seed}"
         ;;
 
     *)

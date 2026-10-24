@@ -1,2 +1,0 @@
-benchmark_name,benchmark_category,dataset,score,time_taken,noise_dataset,reference_dataset
-Pitch,PROSODY,gt_zero_shot_50_50,95.93561553955078,235.2209348678589,noise_all_ones,gt_zero_shot_th_other_half

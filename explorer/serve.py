@@ -367,7 +367,7 @@ def _leaf_paths(model, task, lang, panel, rabs):
     appearing/vanishing (which flips the join's ddir choice) changes the sig."""
     paths = [rabs] + [os.path.join(rabs, f) for f in
                       ("wav.scp", "wav_res_ref_text.wer", "msr_utmos_scores.txt",
-                       "spk_simi_scores.txt", "pause_metadata.tsv", "dswed_per_uid.tsv")]
+                       "spk_simi_scores.txt", "pause_metadata.tsv")]
     fams = []
     if panel and _plain_component(panel):
         paths.append(_abs(os.path.join("data", panel, "panel.json")))
@@ -389,7 +389,6 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
     msr = parse_score_path(os.path.join(rabs, "msr_utmos_scores.txt"))
     spk = parse_spk(os.path.join(rabs, "spk_simi_scores.txt"))
     pause = parse_tsv(os.path.join(rabs, "pause_metadata.tsv"))
-    dswed = parse_tsv(os.path.join(rabs, "dswed_per_uid.tsv"))
 
     pman = _panel_manifest(panel) if panel else None
     weights = dict((pman.get("langs") or {}).get(lang) or []) if pman else None
@@ -420,8 +419,6 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
         }
         if weights:
             row["w"] = weights.get(uid)
-        if uid in dswed:
-            row["dswed"] = dswed[uid].get("mean_dswed")
         if uid in pause:
             row["pause_alpha"] = pause[uid].get("effective_alpha", pause[uid].get("auto_alpha"))
         if uid in gen:

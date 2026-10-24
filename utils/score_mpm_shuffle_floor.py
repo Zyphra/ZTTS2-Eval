@@ -49,9 +49,9 @@ os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 
 import torch  # noqa: E402
 import librosa  # noqa: E402
-from ttsds.benchmarks.prosody.mpm import MPMBenchmark  # noqa: E402
-from ttsds.util.dataset import DirectoryDataset  # noqa: E402
-from ttsds.util.distances import frechet_distance  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ttsds/mpm_shuffle_floor"))
 
@@ -91,6 +91,7 @@ def _embed(bench, toks):
 
 
 def _collect_tokens(bench, wav_dir):
+    from ttsds.util.dataset import DirectoryDataset
     ds = DirectoryDataset(str(wav_dir), name=Path(wav_dir).name, sample_rate=22050)
     return [_tokens_for_wav(bench, wav, ds.sample_rate) for wav, _ in ds.iter_with_progress(bench)]
 
@@ -132,6 +133,12 @@ def _shuffle_joint(toks_list, rng):
     return out
 
 
+def mpm_span(d_ref, d_ref_floor, d_noise_floor):
+    """Position of a system between real-vs-real (0) and contour-scrambled (1):
+    (d_ref - d_ref_floor) / (d_noise_floor - d_ref_floor). >1 is WORSE than scrambled."""
+    return (d_ref - d_ref_floor) / (d_noise_floor - d_ref_floor)
+
+
 def _key(ref_dir, seed):
     """Anchor cache key over the reference dir CONTENTS (names + sizes + mtimes),
     not just the file names: a reference dir rebuilt under the same names (dataset
@@ -151,6 +158,7 @@ def _key(ref_dir, seed):
 def _build_anchor(bench, ref_dir, seed):
     """Return ((ref_mu, ref_sig), (noise_mu, noise_sig), d_ref_floor), caching
     the FID stats to disk (~0.5 MB) rather than the raw frame matrices."""
+    from ttsds.util.distances import frechet_distance
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     key, n_wavs, total_bytes = _key(ref_dir, seed)
     npz = CACHE_DIR / f"{key}_stats.npz"
@@ -196,6 +204,8 @@ def main():
     ap.add_argument("--lang", default=None, help="language tag for --dist-out")
     args = ap.parse_args()
 
+    from ttsds.benchmarks.prosody.mpm import MPMBenchmark
+    from ttsds.util.distances import frechet_distance
     bench = MPMBenchmark()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if hasattr(bench, "_to_device"):
@@ -243,7 +253,7 @@ def main():
         d_noise = frechet_distance(sys_emb, noise_stats)
         score = d_noise / (d_ref + d_noise) * 100
         # position in [d_ref_floor .. d_noise_floor]: 0=indistinguishable, 1=fully scrambled
-        span = (d_ref - d_ref_floor) / (d_noise_floor - d_ref_floor)
+        span = mpm_span(d_ref, d_ref_floor, d_noise_floor)
         rows.append((label, d_ref, d_noise, score, span))
         sm, sv = _project(*_stats(sys_emb), U)
         pos, sd_n = _norm(sm, sv)
@@ -263,10 +273,11 @@ def main():
         outp = Path(args.out)
         outp.parent.mkdir(parents=True, exist_ok=True)
         with open(outp, "w") as f:
-            f.write("system\td_ref\td_noise\tscore\tspan\td_ref_floor\td_noise_floor\n")
+            f.write("system\td_ref\td_noise\tscore\tspan\td_ref_floor\td_noise_floor\t"
+                    "benchmark_version\n")
             for label, d_ref, d_noise, score, span in sorted(rows, key=lambda r: r[1]):
                 f.write(f"{label}\t{d_ref:.6f}\t{d_noise:.6f}\t{score:.4f}\t{span:.4f}"
-                        f"\t{d_ref_floor:.6f}\t{d_noise_floor:.6f}\n")
+                        f"\t{d_ref_floor:.6f}\t{d_noise_floor:.6f}\t{BENCHMARK_VERSION}\n")
         print(f"\nwrote {outp}")
 
     if args.dist_out and dist_systems:

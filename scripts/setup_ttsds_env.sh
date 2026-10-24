@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Reproducible environment for the retained TTSDS2 Pitch metric.
+# Reproducible environment for the TTSDS2 MPM (Masked Prosody Model) metric.
 #
 # TTSDS2's dependency tree needs a few compatibility pins on Python 3.12:
 # pyworld must build against NumPy 2, pyannote.audio must be new enough for
 # current torchaudio, and transformers 5 requires a newer torch than this host.
-# Pitch itself is CPU-only; no vendored source or GPU patches are needed.
+# No vendored source or GPU patches are needed.
 #
 # Pass --force to recreate the venv.
 set -euo pipefail
@@ -55,15 +55,14 @@ step "7. pin transformers ${TRANSFORMERS}"
 "${UV_PIP[@]}" --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
     "transformers==${TRANSFORMERS}" "${TORCH_PINS[@]}"
 
-step "8. smoke import TTSDS Pitch"
+step "8. smoke import TTSDS MPM"
 "${VENV}/bin/python" - <<'PY'
 import warnings
 warnings.filterwarnings("ignore")
-from ttsds import BenchmarkSuite
-from ttsds.benchmarks.prosody.pitch import PitchBenchmark
+from ttsds.benchmarks.prosody.mpm import MPMBenchmark
 import ttsds
 print("ttsds:", ttsds.__file__)
-print("Pitch benchmark:", PitchBenchmark.__name__)
+print("MPM benchmark:", MPMBenchmark.__name__)
 PY
 
 echo

@@ -38,7 +38,7 @@ d_ref is direction-blind, so two directional readouts ride along per dim:
 WHY mHuBERT-147 + own k-means
 -----------------------------
 mHuBERT-147 is multilingual (147 langs), matching this benchmark's language
-spread — unlike the English hubert-base behind DS-WED. The HF repo ships only
+spread — unlike an English-only hubert-base. The HF repo ships only
 the encoder, so centroids are fitted here: MiniBatchKMeans on frames sampled
 from the REFERENCE set, cached to ~/.cache/ztts2_eval/rhythm keyed by
 (ref wav list, layer, k, seed, top_db). Every system in one (set, lang) is
@@ -81,27 +81,16 @@ import librosa
 import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
-from speaking_rate_dist import w2, ceiling, find_systems  # noqa: E402
+from speaking_rate_dist import w2, w2_fair, ceiling, find_systems, utt_of  # noqa: E402,F401
+from utils.benchmark import BENCHMARK_VERSION, MHUBERT, data_uids  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ztts2_eval/rhythm"))
-MODEL_ID = "utter-project/mHuBERT-147"
+MODEL_ID, MODEL_REV = MHUBERT   # pinned (utils/benchmark.py)
 SR = 16000
 FRAME_S = 0.02          # mHuBERT stride = 320 samples @ 16 kHz
 DIMS = ("rate", "burstiness", "npvi", "long_frac")
-
-
-def w2_fair(x, ref, n_splits=32, seed=0):
-    """W2 at the ceiling's half-vs-half geometry: mean over random n/2-vs-n/2
-    subsamples of both sides. Comparing full samples against a split-half
-    ceiling flatters systems (the W2 noise floor shrinks with n)."""
-    rng = np.random.default_rng(seed)
-    half = len(ref) // 2
-    return float(np.mean([
-        w2(x[rng.choice(len(x), min(half, len(x)), replace=False)],
-           ref[rng.choice(len(ref), half, replace=False)])
-        for _ in range(n_splits)
-    ]))
 
 
 # ---------------------------------------------------------------- audio I/O
@@ -119,8 +108,13 @@ def _load_trim(args):
         return path, None
 
 
-def load_dir(wav_dir, top_db, workers, limit=0):
+def load_dir(wav_dir, top_db, workers, limit=0, uids=None):
+    """Trimmed wavs of a dir; with `uids`, only files whose uid is in that set (so items
+    removed from the benchmark never enter an anchor or a system score)."""
     files = sorted(glob.glob(os.path.join(wav_dir, "*.wav")))
+    if uids is not None:
+        uids = set(uids)
+        files = [f for f in files if utt_of(f) in uids]
     if limit:
         files = files[:limit]
     with ProcessPoolExecutor(workers) as ex:
@@ -139,7 +133,7 @@ class Tokenizer:
         self.torch = torch
         self.layer = layer
         self.device = device
-        self.model = HubertModel.from_pretrained(MODEL_ID).to(device).eval()
+        self.model = HubertModel.from_pretrained(MODEL_ID, revision=MODEL_REV).to(device).eval()
         self.centroids = None  # (k, 768) torch tensor once fitted/loaded
 
     def features(self, wav):
@@ -234,22 +228,26 @@ def dims_for_wavs(tok, wavs, long_frames, desc="", with_uids=False):
 
 # ------------------------------------------------------------------ anchor
 
-def anchor_key(ref_dir, layer, k, seed, top_db, long_frames):
+def anchor_key(ref_dir, layer, k, seed, top_db, long_frames, uids=None):
     # Key over the ref dir CONTENTS (names + sizes + mtimes), not names alone:
     # regenerating a wav in place must invalidate the anchor (same fix as
-    # utils/score_mpm_shuffle_floor._key). v2 bumps past name-only entries.
-    wavs = sorted(p for p in Path(ref_dir).iterdir() if p.suffix.lower() == ".wav")
+    # utils/score_mpm_shuffle_floor._key). The list is the uid-FILTERED one, so
+    # removing items from the benchmark invalidates it too. v3 bumps past v2 entries.
+    keep = None if uids is None else set(uids)
+    wavs = sorted(p for p in Path(ref_dir).iterdir() if p.suffix.lower() == ".wav"
+                  and (keep is None or utt_of(str(p)) in keep))
     content = "\n".join(f"{p.name}\t{p.stat().st_size}\t{p.stat().st_mtime_ns}"
                         for p in wavs)
     h = hashlib.md5((content +
-                     f"|{layer}|{k}|{seed}|{top_db}|{long_frames}|v2").encode())
+                     f"|{layer}|{k}|{seed}|{top_db}|{long_frames}|v3").encode())
     return h.hexdigest()[:16]
 
 
-def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers):
+def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers, uids=None):
     """Return (centroids, {dim: ref values}, {dim: ceiling}); disk-cached."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    key = anchor_key(ref_dir, layer, k, seed, top_db, long_frames)
+    uids = None if uids is None else set(uids)
+    key = anchor_key(ref_dir, layer, k, seed, top_db, long_frames, uids)
     npz = CACHE_DIR / f"{key}.npz"
     if npz.exists():
         z = np.load(npz)
@@ -260,7 +258,7 @@ def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers):
         return cents, ref, ceil
 
     print(f"[build] rhythm anchor {key} from {ref_dir}")
-    wavs = load_dir(ref_dir, top_db, workers)
+    wavs = load_dir(ref_dir, top_db, workers, uids=uids)
     if len(wavs) < 100:
         raise SystemExit(f"only {len(wavs)} usable reference wavs in {ref_dir}")
     rng = np.random.default_rng(seed)
@@ -291,7 +289,7 @@ def main():
     ap.add_argument("--top-db", type=float, default=35.0)
     ap.add_argument("--long-ms", type=float, default=200.0,
                     help="run length (ms) above which frames count as long_frac mass")
-    ap.add_argument("--min-utts", type=int, default=250)
+    ap.add_argument("--min-utts", type=int, default=100)
     ap.add_argument("--workers", type=int, default=32)
     ap.add_argument("--dump-dir", default=None,
                     help="also write per-utterance dims + uids per system to "
@@ -301,12 +299,14 @@ def main():
     long_frames = max(1, round(args.long_ms / 1000.0 / FRAME_S))
 
     ref_dir = os.path.join(REPO, "data", args.test_set, args.lang, "waveform")
+    bench_uids = data_uids(args.test_set, args.lang)
     if not os.path.isdir(ref_dir):
         raise SystemExit(f"missing {ref_dir}")
 
     tok = Tokenizer(args.layer)
     cents, ref, ceil = build_anchor(tok, ref_dir, args.layer, args.kmeans_k,
-                                    args.seed, args.top_db, long_frames, args.workers)
+                                    args.seed, args.top_db, long_frames, args.workers,
+                                    uids=bench_uids)
     tok.set_centroids(cents)
 
     print(f"reference: {ref_dir}  n={len(ref['rate'])}")
@@ -316,7 +316,7 @@ def main():
     systems = find_systems(args.test_set, args.lang, args.models)
     rows = []
     for name, wav_dir in sorted(systems.items()):
-        wavs = load_dir(wav_dir, args.top_db, args.workers)
+        wavs = load_dir(wav_dir, args.top_db, args.workers, uids=bench_uids)
         if len(wavs) < args.min_utts:
             continue
         sysd, uids, runlen_hist = dims_for_wavs(tok, wavs, long_frames,
@@ -328,7 +328,8 @@ def main():
             np.savez(os.path.join(args.dump_dir, name.replace("/", "__") + ".npz"),
                      uids=np.array(uids), runlen_hist=runlen_hist, **sysd)
         row = dict(system=name, n=len(sysd["rate"]),
-                   long_pct=float(100 * np.mean(sysd["long_frac"] > 0)))
+                   long_pct=float(100 * np.mean(sysd["long_frac"] > 0)),
+                   benchmark_version=BENCHMARK_VERSION)
         msg = f"  {name:34s} n={row['n']:4d}"
         for d in DIMS:
             dref = w2_fair(sysd[d], ref[d], seed=args.seed)
@@ -344,13 +345,14 @@ def main():
     out = args.out or os.path.join(REPO, "results",
                                    f"rhythm_{args.test_set}_{args.lang}.csv")
     import csv
-    fields = ["rank", "system", "n", "long_pct"] + \
+    fields = ["rank", "system", "n", "long_pct", "benchmark_version"] + \
         [f"{d}_{s}" for d in DIMS for s in ("median", "d_ref", "x_ceiling", "std_ratio")]
     with open(out, "w", newline="") as fh:
         wtr = csv.DictWriter(fh, fieldnames=fields)
         wtr.writeheader()
         ceil_row = dict(rank=0, system="__CEILING_split_half__", n=len(ref["rate"]),
-                        long_pct=float(100 * np.mean(ref["long_frac"] > 0)))
+                        long_pct=float(100 * np.mean(ref["long_frac"] > 0)),
+                        benchmark_version=BENCHMARK_VERSION)
         for d in DIMS:
             ceil_row[f"{d}_median"] = float(np.median(ref[d]))
             ceil_row[f"{d}_d_ref"] = ceil[d]

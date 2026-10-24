@@ -10,6 +10,7 @@ cd "${METRICS_REPO}"
     --merge-shards "${METRICS_SHARD_DIR}"
 .venv/bin/python scripts/results_doc/build_mpm_dist.py
 .venv/bin/python scripts/results_doc/build_results.py
+.venv/bin/python scripts/results_doc/plot_tradeoff.py
 .venv/bin/python scripts/results_doc/gen_md.py
 .venv/bin/python scripts/results_doc/publish_snapshot.py
 .venv/bin/python scripts/results_doc/publish_snapshot.py --check

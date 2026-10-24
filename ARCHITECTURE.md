@@ -13,15 +13,14 @@ evaluation benchmark. The pipeline is **prepare data → generate audio (TTS mod
   Whisper-large-v3 with forced language otherwise, when `ASR_ROUTING=1`) + `jiwer`.
 - **Speaker similarity** — ReDimNet embeddings, cosine (voice cloning fidelity).
 - **Audio quality** — MSR-UTMOS (sarulab-speech SFI HuBERT).
-- **Distributional prosody** (optional) — char/s distance, MPM span, TTSDS2 Pitch,
-  and DS-WED diversity.
+- **Distributional prosody** (optional) — char/s distance and MPM span.
 
 A stdlib web explorer browses the resulting scores.
 
 ### Environment
 - Python **3.10–3.12** in `.venv`, managed by **uv**.
 - Dependencies in `pyproject.toml` + `uv.lock`. Optional extras: `--extra scorers`
-  (DS-WED + MSR-UTMOS), `--extra viz` (matplotlib/scipy), `--extra omni`
+  (MSR-UTMOS), `--extra viz` (matplotlib/scipy), `--extra omni`
   (vllm-omni from git), `--extra gemini` / `elevenlabs` / `cartesia` / `inworld`
   (hosted-provider clients).
 - CUDA 12.9 pinned wheels; `transformers<5.9` pin for vLLM-Omni compatibility.
@@ -115,9 +114,7 @@ google/fleurs-r, max-out sample per language), `build_voxblink2_enriched.py`
 `extract_voxblink_gt.py`. The VoxBlink2 prep reads a local audio tree via
 `VOXBLINK2_AUDIO_ROOT` and an enriched candidate pool via `VOXBLINK2_ENRICHED`.
 
-**Aggregation / plotting:** `plot_dswed_dists.py`,
-`speaking_rate_dist.py`, and `plot_ttsds_pitch_ridgeline.py` (renders the
-mean-F0 distributions from `assets/plots/ttsds_pitch_ridgeline_data.npz`).
+**Aggregation / plotting:** `speaking_rate_dist.py`.
 
 **Reliability plates:** `tufte_common.py` (shared loader — reconstructs exact
 per-utterance edit counts from `wav_res_ref_text.wer.raw` using `run_wer.py`'s
@@ -130,9 +127,9 @@ ASR-backend view) and `build_reliability_gallery.py` embeds them into the
 self-contained `assets/reliability_gallery.html`. `run_reliability.sh` runs as a
 late step of `results_doc/run.sh` (the run ends with the snapshot publish).
 
-**Run wrappers (`.sh`):** `run_score_wer.sh`, `run_dswed_omni.sh`,
+**Run wrappers (`.sh`):** `run_score_wer.sh`,
 `run_full_zonos2_generic.sh`,
-`run_ttsds_pitch.sh` (+ `_all_langs`), `setup_ttsds_env.sh`, `wer_groundtruth.sh`.
+`setup_ttsds_env.sh`, `wer_groundtruth.sh`.
 
 **Servers (sourced, not executed):** `serve_asr.sh` (`start/stop_asr_server`,
 env `ASR_*`), `serve_omni.sh` (`start/stop_omni_server`, env `OMNI_*`).
@@ -171,10 +168,8 @@ to `sys.path` and `from utils.X import ...`.
   `ASR_CONCURRENCY`, routing via `WHISPER_BASE_URL`/`QWEN_LANGS`), `average_wer.py`, `get_wav_res_ref_text.py`.
 - **Audio quality:** `score_msr_utmos.py` (MSR-UTMOS parallel MOS predictor;
   `score_wav()` scores one file, batch loop in the module CLI).
-- **Prosody:** `score_dswed.py` (pairwise DS-WED across K seed dirs),
-  `score_mpm_shuffle_floor.py` (real-to-scrambled MPM span), and
-  `score_ttsds_pitch.py` (mean-F0 distribution similarity). Character/s
-  distributional distance lives in `scripts/speaking_rate_dist.py`.
+- **Prosody:** `score_mpm_shuffle_floor.py` (real-to-scrambled MPM span).
+  Character/s distributional distance lives in `scripts/speaking_rate_dist.py`.
 - **Shell helpers:** `cal_wer.sh` (WER pipeline wrapper, called by
   `scripts/run_score_wer.sh`), `parse_options.sh` (Kaldi-style `--name value`
   argument parser, sourced by every `run_*.sh` entry point).
@@ -212,9 +207,8 @@ waveform/       # prompt_audio_<N>.wav  (reference speaker prompts)
 ## Output conventions (`results/`, gitignored)
 
 Each leaf dir contains: `wavs/`, `wav.scp`, `wav_res_ref_text.wer[.raw]`,
-`spk_simi_scores.txt`, `msr_utmos_scores.txt` + `msr_utmos_mean.txt`, and
-optionally `ttsds_pitch.csv`. DS-WED and MPM-span aggregates live in their
-dedicated results subtrees. Model generations nest as
+`spk_simi_scores.txt`, `msr_utmos_scores.txt` + `msr_utmos_mean.txt`. MPM-span
+aggregates live in their dedicated results subtrees. Model generations nest as
 `results/<model>/<task>/<lang>/` (`omni_<model>/`, `zonos2_<ckpt>/`, hosted-provider
 dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 `results/gt_zero_shot/<lang>/`, `results/whisper_zero_shot_voxblink/<lang>/`, etc.

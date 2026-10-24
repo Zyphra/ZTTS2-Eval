@@ -103,7 +103,7 @@ def synth(client, model_id, text, voice_id, lang, retries, base_delay, seed=-1):
     If the model rejects the language_code (a hard 400), fall back to the same
     request without it (model auto-detects) so one unsupported voxblink language
     never zeroes out a whole split. A non-negative seed is passed through for
-    reproducible / multi-seed (DS-WED) generation."""
+    reproducible / multi-seed generation."""
     code = ELEVEN_LANG.get(lang)
 
     def _call(send_lang):
@@ -150,7 +150,7 @@ def main():
                     help="base backoff delay between retries, in seconds")
     ap.add_argument("--seed", type=int, default=-1,
                     help="eleven_v3 generation seed (>=0); omit for stochastic. "
-                         "Use distinct seeds per dir for DS-WED multi-seed diversity.")
+                         "Use distinct seeds per dir for multi-seed generation.")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()

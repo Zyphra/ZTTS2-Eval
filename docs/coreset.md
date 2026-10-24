@@ -234,7 +234,7 @@ Read these before quoting a panel number.
   single-generation data. Every cell of the matrix is one generation, so the "denoised"
   fingerprint is really "the part a rank-r model can explain". Multi-seed regeneration on
   a small item subset would resolve this and is the natural next step.
-- **TTSDS2 prosody and DS-WED are out of scope.** Neither is present in the current
+- **TTSDS2 prosody, which is replaced by pitch range, is out of scope.** It is not present in the current
   `results/` tree, and TTSDS is distributional — it is not decomposable to per-item scores,
   so it cannot be estimated from a weighted subset. A panel can still be *scored* with it,
   but the result is the panel's own distribution, not an estimate of the full set's.
