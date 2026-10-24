@@ -40,6 +40,9 @@ import tempfile
 import librosa
 import soundfile as sf
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from utils.text_norm import near_duplicate  # noqa: E402
+
 try:
     from huggingface_hub import hf_hub_download
 except ImportError:
@@ -255,6 +258,14 @@ def build_zero_shot(lang, count, args, rng):
                   "capping.")
         prompts, used = load_prompts(cands[:n])
         targets = select_texts(all_records, n, rng, exclude=used)  # targets != prompts
+        # A prompt whose transcript (near-)equals its target lets a system win by
+        # copying the prompt: drop those pairs (utils/text_norm.near_duplicate).
+        keep = [k for k in range(min(len(prompts), len(targets)))
+                if not near_duplicate(prompts[k]["text"], targets[k])]
+        if len(keep) < min(len(prompts), len(targets)):
+            print(f"[dedup] {lang}: dropped {min(len(prompts), len(targets)) - len(keep)} "
+                  "prompt/target near-duplicates")
+        prompts, targets = [prompts[k] for k in keep], [targets[k] for k in keep]
         print(f"[pick] {lang}: N={n} (ceiling {n_max}: prompts_pool={len(cands)}, "
               f"records={total}, splits={args.splits})")
         write_subset(args.data_root, "zero_shot", lang, prompts, targets)

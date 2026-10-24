@@ -36,7 +36,7 @@ AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
 DEFAULT_LANGS = [
     "en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru",
     "pt", "ar", "hi", "tr", "tl", "pl", "id", "th",
-    "yo", "nl", "uk", "vi",
+    "nl", "uk", "vi",
 ]
 
 

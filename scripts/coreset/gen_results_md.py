@@ -23,7 +23,7 @@ from common import (Matrix, PANEL_DIR, SIGN_GAP_EDGES, load_panel,  # noqa: E402
 
 SETS = [("clean", "Clean (FLEURS-R, 35 languages, 57,388 items)"),
         ("itw", "In-The-Wild (VoxBlink2, 20 languages, 17,319 items)")]
-FULL_N = {"clean": 57388, "itw": 17319}
+FULL_N = {"clean": 57366, "itw": 17155}
 METRIC_LABEL = {"wer_clip": "WER_CLIP (%)", "spk": "speaker sim (x100)", "msr": "MSR-UTMOS"}
 SHIPPED = {"clean": 3500, "itw": 2000}
 SHIPPED_SELECTOR = "strat_meta"

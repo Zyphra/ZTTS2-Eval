@@ -33,6 +33,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from utils.score_msr_utmos import DEFAULT_CKPT, load_model, score_wave  # noqa: E402
+from utils.text_norm import near_duplicate  # noqa: E402
 
 # Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
 # point at your copy of the dataset.
@@ -142,6 +143,9 @@ def pick_per_lang(rows, n_bins, msr_utmos_min, msr_utmos_max, target_total, seed
     by_lang = collections.defaultdict(list)
     for r in rows:
         if r["msr_utmos"] != r["msr_utmos"]:  # NaN
+            continue
+        # prompt transcript (near-)equal to its target: copyable, drop before binning
+        if near_duplicate(r["prompt_text"], r["target_text"]):
             continue
         by_lang[r["lang"]].append(r)
 

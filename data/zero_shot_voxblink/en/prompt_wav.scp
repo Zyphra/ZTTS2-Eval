@@ -1,7 +1,6 @@
 uttid_1 data/zero_shot_voxblink/en/waveform/prompt_audio_1.wav
 uttid_2 data/zero_shot_voxblink/en/waveform/prompt_audio_2.wav
 uttid_3 data/zero_shot_voxblink/en/waveform/prompt_audio_3.wav
-uttid_4 data/zero_shot_voxblink/en/waveform/prompt_audio_4.wav
 uttid_5 data/zero_shot_voxblink/en/waveform/prompt_audio_5.wav
 uttid_6 data/zero_shot_voxblink/en/waveform/prompt_audio_6.wav
 uttid_7 data/zero_shot_voxblink/en/waveform/prompt_audio_7.wav
@@ -55,7 +54,6 @@ uttid_54 data/zero_shot_voxblink/en/waveform/prompt_audio_54.wav
 uttid_55 data/zero_shot_voxblink/en/waveform/prompt_audio_55.wav
 uttid_56 data/zero_shot_voxblink/en/waveform/prompt_audio_56.wav
 uttid_57 data/zero_shot_voxblink/en/waveform/prompt_audio_57.wav
-uttid_58 data/zero_shot_voxblink/en/waveform/prompt_audio_58.wav
 uttid_59 data/zero_shot_voxblink/en/waveform/prompt_audio_59.wav
 uttid_60 data/zero_shot_voxblink/en/waveform/prompt_audio_60.wav
 uttid_61 data/zero_shot_voxblink/en/waveform/prompt_audio_61.wav
@@ -307,7 +305,6 @@ uttid_306 data/zero_shot_voxblink/en/waveform/prompt_audio_306.wav
 uttid_307 data/zero_shot_voxblink/en/waveform/prompt_audio_307.wav
 uttid_308 data/zero_shot_voxblink/en/waveform/prompt_audio_308.wav
 uttid_309 data/zero_shot_voxblink/en/waveform/prompt_audio_309.wav
-uttid_310 data/zero_shot_voxblink/en/waveform/prompt_audio_310.wav
 uttid_311 data/zero_shot_voxblink/en/waveform/prompt_audio_311.wav
 uttid_312 data/zero_shot_voxblink/en/waveform/prompt_audio_312.wav
 uttid_313 data/zero_shot_voxblink/en/waveform/prompt_audio_313.wav
@@ -496,7 +493,6 @@ uttid_495 data/zero_shot_voxblink/en/waveform/prompt_audio_495.wav
 uttid_496 data/zero_shot_voxblink/en/waveform/prompt_audio_496.wav
 uttid_497 data/zero_shot_voxblink/en/waveform/prompt_audio_497.wav
 uttid_498 data/zero_shot_voxblink/en/waveform/prompt_audio_498.wav
-uttid_499 data/zero_shot_voxblink/en/waveform/prompt_audio_499.wav
 uttid_500 data/zero_shot_voxblink/en/waveform/prompt_audio_500.wav
 uttid_501 data/zero_shot_voxblink/en/waveform/prompt_audio_501.wav
 uttid_502 data/zero_shot_voxblink/en/waveform/prompt_audio_502.wav
@@ -573,7 +569,6 @@ uttid_572 data/zero_shot_voxblink/en/waveform/prompt_audio_572.wav
 uttid_573 data/zero_shot_voxblink/en/waveform/prompt_audio_573.wav
 uttid_574 data/zero_shot_voxblink/en/waveform/prompt_audio_574.wav
 uttid_575 data/zero_shot_voxblink/en/waveform/prompt_audio_575.wav
-uttid_576 data/zero_shot_voxblink/en/waveform/prompt_audio_576.wav
 uttid_577 data/zero_shot_voxblink/en/waveform/prompt_audio_577.wav
 uttid_578 data/zero_shot_voxblink/en/waveform/prompt_audio_578.wav
 uttid_579 data/zero_shot_voxblink/en/waveform/prompt_audio_579.wav
@@ -832,7 +827,6 @@ uttid_831 data/zero_shot_voxblink/en/waveform/prompt_audio_831.wav
 uttid_832 data/zero_shot_voxblink/en/waveform/prompt_audio_832.wav
 uttid_833 data/zero_shot_voxblink/en/waveform/prompt_audio_833.wav
 uttid_834 data/zero_shot_voxblink/en/waveform/prompt_audio_834.wav
-uttid_835 data/zero_shot_voxblink/en/waveform/prompt_audio_835.wav
 uttid_836 data/zero_shot_voxblink/en/waveform/prompt_audio_836.wav
 uttid_837 data/zero_shot_voxblink/en/waveform/prompt_audio_837.wav
 uttid_838 data/zero_shot_voxblink/en/waveform/prompt_audio_838.wav
@@ -1369,13 +1363,11 @@ uttid_1368 data/zero_shot_voxblink/en/waveform/prompt_audio_1368.wav
 uttid_1369 data/zero_shot_voxblink/en/waveform/prompt_audio_1369.wav
 uttid_1370 data/zero_shot_voxblink/en/waveform/prompt_audio_1370.wav
 uttid_1371 data/zero_shot_voxblink/en/waveform/prompt_audio_1371.wav
-uttid_1372 data/zero_shot_voxblink/en/waveform/prompt_audio_1372.wav
 uttid_1373 data/zero_shot_voxblink/en/waveform/prompt_audio_1373.wav
 uttid_1374 data/zero_shot_voxblink/en/waveform/prompt_audio_1374.wav
 uttid_1375 data/zero_shot_voxblink/en/waveform/prompt_audio_1375.wav
 uttid_1376 data/zero_shot_voxblink/en/waveform/prompt_audio_1376.wav
 uttid_1377 data/zero_shot_voxblink/en/waveform/prompt_audio_1377.wav
-uttid_1378 data/zero_shot_voxblink/en/waveform/prompt_audio_1378.wav
 uttid_1379 data/zero_shot_voxblink/en/waveform/prompt_audio_1379.wav
 uttid_1380 data/zero_shot_voxblink/en/waveform/prompt_audio_1380.wav
 uttid_1381 data/zero_shot_voxblink/en/waveform/prompt_audio_1381.wav
@@ -1459,7 +1451,6 @@ uttid_1458 data/zero_shot_voxblink/en/waveform/prompt_audio_1458.wav
 uttid_1459 data/zero_shot_voxblink/en/waveform/prompt_audio_1459.wav
 uttid_1460 data/zero_shot_voxblink/en/waveform/prompt_audio_1460.wav
 uttid_1461 data/zero_shot_voxblink/en/waveform/prompt_audio_1461.wav
-uttid_1462 data/zero_shot_voxblink/en/waveform/prompt_audio_1462.wav
 uttid_1463 data/zero_shot_voxblink/en/waveform/prompt_audio_1463.wav
 uttid_1464 data/zero_shot_voxblink/en/waveform/prompt_audio_1464.wav
 uttid_1465 data/zero_shot_voxblink/en/waveform/prompt_audio_1465.wav
