@@ -48,21 +48,58 @@ for sys_name in sorted(os.listdir("results")):
                 print(sys_name, task, lang)
 PYEOF
 )
-n_leaves=$(printf '%s\n' "${leaves}" | grep -c .)
 n_nodes=${SLURM_ARRAY_TASK_COUNT:-1}
 node=${SLURM_ARRAY_TASK_ID:-0}
 n_gpu=$(nvidia-smi -L 2>/dev/null | wc -l)
 [ "${n_gpu}" -ge 1 ] || n_gpu=1
-total=$(( n_nodes * n_gpu ))
-echo "[rescore-all] ${n_leaves} leaves; node ${node}/${n_nodes}, ${n_gpu} GPU shard(s) per node"
+# Workers per GPU share that GPU's ASR + Whisper servers. The scorers are CPU-bound
+# (decode/resample) and the servers are idle while they run, so two workers per GPU
+# overlap one leaf's ASR with another's speaker-sim / MSR-UTMOS.
+wpg=${RESCORE_WORKERS_PER_GPU:-2}
+total=$(( n_nodes * n_gpu * wpg ))
+# Cap torch/BLAS threads per worker: 16 uncapped scorers (~240 threads each) on 112
+# cores spent their time contending, not scoring.
+cpus=${SLURM_CPUS_PER_TASK:-$(nproc)}
+threads=$(( cpus / (n_gpu * wpg) )); [ "${threads}" -ge 1 ] || threads=1
+export OMP_NUM_THREADS=${threads} MKL_NUM_THREADS=${threads}
+
+# Keep only the leaves that still have work (same gates as score_lang_dir), largest
+# first, so the static round-robin below balances the remaining cost rather than the
+# leaf count; on a resume most leaves are already current. Array tasks start at
+# different times, so the list is computed ONCE per array job (first task to start,
+# under a mkdir lock) and frozen in a file every task -- and every requeue -- reads:
+# recomputing it per task would give the tasks different assignments.
+. scripts/lib_infer_scoring.sh
+list_file="logs/slurm/rescore-all-${array_job}-leaves.txt"
+if [ ! -f "${list_file}" ]; then
+    if mkdir "${list_file}.lock" 2>/dev/null; then
+        stale=""
+        while read -r sys_name task lang; do
+            [ -n "${sys_name}" ] || continue
+            leaf_current "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" && continue
+            n=$(find "results/${sys_name}/${task}/${lang}/wavs/" -name '*.wav' | wc -l)
+            stale+="${n} ${sys_name} ${task} ${lang}"$'\n'
+        done <<< "${leaves}"
+        printf '%s' "${stale}" | LC_ALL=C sort -k1,1nr -k2 | cut -d' ' -f2- > "${list_file}.tmp"
+        mv "${list_file}.tmp" "${list_file}"
+    else
+        until [ -f "${list_file}" ]; do sleep 5; done
+    fi
+fi
+stale=$(cat "${list_file}")
+n_stale=$(printf '%s\n' "${stale}" | grep -c .)
+echo "[rescore-all] ${n_leaves} leaves, ${n_stale} with work (${list_file}); node ${node}/${n_nodes}," \
+     "${n_gpu} GPU(s) x ${wpg} worker(s), ${threads} threads each"
 
 pids=""
 for ((s = 0; s < n_gpu; s++)); do
-    g=$(( node * n_gpu + s ))
     (
         export ASR_GPU=$s WHISPER_GPU=$s SCORE_GPU=$s
         port_base=$(( 20000 + (${SLURM_JOB_ID:-$$} % 1000) * 40 + s * 4 ))
         export ASR_PORT=$(( port_base + 1 )) WHISPER_PORT=$(( port_base + 2 ))
+        # Leave room for two workers' torch scorers next to both servers: 0.35 each
+        # left ~24 GB and long utterances OOMed in speaker-sim / MSR-UTMOS.
+        export ASR_GPU_MEM_UTIL=${ASR_GPU_MEM_UTIL:-0.22} WHISPER_GPU_MEM_UTIL=${WHISPER_GPU_MEM_UTIL:-0.22}
         srv="logs/slurm/servers/rescore-all-${array_job}_${node}-s${s}"
         mkdir -p "${srv}"
         export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
@@ -71,22 +108,30 @@ for ((s = 0; s < n_gpu; s++)); do
         trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
         start_asr_server || exit 1
         maybe_start_whisper || exit 1
-        . scripts/lib_infer_scoring.sh
 
-        i=0
-        while read -r sys_name task lang <&3; do
-            [ -n "${sys_name}" ] || continue
-            if [ $(( i % total )) -eq "${g}" ]; then
-                before=${SCORE_FAILS}
-                echo "=== [shard ${g}] ${sys_name}/${task}/${lang} ==="
-                score_lang_dir "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" "${lang}"
-                if [ "${SCORE_FAILS}" -gt "${before}" ]; then
-                    echo "${sys_name} ${task} ${lang}" >> "${failed_file}"
-                fi
-            fi
-            i=$(( i + 1 ))
-        done 3<<< "${leaves}"
-        echo "[rescore-all] shard ${g} done (${SCORE_FAILS} failed leaf/leaves)"
+        wpids=""
+        for ((w = 0; w < wpg; w++)); do
+            g=$(( (node * n_gpu + s) * wpg + w ))
+            (
+                SCORE_FAILS=0
+                i=0
+                while read -r sys_name task lang <&3; do
+                    [ -n "${sys_name}" ] || continue
+                    if [ $(( i % total )) -eq "${g}" ]; then
+                        before=${SCORE_FAILS}
+                        echo "=== [worker ${g}] ${sys_name}/${task}/${lang} ==="
+                        score_lang_dir "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" "${lang}"
+                        if [ "${SCORE_FAILS}" -gt "${before}" ]; then
+                            echo "${sys_name} ${task} ${lang}" >> "${failed_file}"
+                        fi
+                    fi
+                    i=$(( i + 1 ))
+                done 3<<< "${stale}"
+                echo "[rescore-all] worker ${g} done (${SCORE_FAILS} failed leaf/leaves)"
+            ) > "logs/slurm/rescore-all-${array_job}_${node}-s${s}w${w}.log" 2>&1 &
+            wpids="${wpids} $!"
+        done
+        for p in ${wpids}; do wait "${p}"; done
         exit 0
     ) > "logs/slurm/rescore-all-${array_job}_${node}-s${s}.log" 2>&1 &
     pids="${pids} $!"

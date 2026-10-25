@@ -56,8 +56,7 @@ for lang in ${test_set}; do
 
     if wer_scored_ok "${sd}/wav_res_ref_text.wer" \
        && { [ "${task}" != "zero_shot_voxblink" ] || spk_scored_ok "${sd}/spk_simi_scores.txt"; } \
-       && [ -s "${sd}/msr_utmos_mean.txt" ] \
-       && grep -qx "BENCHMARK_VERSION: ${BENCHMARK_VERSION}" "${sd}/msr_utmos_ci.txt" 2>/dev/null; then
+       && msr_scored_ok "${sd}"; then
         echo "[skip] ${lang} already scored"
         continue
     fi

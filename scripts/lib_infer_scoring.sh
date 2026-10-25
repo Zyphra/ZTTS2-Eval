@@ -95,32 +95,60 @@ _build_wav_scp() {
         | awk 'NR==FNR{keep[$1]=1; next} ($1 in keep)' "$2/text" - > "$1/wav.scp"
 }
 
-# Score one language leaf: WER + speaker-sim (resume-gated together, so broken
-# artifacts -- nan WER, all-zero spk, under-coverage, stale version stamps -- are
-# re-scored instead of silently skipped), then MSR-UTMOS (gated separately so it
-# backfills dirs scored before that step existed). When the data dir carries a
-# held-out target recording per uid (target_wav.scp, ITW only), the second speaker-sim
-# pass against it goes to spk_simi_scores.xutt.txt and is part of the same gate.
-# Individual scorer failures (including the
-# scorers' own non-zero exit on coverage < SCORE_MIN_COVERAGE) are counted in
-# SCORE_FAILS rather than aborting, so the remaining languages still run;
-# callers exit non-zero when SCORE_FAILS > 0.
+# A trustworthy MSR-UTMOS result: a non-empty mean, a CI file stamped with the current
+# BENCHMARK_VERSION and, when present, the N_SCORED:/N_EXPECTED: coverage footer meeting
+# SCORE_MIN_COVERAGE (the scorer writes both files before exiting non-zero on low
+# coverage, so the stamp alone would let an under-covered leaf pass on resume).
+msr_scored_ok() {  # <leaf dir>
+    local ci="$1/msr_utmos_ci.txt" ns ne
+    [ -s "$1/msr_utmos_mean.txt" ] || return 1
+    grep -qx "BENCHMARK_VERSION: ${BENCHMARK_VERSION}" "${ci}" 2>/dev/null || return 1
+    ns=$(sed -n 's/^N_SCORED: //p' "${ci}" 2>/dev/null | head -n1)
+    ne=$(sed -n 's/^N_EXPECTED: //p' "${ci}" 2>/dev/null | head -n1)
+    if [ -n "${ns}" ] && [ -n "${ne}" ]; then
+        _coverage_ok "${ns}" "${ne}" || return 1
+    fi
+    return 0
+}
+
+# 0 iff every score file of the leaf passes its gate (nothing for score_lang_dir to do).
+leaf_current() {  # <data dir> <decode dir>
+    local dd="$1" sd="$2"
+    wer_scored_ok "${sd}/wav_res_ref_text.wer" \
+        && spk_scored_ok "${sd}/spk_simi_scores.txt" \
+        && { [ ! -f "${dd}/target_wav.scp" ] || spk_scored_ok "${sd}/spk_simi_scores.xutt.txt"; } \
+        && msr_scored_ok "${sd}"
+}
+
+# Score one language leaf. Each score file has its own resume gate -- WER, prompt
+# speaker-sim, held-out speaker-sim (ITW: when the data dir carries target_wav.scp, the
+# generated wav is also scored against the REAL recording of the same speaker into
+# spk_simi_scores.xutt.txt) and MSR-UTMOS -- so a broken or stale artifact (nan WER,
+# all-zero spk, under-coverage, stale version stamp) is rescored without redoing the
+# steps that are already current. Individual scorer failures (including the scorers'
+# own non-zero exit on coverage < SCORE_MIN_COVERAGE) are counted in SCORE_FAILS rather
+# than aborting, so the remaining languages still run; callers exit non-zero when
+# SCORE_FAILS > 0.
 score_lang_dir() {  # <data dir (text/prompt_wav.scp)> <decode dir (wavs/)> <lang>
     local dd="$1" sd="$2" lg="$3" failed=0
 
-    if wer_scored_ok "${sd}/wav_res_ref_text.wer" \
-       && spk_scored_ok "${sd}/spk_simi_scores.txt" \
-       && { [ ! -f "${dd}/target_wav.scp" ] || spk_scored_ok "${sd}/spk_simi_scores.xutt.txt"; }; then
-        echo "[skip] ${sd} already scored (WER/spk)"
-    else
+    if leaf_current "${dd}" "${sd}"; then
+        echo "[skip] ${sd} already scored"
+        return 0
+    fi
+
+    if ! wer_scored_ok "${sd}/wav_res_ref_text.wer"; then
         echo "Score WER for ${sd}"
         if ! bash scripts/run_score_wer.sh "${dd}/text" "${sd}" "${lg}"; then
             echo "[score] ERROR: WER scoring failed for ${sd}" 1>&2
             failed=1
         fi
+    fi
 
-        _build_wav_scp "${sd}" "${dd}" || failed=1
+    # wav.scp is cheap; rebuild it so a stale unfiltered list never reaches a scorer.
+    _build_wav_scp "${sd}" "${dd}" || failed=1
 
+    if ! spk_scored_ok "${sd}/spk_simi_scores.txt"; then
         echo "Score speaker similarity for ${sd} (GPU ${SCORE_GPU})"
         if ! CUDA_VISIBLE_DEVICES="${SCORE_GPU}" "${PY}" scripts/eval_speaker_similarity.py \
             --prompt_wavs "${dd}/prompt_wav.scp" \
@@ -135,30 +163,23 @@ score_lang_dir() {  # <data dir (text/prompt_wav.scp)> <decode dir (wavs/)> <lan
         if grep -q '^avg 0.00 0.00$' "${sd}/spk_simi_scores.txt" 2>/dev/null; then
             echo "[score] WARN: ${lg} speaker-sim is all-zero (n=0). Likely GPU OOM." 1>&2
         fi
+    fi
 
-        # Held-out speaker similarity (ITW): generated wav vs. the REAL recording of
-        # the same speaker saying the target sentence, not the prompt it was cloned from.
-        if [ -f "${dd}/target_wav.scp" ]; then
-            awk 'NR==FNR{k[$1]=1; next} ($1 in k)' "${dd}/target_wav.scp" "${sd}/wav.scp" \
-                > "${sd}/wav_xutt.scp" || failed=1
-            echo "Score held-out speaker similarity for ${sd} (GPU ${SCORE_GPU})"
-            if ! CUDA_VISIBLE_DEVICES="${SCORE_GPU}" "${PY}" scripts/eval_speaker_similarity.py \
-                --prompt_wavs "${dd}/target_wav.scp" \
-                --hyp_wavs "${sd}/wav_xutt.scp" \
-                --log_file "${sd}/spk_simi_scores.xutt.txt" \
-                --device cuda; then
-                echo "[score] ERROR: held-out speaker-sim scoring failed for ${sd}" 1>&2
-                failed=1
-            fi
+    if [ -f "${dd}/target_wav.scp" ] && ! spk_scored_ok "${sd}/spk_simi_scores.xutt.txt"; then
+        awk 'NR==FNR{k[$1]=1; next} ($1 in k)' "${dd}/target_wav.scp" "${sd}/wav.scp" \
+            > "${sd}/wav_xutt.scp" || failed=1
+        echo "Score held-out speaker similarity for ${sd} (GPU ${SCORE_GPU})"
+        if ! CUDA_VISIBLE_DEVICES="${SCORE_GPU}" "${PY}" scripts/eval_speaker_similarity.py \
+            --prompt_wavs "${dd}/target_wav.scp" \
+            --hyp_wavs "${sd}/wav_xutt.scp" \
+            --log_file "${sd}/spk_simi_scores.xutt.txt" \
+            --device cuda; then
+            echo "[score] ERROR: held-out speaker-sim scoring failed for ${sd}" 1>&2
+            failed=1
         fi
     fi
 
-    # MSR-UTMOS (gated independently so it backfills dirs scored before this
-    # step existed without redoing WER/spk). Needs wav.scp; rebuilt (cheap) so a
-    # stale unfiltered list from an earlier run never reaches the scorer.
-    if [ ! -s "${sd}/msr_utmos_mean.txt" ] \
-       || ! grep -qx "BENCHMARK_VERSION: ${BENCHMARK_VERSION}" "${sd}/msr_utmos_ci.txt" 2>/dev/null; then
-        _build_wav_scp "${sd}" "${dd}" || failed=1
+    if ! msr_scored_ok "${sd}"; then
         echo "Score MSR-UTMOS for ${sd} (GPU ${SCORE_GPU})"
         if ! CUDA_VISIBLE_DEVICES="${SCORE_GPU}" "${PY}" utils/score_msr_utmos.py \
             -t "${sd}/wav.scp" \

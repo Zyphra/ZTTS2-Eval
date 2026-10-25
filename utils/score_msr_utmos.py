@@ -20,6 +20,7 @@ from sfi_utmos.model.ssl_mos import SSLMOSLightningModule
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.scp import load_scp_items as load_scp  # noqa: E402
+from utils.prefetch import prefetch  # noqa: E402
 # 95% CI on the mean MOS via a seeded percentile bootstrap. The canonical
 # implementation lives in utils/average_wer.py (memory-chunked, same B/seed);
 # ndigits=4 reproduces this scorer's historical rounding bit-for-bit.
@@ -81,12 +82,34 @@ def score_wave(model, wav, sr, device):
     else:
         waves = [torchaudio.functional.resample(w, sr, 16_000) for w in waves]
 
+    # The model's forward() re-runs the SSL encoder for every listener although the
+    # listener only enters after it (ssl_mos.SSLMOSLightningModule.forward: hidden +
+    # listener embedding -> linear -> mean -> tanh). Encode once and apply the
+    # per-listener head N_LISTENERS times: the same ops per listener as forward(), at
+    # ~1/N_LISTENERS of the GPU work.
+    hidden = _ssl_hidden(model, waves, srs, is_sfi)
     ratings = []
     for listener in range(1, N_LISTENERS + 1):
         listener_t = torch.tensor(listener).view(-1).to(device)
-        out = model.forward(waves, listener_t, srs)
+        h = hidden + model.listenr_embedding(listener_t).unsqueeze(1)
+        out = torch.tanh(model.pred_liner(h).mean(dim=1)).squeeze(-1)
         ratings.append(out.cpu().item())
     return 2 * (sum(ratings) / len(ratings)) + 3
+
+
+def _ssl_hidden(model, waves, srs, is_sfi):
+    """forward() up to (and including) the sample-rate embedding: listener-independent."""
+    if not is_sfi:
+        waves = model.processor([w.detach().cpu().numpy() for w in waves],
+                                return_tensors="pt", sampling_rate=16000,
+                                padding=True).to(model.device)
+        outputs = model.ssl_model(**waves)
+    else:
+        outputs = model.ssl_model(input_values=waves)
+    hidden = outputs.last_hidden_state
+    if model.condition_sr:
+        hidden = hidden + model.sr_embedding(srs).unsqueeze(1)
+    return hidden
 
 
 def main():
@@ -105,17 +128,20 @@ def main():
 
     items = load_scp(args.wav_scp)
     scores = []
+    # Decode the next files on worker threads while the GPU scores the current one.
     with open(args.out, "w") as fout:
-        for uid, wav_path in tqdm(items):
+        for (uid, wav_path), loaded, err in tqdm(
+                prefetch(lambda it: torchaudio.load(it[1]), items), total=len(items)):
             try:
-                score = score_wav(model, wav_path, args.device)
+                if err is not None:
+                    raise err
+                score = score_wave(model, loaded[0], loaded[1], args.device)
             except Exception as e:
                 print(f"[msr-utmos] {wav_path}: {type(e).__name__}: {e}")
                 continue
             scores.append(score)
             fout.write(f"{uid}\t{wav_path}\t{score:.4f}\n")
             fout.flush()
-
     if not scores:
         # Do NOT leave a 0.0000 mean behind: readers treat the file's existence as
         # "scored" and a literal 0.0 poisons any average built from it (5 such

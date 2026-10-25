@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.scp import load_scp_items as load_scp  # noqa: E402
 from utils.benchmark import (BENCHMARK_VERSION, SPK_HUB_REF, SPK_HUB_REPO,  # noqa: E402
                              spk_stamp)
+from utils.prefetch import prefetch  # noqa: E402
 
 TARGET_SR = 16000
 
@@ -69,21 +70,31 @@ def score_system(hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, 
         os.makedirs(log_dir, exist_ok=True)
 
     ref_scores, hyp_scores = [], []
+    todo = [(u, p) for u, p in hyp_wavs if u in prompt_wavs]
+
+    def _load(item):
+        """Decode (on a worker thread) every wav this utterance still needs."""
+        uttid, hyp_path = item
+        return (None if uttid in prompt_cache else load_wav(prompt_wavs[uttid]),
+                load_wav(hyp_path),
+                load_wav(ref_wavs[uttid]) if uttid in ref_wavs and uttid not in ref_cache
+                else None)
+
     with open(log_file, "w") as out:
-        for uttid, hyp_path in hyp_wavs:
-            if uttid not in prompt_wavs:
-                continue
+        for (uttid, _), wavs, err in prefetch(_load, todo):
             try:
+                if err is not None:
+                    raise err
+                prompt_wav, hyp_wav, ref_wav = wavs
                 if uttid not in prompt_cache:
-                    prompt_cache[uttid] = embed(load_wav(prompt_wavs[uttid]))
+                    prompt_cache[uttid] = embed(prompt_wav)
                 prompt_emb = prompt_cache[uttid]
-                hyp_emb = embed(load_wav(hyp_path))
+                hyp_emb = embed(hyp_wav)
                 hyp_score = cosine(prompt_emb, hyp_emb)
                 ref_score = 0.0
                 if uttid in ref_wavs:
                     if uttid not in ref_cache:
-                        ref_emb = embed(load_wav(ref_wavs[uttid]))
-                        ref_cache[uttid] = cosine(prompt_emb, ref_emb)
+                        ref_cache[uttid] = cosine(prompt_emb, embed(ref_wav))
                     ref_score = ref_cache[uttid]
             except Exception as e:
                 print(f"[spk] {uttid}: {e}")
