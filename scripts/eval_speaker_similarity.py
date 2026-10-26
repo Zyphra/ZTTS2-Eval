@@ -23,6 +23,7 @@ and the exit code is non-zero when coverage falls below SCORE_MIN_COVERAGE (defa
 0.98) -- an `avg 0.00 0.00` stub must not look like a scored leaf.
 """
 import argparse
+import copy
 import math
 import os
 import sys
@@ -157,10 +158,20 @@ def main():
                            dataset=args.dataset, pretrained=True, trust_repo=True,
                            skip_validation=True)
     model = model.to(args.device).eval()
+    cpu_model = []  # lazily built CPU copy for utterances too long for the free GPU memory
 
     @torch.no_grad()
     def embed(wav):
-        return model(wav.to(args.device)).reshape(-1)  # (batch=1, emb_dim) -> (emb_dim,)
+        try:
+            return model(wav.to(args.device)).reshape(-1)  # (batch=1, emb_dim) -> (emb_dim,)
+        except torch.cuda.OutOfMemoryError:
+            # A runaway-long generation can exceed the GPU memory left next to the ASR
+            # servers. Embed it on the CPU instead of dropping it from coverage: same
+            # weights, same input; the embedding goes back to the device for the cosine.
+            torch.cuda.empty_cache()
+            if not cpu_model:
+                cpu_model.append(copy.deepcopy(model).to("cpu"))
+            return cpu_model[0](wav.to("cpu")).reshape(-1).to(args.device)
 
     run(args, embed, spk_stamp(args.model_name, args.train_type, args.dataset))
 

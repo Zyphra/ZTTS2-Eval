@@ -125,6 +125,7 @@ def main():
     args = ap.parse_args()
 
     model = load_model(args.ckpt, args.device)
+    cpu_model = None  # lazily loaded for utterances too long for the free GPU memory
 
     items = load_scp(args.wav_scp)
     scores = []
@@ -135,7 +136,16 @@ def main():
             try:
                 if err is not None:
                     raise err
-                score = score_wave(model, loaded[0], loaded[1], args.device)
+                try:
+                    score = score_wave(model, loaded[0], loaded[1], args.device)
+                except torch.cuda.OutOfMemoryError:
+                    # A runaway-long generation can exceed the GPU memory left next to
+                    # the ASR servers: score it on the CPU (same checkpoint) rather than
+                    # dropping it from coverage.
+                    torch.cuda.empty_cache()
+                    if cpu_model is None:
+                        cpu_model = load_model(args.ckpt, "cpu")
+                    score = score_wave(cpu_model, loaded[0], loaded[1], "cpu")
             except Exception as e:
                 print(f"[msr-utmos] {wav_path}: {type(e).__name__}: {e}")
                 continue
