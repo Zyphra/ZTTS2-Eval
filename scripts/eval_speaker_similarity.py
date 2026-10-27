@@ -23,7 +23,6 @@ and the exit code is non-zero when coverage falls below SCORE_MIN_COVERAGE (defa
 0.98) -- an `avg 0.00 0.00` stub must not look like a scored leaf.
 """
 import argparse
-import copy
 import math
 import os
 import sys
@@ -45,6 +44,8 @@ TARGET_SR = 16000
 
 
 def cosine(a, b):
+    """Embeddings come back on the CPU (see embed in main), so the score never depends
+    on which device produced them."""
     return F.cosine_similarity(a, b, dim=-1).item()
 
 
@@ -153,25 +154,41 @@ def main():
     args = parse_args(ap)
 
     # Pinned to a commit of the hub repo so the embedder cannot drift under us.
-    model = torch.hub.load(f"{SPK_HUB_REPO}:{SPK_HUB_REF}", "redimnet2",
+    def load(device):
+        m = torch.hub.load(f"{SPK_HUB_REPO}:{SPK_HUB_REF}", "redimnet2",
                            model_name=args.model_name, train_type=args.train_type,
                            dataset=args.dataset, pretrained=True, trust_repo=True,
-                           skip_validation=True)
-    model = model.to(args.device).eval()
-    cpu_model = []  # lazily built CPU copy for utterances too long for the free GPU memory
+                           skip_validation=True, verbose=False)
+        return m.to(device).eval()
+
+    model = load(args.device)
+    # CPU fallback. A runaway-long generation can exceed the GPU memory left next to the
+    # ASR servers; the allocator raises OutOfMemoryError (recoverable: retry that one
+    # utterance on the CPU), while an OOM inside a CUDA library raises a plain "CUDA
+    # error: out of memory" that poisons the context for the rest of the process, so
+    # after one of those every remaining utterance goes to the CPU. Embeddings always
+    # come back on the CPU, so cached prompt embeddings survive either case.
+    state = {"cpu_model": None, "gpu_ok": args.device != "cpu"}
+
+    def cpu_model():
+        if state["cpu_model"] is None:
+            state["cpu_model"] = load("cpu")
+        return state["cpu_model"]
 
     @torch.no_grad()
     def embed(wav):
-        try:
-            return model(wav.to(args.device)).reshape(-1)  # (batch=1, emb_dim) -> (emb_dim,)
-        except torch.cuda.OutOfMemoryError:
-            # A runaway-long generation can exceed the GPU memory left next to the ASR
-            # servers. Embed it on the CPU instead of dropping it from coverage: same
-            # weights, same input; the embedding goes back to the device for the cosine.
-            torch.cuda.empty_cache()
-            if not cpu_model:
-                cpu_model.append(copy.deepcopy(model).to("cpu"))
-            return cpu_model[0](wav.to("cpu")).reshape(-1).to(args.device)
+        if state["gpu_ok"]:
+            try:
+                # (batch=1, emb_dim) -> (emb_dim,)
+                return model(wav.to(args.device)).reshape(-1).cpu()
+            except torch.cuda.OutOfMemoryError:
+                torch.cuda.empty_cache()
+            except RuntimeError as e:
+                if "CUDA" not in str(e):
+                    raise
+                print(f"[spk] {e}; scoring the rest of this run on the CPU")
+                state["gpu_ok"] = False
+        return cpu_model()(wav).reshape(-1)
 
     run(args, embed, spk_stamp(args.model_name, args.train_type, args.dataset))
 
