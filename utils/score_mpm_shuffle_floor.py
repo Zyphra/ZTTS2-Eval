@@ -36,10 +36,14 @@ self-distance (d_ref floor) for reference.
 import argparse
 import hashlib
 import logging
+import multiprocessing
 import os
 import sys
 import tempfile
+import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -54,6 +58,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ttsds/mpm_shuffle_floor"))
+SR = 22050
+_FEAT = None  # per-worker feature extractors (see _feature_worker_init)
 
 
 def _tokens_for_wav(bench, wav, sr):
@@ -90,10 +96,61 @@ def _embed(bench, toks):
     return r.detach().cpu().numpy()[0]
 
 
-def _collect_tokens(bench, wav_dir):
-    from ttsds.util.dataset import DirectoryDataset
-    ds = DirectoryDataset(str(wav_dir), name=Path(wav_dir).name, sample_rate=22050)
-    return [_tokens_for_wav(bench, wav, ds.sample_rate) for wav, _ in ds.iter_with_progress(bench)]
+# --- Tokenization runs in a process pool ---------------------------------------------
+# pyworld's dio + stonemask (pitch and VAD) dominate the run time and are single-threaded,
+# so the per-utterance tokens are computed on every CPU of the job while the parent embeds
+# finished utterances on the GPU. Each worker builds its own copies of the three TTSDS
+# measures with the defaults MPMBenchmark uses; the token code is _tokens_for_wav, unchanged.
+def _feature_worker_init(consts):
+    global _FEAT
+    from ttsds.util.measures import EnergyMeasure, PitchMeasure, VoiceActivityMeasure
+    torch.set_num_threads(1)
+    c = dict(consts)
+    _FEAT = SimpleNamespace(pitch_measure=PitchMeasure(), energy_measure=EnergyMeasure(),
+                            voice_activity_measure=VoiceActivityMeasure(),
+                            bins=torch.from_numpy(c.pop("bins")), **c)
+
+
+def _load_wav(path):
+    """ttsds DirectoryDataset.__getitem__ (22.05 kHz, pad to 16000 samples, peak-normalize)
+    without its on-disk audio cache. That cache keys on str.__hash__, which Python
+    randomizes per process, so it never hits: it only wrote every decoded wav to
+    ~/.cache/ttsds again on every run."""
+    audio, _ = librosa.load(path, sr=SR)
+    if audio.shape[0] < 16000:
+        audio = np.pad(audio, (0, 16000 - audio.shape[0]))
+    return audio / (np.max(np.abs(audio)) + 1e-6)
+
+
+def _tokens_for_path(path):
+    return _tokens_for_wav(_FEAT, _load_wav(path), SR).numpy()
+
+
+def _wav_files(wav_dir):
+    # DirectoryDataset's own file order, so token lists (and the seeded shuffle and
+    # split of the anchor) match what the TTSDS loader produced.
+    return list(Path(wav_dir).rglob("*.wav"))
+
+
+def _feature_pool(bench):
+    workers = int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
+    consts = dict(pitch_min=bench.pitch_min, pitch_max=bench.pitch_max,
+                  vad_min=bench.vad_min, vad_max=bench.vad_max, bins=bench.bins.numpy())
+    # spawn: the parent holds a CUDA context, which forked children must not inherit.
+    return ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn"),
+                               initializer=_feature_worker_init, initargs=(consts,))
+
+
+def _collect_tokens(pool, wav_dir):
+    return [torch.from_numpy(t)
+            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)]
+
+
+def _embed_dir(bench, pool, wav_dir):
+    """Per-utterance embeddings of a dir, embedding each utterance as soon as its tokens
+    arrive so the GPU works while the pool tokenizes the rest."""
+    return [_embed(bench, torch.from_numpy(t))
+            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)]
 
 
 def _stack_embed(bench, toks_list):
@@ -155,7 +212,7 @@ def _key(ref_dir, seed):
     return h, len(wavs), sum(p.stat().st_size for p in wavs)
 
 
-def _build_anchor(bench, ref_dir, seed):
+def _build_anchor(bench, pool, ref_dir, seed):
     """Return ((ref_mu, ref_sig), (noise_mu, noise_sig), d_ref_floor), caching
     the FID stats to disk (~0.5 MB) rather than the raw frame matrices."""
     from ttsds.util.distances import frechet_distance
@@ -169,19 +226,21 @@ def _build_anchor(bench, ref_dir, seed):
         return (z["ref_mu"], z["ref_sig"]), (z["noise_mu"], z["noise_sig"]), float(z["d_ref_floor"])
 
     print(f"[build] anchor {key} from {ref_dir}")
-    toks = _collect_tokens(bench, ref_dir)
+    toks = _collect_tokens(pool, ref_dir)
     rng = np.random.default_rng(seed)
-    ref_stats = _stats(_stack_embed(bench, toks))
+    # Embeddings are per utterance, so the split halves below reuse these rows instead
+    # of embedding every reference utterance a second time.
+    ref_embs = [_embed(bench, t) for t in toks]
+    ref_stats = _stats(np.vstack(ref_embs))
     noise_stats = _stats(_stack_embed(bench, _shuffle_joint(toks, rng)))
 
     # Random split-GT self-distance for the finite-sample d_ref floor.
     split_rng = np.random.default_rng(seed)
     order = split_rng.permutation(len(toks))
     half = len(order) // 2
-    a = [toks[i] for i in order[:half]]
-    b = [toks[i] for i in order[half:]]
-    d_ref_floor = frechet_distance(_stats(_stack_embed(bench, a)),
-                                   _stats(_stack_embed(bench, b)))
+    a = np.vstack([ref_embs[i] for i in order[:half]])
+    b = np.vstack([ref_embs[i] for i in order[half:]])
+    d_ref_floor = frechet_distance(_stats(a), _stats(b))
 
     np.savez(npz, ref_mu=ref_stats[0], ref_sig=ref_stats[1],
              noise_mu=noise_stats[0], noise_sig=noise_stats[1],
@@ -215,7 +274,8 @@ def main():
         # controls the input device in _embed(), so moving the model is sufficient.
         bench.device = device
         bench.model = bench.model.to(device)
-    ref_stats, noise_stats, d_ref_floor = _build_anchor(bench, args.ref_dir, args.seed)
+    pool = _feature_pool(bench)
+    ref_stats, noise_stats, d_ref_floor = _build_anchor(bench, pool, args.ref_dir, args.seed)
     d_noise_floor = frechet_distance(ref_stats, noise_stats)  # ref-vs-noise, for context
     print(f"\nanchor: ref={args.ref_dir}")
     print(f"  d_ref_floor (split-GT real-vs-real) = {d_ref_floor:.6f}")
@@ -243,12 +303,14 @@ def main():
         else:
             parts = Path(sd).parts
             label = parts[parts.index("results") + 1] if "results" in parts else Path(sd).name
-        print(f"[system] {label}: {sd}")
-        tokens = _collect_tokens(bench, sd)
-        if not tokens:
+        print(f"[system] {label}: {sd}", flush=True)
+        t0 = time.time()
+        embs = _embed_dir(bench, pool, sd)
+        if not embs:
             print(f"[skip] {label}: no usable audio")
             continue
-        sys_emb = _stack_embed(bench, tokens)
+        sys_emb = np.vstack(embs)
+        print(f"  {len(embs)} utterances in {time.time() - t0:.0f}s", flush=True)
         d_ref = frechet_distance(sys_emb, ref_stats)
         d_noise = frechet_distance(sys_emb, noise_stats)
         score = d_noise / (d_ref + d_noise) * 100
@@ -260,6 +322,7 @@ def main():
         dist_systems.append({"name": label, "mean": round(pos, 5), "std": round(sd_n, 5),
                              "span": round(span, 5),
                              "overlap": round(_ovl_1d(gt_pos, gt_sd, pos, sd_n), 5)})
+    pool.shutdown()
 
     if rows:
         print(f"\n{'system':<24}{'d_ref':>10}{'d_noise':>12}{'score':>9}{'span':>9}")
