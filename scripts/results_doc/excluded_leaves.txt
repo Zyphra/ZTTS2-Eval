@@ -6,3 +6,10 @@
 # rhythm, pitch-range and paired-ITW CSV/TSV loaders, and from the panel backfill.
 # A system with a leaf listed here has no macro value and lands in the
 # "Partial coverage" table of RESULTS_CURRENT.md.
+cosyvoice3 zero_shot ar speaker similarity covers 719/1230 (< 98%): 511 of the 511 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot he speaker similarity covers 1021/1841 (< 98%): 820 of the 820 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot th speaker similarity covers 798/1729 (< 98%): 931 of the 931 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot fa speaker similarity covers 909/1880 (< 98%): 971 of the 971 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot_voxblink th speaker similarity covers 165/171 (< 98%): 6 of the 6 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot hi speaker similarity covers 939/1215 (< 98%): 276 of the 276 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
+cosyvoice3 zero_shot_voxblink ar speaker similarity covers 1420/1460 (< 98%): 40 of the 40 unscored generations are <0.1 s stubs, too short for the ReDimNet2 front end (WER scores them as maximum error)
