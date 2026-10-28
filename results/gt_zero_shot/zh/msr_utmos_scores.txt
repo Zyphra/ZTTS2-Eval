@@ -206,7 +206,6 @@ uttid_205	results/gt_zero_shot/zh/wavs/uttid_205.wav	3.9098
 uttid_206	results/gt_zero_shot/zh/wavs/uttid_206.wav	3.4412
 uttid_207	results/gt_zero_shot/zh/wavs/uttid_207.wav	3.5223
 uttid_208	results/gt_zero_shot/zh/wavs/uttid_208.wav	3.1926
-uttid_209	results/gt_zero_shot/zh/wavs/uttid_209.wav	3.0928
 uttid_210	results/gt_zero_shot/zh/wavs/uttid_210.wav	2.8657
 uttid_211	results/gt_zero_shot/zh/wavs/uttid_211.wav	2.9945
 uttid_212	results/gt_zero_shot/zh/wavs/uttid_212.wav	3.0480
@@ -614,7 +613,6 @@ uttid_613	results/gt_zero_shot/zh/wavs/uttid_613.wav	3.2305
 uttid_614	results/gt_zero_shot/zh/wavs/uttid_614.wav	3.4761
 uttid_615	results/gt_zero_shot/zh/wavs/uttid_615.wav	3.6438
 uttid_616	results/gt_zero_shot/zh/wavs/uttid_616.wav	2.8232
-uttid_617	results/gt_zero_shot/zh/wavs/uttid_617.wav	2.9647
 uttid_618	results/gt_zero_shot/zh/wavs/uttid_618.wav	3.6150
 uttid_619	results/gt_zero_shot/zh/wavs/uttid_619.wav	3.3122
 uttid_620	results/gt_zero_shot/zh/wavs/uttid_620.wav	3.2770
@@ -2013,7 +2011,6 @@ uttid_2012	results/gt_zero_shot/zh/wavs/uttid_2012.wav	2.7209
 uttid_2013	results/gt_zero_shot/zh/wavs/uttid_2013.wav	3.4975
 uttid_2014	results/gt_zero_shot/zh/wavs/uttid_2014.wav	2.8168
 uttid_2015	results/gt_zero_shot/zh/wavs/uttid_2015.wav	2.9483
-uttid_2016	results/gt_zero_shot/zh/wavs/uttid_2016.wav	2.8951
 uttid_2017	results/gt_zero_shot/zh/wavs/uttid_2017.wav	3.1424
 uttid_2018	results/gt_zero_shot/zh/wavs/uttid_2018.wav	3.2923
 uttid_2019	results/gt_zero_shot/zh/wavs/uttid_2019.wav	3.4083

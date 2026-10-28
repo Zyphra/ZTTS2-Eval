@@ -830,7 +830,6 @@ uttid_829	results/gt_zero_shot/fa/wavs/uttid_829.wav	2.9582
 uttid_830	results/gt_zero_shot/fa/wavs/uttid_830.wav	2.9965
 uttid_831	results/gt_zero_shot/fa/wavs/uttid_831.wav	3.1808
 uttid_832	results/gt_zero_shot/fa/wavs/uttid_832.wav	3.0743
-uttid_833	results/gt_zero_shot/fa/wavs/uttid_833.wav	3.8968
 uttid_834	results/gt_zero_shot/fa/wavs/uttid_834.wav	2.9852
 uttid_835	results/gt_zero_shot/fa/wavs/uttid_835.wav	3.1175
 uttid_836	results/gt_zero_shot/fa/wavs/uttid_836.wav	3.6496
@@ -1375,7 +1374,6 @@ uttid_1374	results/gt_zero_shot/fa/wavs/uttid_1374.wav	3.6847
 uttid_1375	results/gt_zero_shot/fa/wavs/uttid_1375.wav	3.2652
 uttid_1376	results/gt_zero_shot/fa/wavs/uttid_1376.wav	3.3359
 uttid_1377	results/gt_zero_shot/fa/wavs/uttid_1377.wav	3.0801
-uttid_1378	results/gt_zero_shot/fa/wavs/uttid_1378.wav	3.4234
 uttid_1379	results/gt_zero_shot/fa/wavs/uttid_1379.wav	3.2819
 uttid_1380	results/gt_zero_shot/fa/wavs/uttid_1380.wav	3.3580
 uttid_1381	results/gt_zero_shot/fa/wavs/uttid_1381.wav	2.8584

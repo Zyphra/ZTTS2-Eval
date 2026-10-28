@@ -1,1 +1,5 @@
-CI95 2.3025 2.4074 n 423 boot 10000 seed 20260717
+CI95 2.3023 2.4075 n 421 boot 10000 seed 20260717
+N_SCORED: 421
+N_EXPECTED: 421
+BENCHMARK_VERSION: 2
+MSR_UTMOS_CKPT: https://huggingface.co/sarulab-speech/MSR-UTMOS_w2v2_fold0/resolve/2cbd24044e8dabcafc44bf801b19b4d59d557540/model.ckpt

@@ -1840,7 +1840,6 @@ uttid_1839	results/gt_zero_shot/de/wavs/uttid_1839.wav	3.1818
 uttid_1840	results/gt_zero_shot/de/wavs/uttid_1840.wav	3.7906
 uttid_1841	results/gt_zero_shot/de/wavs/uttid_1841.wav	3.2161
 uttid_1842	results/gt_zero_shot/de/wavs/uttid_1842.wav	3.2852
-uttid_1843	results/gt_zero_shot/de/wavs/uttid_1843.wav	2.9622
 uttid_1844	results/gt_zero_shot/de/wavs/uttid_1844.wav	3.4962
 uttid_1845	results/gt_zero_shot/de/wavs/uttid_1845.wav	2.9744
 uttid_1846	results/gt_zero_shot/de/wavs/uttid_1846.wav	3.8559

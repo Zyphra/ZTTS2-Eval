@@ -1195,7 +1195,6 @@ uttid_1194	results/gt_zero_shot/es/wavs/uttid_1194.wav	3.1627
 uttid_1195	results/gt_zero_shot/es/wavs/uttid_1195.wav	3.1175
 uttid_1196	results/gt_zero_shot/es/wavs/uttid_1196.wav	2.8579
 uttid_1197	results/gt_zero_shot/es/wavs/uttid_1197.wav	3.4392
-uttid_1198	results/gt_zero_shot/es/wavs/uttid_1198.wav	2.9560
 uttid_1199	results/gt_zero_shot/es/wavs/uttid_1199.wav	3.1105
 uttid_1200	results/gt_zero_shot/es/wavs/uttid_1200.wav	3.4175
 uttid_1201	results/gt_zero_shot/es/wavs/uttid_1201.wav	3.0093

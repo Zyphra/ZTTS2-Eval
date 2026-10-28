@@ -404,7 +404,6 @@ uttid_403	results/gt_zero_shot/fi/wavs/uttid_403.wav	3.7876
 uttid_404	results/gt_zero_shot/fi/wavs/uttid_404.wav	3.4101
 uttid_405	results/gt_zero_shot/fi/wavs/uttid_405.wav	2.8443
 uttid_406	results/gt_zero_shot/fi/wavs/uttid_406.wav	3.0182
-uttid_407	results/gt_zero_shot/fi/wavs/uttid_407.wav	3.1511
 uttid_408	results/gt_zero_shot/fi/wavs/uttid_408.wav	3.3240
 uttid_409	results/gt_zero_shot/fi/wavs/uttid_409.wav	3.1009
 uttid_410	results/gt_zero_shot/fi/wavs/uttid_410.wav	3.5384

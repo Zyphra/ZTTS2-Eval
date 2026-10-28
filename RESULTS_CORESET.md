@@ -110,7 +110,7 @@ conservative — quote MDD.
 
 ## In-The-Wild (VoxBlink2, 20 languages, 17,319 items)
 
-Shipped Mini panel: **strat_meta, k=2000** (8.7x smaller than the full set).
+Shipped Mini panel: **strat_meta, k=2000** (8.6x smaller than the full set).
 
 
 **WER_CLIP (%)** — mean absolute error on held-out families (standard error in parentheses)

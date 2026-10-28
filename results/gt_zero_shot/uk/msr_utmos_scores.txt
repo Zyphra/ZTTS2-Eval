@@ -1025,7 +1025,6 @@ uttid_1024	results/gt_zero_shot/uk/wavs/uttid_1024.wav	3.4791
 uttid_1025	results/gt_zero_shot/uk/wavs/uttid_1025.wav	3.0609
 uttid_1026	results/gt_zero_shot/uk/wavs/uttid_1026.wav	4.0441
 uttid_1027	results/gt_zero_shot/uk/wavs/uttid_1027.wav	2.9077
-uttid_1028	results/gt_zero_shot/uk/wavs/uttid_1028.wav	3.2663
 uttid_1029	results/gt_zero_shot/uk/wavs/uttid_1029.wav	3.6020
 uttid_1030	results/gt_zero_shot/uk/wavs/uttid_1030.wav	3.1923
 uttid_1031	results/gt_zero_shot/uk/wavs/uttid_1031.wav	3.0644

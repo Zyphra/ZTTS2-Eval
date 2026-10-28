@@ -595,7 +595,6 @@ uttid_594	results/gt_zero_shot/ar/wavs/uttid_594.wav	3.0360
 uttid_595	results/gt_zero_shot/ar/wavs/uttid_595.wav	3.5069
 uttid_596	results/gt_zero_shot/ar/wavs/uttid_596.wav	2.9653
 uttid_597	results/gt_zero_shot/ar/wavs/uttid_597.wav	3.8900
-uttid_598	results/gt_zero_shot/ar/wavs/uttid_598.wav	3.4101
 uttid_599	results/gt_zero_shot/ar/wavs/uttid_599.wav	2.9054
 uttid_600	results/gt_zero_shot/ar/wavs/uttid_600.wav	2.6714
 uttid_601	results/gt_zero_shot/ar/wavs/uttid_601.wav	3.8794

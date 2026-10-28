@@ -1,0 +1,27 @@
+{
+  "source_task": "zero_shot_voxblink",
+  "lang": "ar",
+  "reference": "real recording of the item's target text (same speaker, different video from the prompt)",
+  "n_items": 1463,
+  "n_references": 1446,
+  "n_speakers": 1446,
+  "excluded": {
+    "uttid_46": "prompt_text shared across speakers (ambiguous)",
+    "uttid_104": "prompt_text shared across speakers (ambiguous)",
+    "uttid_146": "prompt_text shared across speakers (ambiguous)",
+    "uttid_185": "prompt_text shared across speakers (ambiguous)",
+    "uttid_192": "prompt_text shared across speakers (ambiguous)",
+    "uttid_402": "prompt_text shared across speakers (ambiguous)",
+    "uttid_506": "prompt_text shared across speakers (ambiguous)",
+    "uttid_546": "prompt_text shared across speakers (ambiguous)",
+    "uttid_750": "prompt_text shared across speakers (ambiguous)",
+    "uttid_907": "prompt_text shared across speakers (ambiguous)",
+    "uttid_921": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1000": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1225": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1257": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1363": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1456": "prompt_text shared across speakers (ambiguous)",
+    "uttid_1478": "prompt_text shared across speakers (ambiguous)"
+  }
+}

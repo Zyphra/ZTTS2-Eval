@@ -880,7 +880,6 @@ uttid_879	results/gt_zero_shot/ja/wavs/uttid_879.wav	3.2172
 uttid_880	results/gt_zero_shot/ja/wavs/uttid_880.wav	2.8767
 uttid_881	results/gt_zero_shot/ja/wavs/uttid_881.wav	3.2730
 uttid_882	results/gt_zero_shot/ja/wavs/uttid_882.wav	3.0997
-uttid_883	results/gt_zero_shot/ja/wavs/uttid_883.wav	3.2596
 uttid_884	results/gt_zero_shot/ja/wavs/uttid_884.wav	3.4597
 uttid_885	results/gt_zero_shot/ja/wavs/uttid_885.wav	3.0502
 uttid_886	results/gt_zero_shot/ja/wavs/uttid_886.wav	2.7726

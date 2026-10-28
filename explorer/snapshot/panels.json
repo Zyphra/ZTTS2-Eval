@@ -19,7 +19,7 @@
     "kind": "delta",
     "source_task": "zero_shot_voxblink",
     "selector": "delta",
-    "k_actual": 194,
+    "k_actual": 192,
     "seed": 0,
     "langs": 20
   },
@@ -27,7 +27,7 @@
     "kind": "mini",
     "source_task": "zero_shot_voxblink",
     "selector": "strat_meta",
-    "k_actual": 1941,
+    "k_actual": 1919,
     "seed": 0,
     "langs": 20
   }

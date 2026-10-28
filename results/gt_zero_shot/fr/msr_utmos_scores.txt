@@ -264,7 +264,6 @@ uttid_263	results/gt_zero_shot/fr/wavs/uttid_263.wav	3.2507
 uttid_264	results/gt_zero_shot/fr/wavs/uttid_264.wav	3.7293
 uttid_265	results/gt_zero_shot/fr/wavs/uttid_265.wav	3.7530
 uttid_266	results/gt_zero_shot/fr/wavs/uttid_266.wav	3.6006
-uttid_267	results/gt_zero_shot/fr/wavs/uttid_267.wav	3.8777
 uttid_268	results/gt_zero_shot/fr/wavs/uttid_268.wav	3.6893
 uttid_269	results/gt_zero_shot/fr/wavs/uttid_269.wav	3.8173
 uttid_270	results/gt_zero_shot/fr/wavs/uttid_270.wav	3.9220

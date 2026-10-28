@@ -954,7 +954,6 @@ uttid_953	results/gt_zero_shot/pt/wavs/uttid_953.wav	3.4248
 uttid_954	results/gt_zero_shot/pt/wavs/uttid_954.wav	3.2107
 uttid_955	results/gt_zero_shot/pt/wavs/uttid_955.wav	3.5326
 uttid_956	results/gt_zero_shot/pt/wavs/uttid_956.wav	3.0175
-uttid_957	results/gt_zero_shot/pt/wavs/uttid_957.wav	3.0132
 uttid_958	results/gt_zero_shot/pt/wavs/uttid_958.wav	3.1453
 uttid_959	results/gt_zero_shot/pt/wavs/uttid_959.wav	3.1084
 uttid_960	results/gt_zero_shot/pt/wavs/uttid_960.wav	3.0368

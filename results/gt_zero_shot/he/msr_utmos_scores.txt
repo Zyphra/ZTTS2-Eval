@@ -1226,7 +1226,6 @@ uttid_1225	results/gt_zero_shot/he/wavs/uttid_1225.wav	3.5797
 uttid_1226	results/gt_zero_shot/he/wavs/uttid_1226.wav	3.9205
 uttid_1227	results/gt_zero_shot/he/wavs/uttid_1227.wav	3.4540
 uttid_1228	results/gt_zero_shot/he/wavs/uttid_1228.wav	2.9761
-uttid_1229	results/gt_zero_shot/he/wavs/uttid_1229.wav	2.9051
 uttid_1230	results/gt_zero_shot/he/wavs/uttid_1230.wav	3.1693
 uttid_1231	results/gt_zero_shot/he/wavs/uttid_1231.wav	3.5038
 uttid_1232	results/gt_zero_shot/he/wavs/uttid_1232.wav	3.2186
