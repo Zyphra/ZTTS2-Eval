@@ -14,7 +14,7 @@ OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 sys.path.insert(0, REPO_ROOT)
 from utils.per_uid import CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, leaf_problems  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, data_uids, leaf_problems  # noqa: E402
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import write_json_atomic  # noqa: E402
 
@@ -486,6 +486,23 @@ def count_n(wer_raw_path):
     except Exception:
         return None
 
+# A full-set leaf counts only when its system generated (nearly) every item of the
+# language: same bar as the scorers' SCORE_MIN_COVERAGE.
+MIN_GEN_COVERAGE = 0.98
+
+
+def generation_coverage(task, lang, leaf_dir):
+    """(generated items, items) of a full-set leaf, or None when there is no data
+    definition to compare against (unknown task / language)."""
+    try:
+        uids = set(data_uids(task, lang))
+    except OSError:
+        return None
+    wav_dir = os.path.join(leaf_dir, "wavs")
+    have = ({f[:-4] for f in os.listdir(wav_dir) if f.endswith(".wav")}
+            if os.path.isdir(wav_dir) else set())
+    return len(have & uids), len(uids)
+
 def collect_leaf(model, task, setname, leaf_dir):
     wer_path = os.path.join(leaf_dir, "wav_res_ref_text.wer")
     if not os.path.isfile(wer_path):
@@ -529,6 +546,7 @@ def collect_all():
         return records
     problems = []          # inputs that are not current ZTTS2-Eval <BENCHMARK_VERSION>
     audited = set()
+    incomplete = []        # full-set leaves whose generation is missing items
 
     def audit(leaf_dir, lang):
         if leaf_dir in audited:
@@ -563,10 +581,19 @@ def collect_all():
                 if panel is not None:
                     rec = collect_panel_leaf(model, sub, setname, tdir, panel)
                 else:
+                    gen = generation_coverage(sub, setname, tdir)
+                    if gen is not None and gen[0] < MIN_GEN_COVERAGE * gen[1]:
+                        incomplete.append(f"{model}/{sub}/{setname} ({gen[0]}/{gen[1]})")
+                        continue
                     rec = collect_leaf(model, sub, setname, tdir)
                 if rec is not None:
                     records.append(rec)
                     audit(tdir, setname)
+    if incomplete:
+        # The scorers only see the wavs that exist, so a leaf whose generation stopped
+        # early would otherwise report full coverage over a handful of utterances.
+        print(f"leaves dropped, generation covers < {MIN_GEN_COVERAGE:.0%} of the "
+              f"language's items ({len(incomplete)}): {', '.join(incomplete)}")
 
     # Backfill every panel row that can be derived from the full source task.
     #
