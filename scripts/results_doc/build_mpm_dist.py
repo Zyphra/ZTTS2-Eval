@@ -8,8 +8,8 @@ language's own real/scramble anchors it is comparable across languages, so the
 explorer draws a small-multiple dot plot (one row per language) on the shared span
 axis. span > 1 means the system is FURTHER from real than the scrambled floor.
 
-Reads results/_mpm_shuffle_floor/{zero_shot_<lang>.tsv, en_<model>.tsv} (the en_
-files are the fuller English set) and writes
+Reads results/_mpm_shuffle_floor/zero_shot_<lang>.tsv (and the ground-truth split rows
+in results/_mpm_ground_truth/) and writes
 
     _cache/mpm_dist.json  ->  published to explorer/snapshot/ (publish_snapshot.py)
 
@@ -65,10 +65,6 @@ def main():
             print(f"  skip {os.path.basename(f)}: not FLEURS-R (see docs/mpm_itw_limits.md)")
             continue
         per_lang[lang] = _rows(f)
-    # the en_<model>.tsv files are the fuller English set — overlay them
-    en = per_lang.setdefault("en", {})
-    for f in sorted(glob.glob(os.path.join(DIST_DIR, "en_*.tsv"))):
-        en.update(_rows(f))
     # Ground-truth rows are scored separately on a random 50/50 reference split.
     for f in sorted(glob.glob(os.path.join(GT_DIST_DIR, "zero_shot_*.tsv"))):
         lang = os.path.basename(f)[len("zero_shot_"):-len(".tsv")]

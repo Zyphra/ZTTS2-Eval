@@ -34,9 +34,9 @@ MIN_PANEL_COVERAGE = 0.9
 #   span  = (d_ref - d_ref_floor)/(d_noise_floor - d_ref_floor)
 #           position in [0=indistinguishable-from-reference .. 1=fully scrambled];
 #           this is the discriminating axis (LOWER is better).
-# Results live outside the per-leaf tree in results/_mpm_shuffle_floor/, keyed by
-# language (zero_shot_<lang>.tsv) with an en_<model>.tsv overlay for the fuller
-# English set. Joined onto zero_shot records by (system, language).
+# Results live outside the per-leaf tree in results/_mpm_shuffle_floor/, one file per
+# language (zero_shot_<lang>.tsv, every system of that language scored against one
+# anchor). Joined onto zero_shot records by (system, language).
 MPM_DIR = os.path.join(ROOT, "_mpm_shuffle_floor")
 MPM_GT_DIR = os.path.join(ROOT, "_mpm_ground_truth")
 
@@ -135,13 +135,9 @@ def load_mpm():
                     pass
 
     files = sorted(f for f in os.listdir(MPM_DIR) if f.endswith(".tsv"))
-    # per-language files first, then the en_<model> overlay (the fuller en set)
     for fn in files:
         if fn.startswith("zero_shot_"):
             add(os.path.join(MPM_DIR, fn), fn[len("zero_shot_"):-len(".tsv")])
-    for fn in files:
-        if fn.startswith("en_"):
-            add(os.path.join(MPM_DIR, fn), "en")
     if os.path.isdir(MPM_GT_DIR):
         for fn in sorted(f for f in os.listdir(MPM_GT_DIR)
                          if f.startswith("zero_shot_") and f.endswith(".tsv")):
