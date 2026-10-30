@@ -310,7 +310,7 @@ def render(recs, dedup=None):
                     "with-transcript": "with-transcript clone"}[cls]
         W(f"| `{marked_label(m)}` | {cond_classes[cls]} | {cls_disp} | {prov} |")
     W("")
-    W("Seeding: `zonos2_*` runs are fixed-seed (0); vLLM-Omni-served systems pass no")
+    W("Seeding: `zonos2_*` and `zonos3-mini_*` runs are fixed-seed (0); vLLM-Omni-served systems pass no")
     W("seed or temperature (unseeded server-default sampling); native recipes note")
     W("their sampling defaults above.\n")
 

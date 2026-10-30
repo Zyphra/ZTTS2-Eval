@@ -29,7 +29,8 @@ CORE9 = ["en","zh","de","es","fr","it","ja","ko","ru"]
 N_BUCKETS = 6
 
 DEFAULT_MODELS = ["gt", "fish-s2-pro", "voxcpm2", "qwen3-1.7b",
-                  "zonos2_accurate", "zonos2_expressive"]
+                  "zonos2_accurate", "zonos2_expressive",
+                  "zonos3-mini_reference", "zonos3-mini_embedding"]
 _want = [m for m in os.environ.get("PERLEN_PLOT_MODELS", ",".join(DEFAULT_MODELS)).split(",")
          if m.strip()]
 _have = {k.split("|", 1)[0] for k in simple}
@@ -57,7 +58,7 @@ def draw_lines(ax, d, lang_subset, title):
     for label, t in MODELS:
         ys = crossmean(d, label, lang_subset)
         ys_plot = [y if y is not None else np.nan for y in ys]
-        ax.plot(xs, ys_plot, marker="o", label=t, linewidth=2 if "zonos2" in t else 1.5)
+        ax.plot(xs, ys_plot, marker="o", label=t, linewidth=2 if "zonos" in t else 1.5)
     ax.set_title(title, fontsize=11)
     ax.set_xticks(xs)
     ax.set_xticklabels([f"q{i}" for i in xs], fontsize=9)

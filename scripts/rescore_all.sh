@@ -24,6 +24,7 @@
 # A task that starts after the list is fully claimed exits without starting servers.
 #
 #   sbatch --array=0-3 --chdir="$(pwd -P)" --export=ALL scripts/rescore_all.sh
+# RESCORE_SYSTEMS="a b" restricts the leaves to those results/ dirs (default: every system).
 #
 # Requeue (preemption): claims record their array task; a restarted task first releases
 # its previous incarnation's unfinished claims, and the version-aware gates make the
@@ -65,8 +66,15 @@ if [ ! -f "${list_file}" ]; then
     if mkdir "${list_file}.lock" 2>/dev/null; then
         leaves=$(python3 - <<'PYEOF' | LC_ALL=C sort
 import os
+import sys
 from utils.benchmark import SOURCE_TASK, langs_for
+want = set(os.environ.get("RESCORE_SYSTEMS", "").split())
+for name in sorted(want):
+    if not os.path.isdir(f"results/{name}"):
+        print(f"[rescore-all] RESCORE_SYSTEMS: no results/{name}", file=sys.stderr)
 for sys_name in sorted(os.listdir("results")):
+    if want and sys_name not in want:
+        continue
     if sys_name.startswith(("gt_", "whisper_", "_")) or not os.path.isdir(f"results/{sys_name}"):
         continue
     for task in SOURCE_TASK:

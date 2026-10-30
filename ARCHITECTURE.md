@@ -89,6 +89,12 @@ ZTTS2-Eval/
   then runs `scripts/generate_zonos2.py` (`POST /tts/generate`). Pass `--server URL`
   to reuse an external server instead. `--accurate_mode {true|false}` = stable vs
   expressive.
+- **`run_generate_zonos3.sh`** → starts/stops a ZONOS3 Mini release minisgl server via
+  `scripts/serve_zonos3.sh` (`python -m zonos2`, from the `ZONOS3_HOME` checkout, never
+  reusing a server already on the port; three startup attempts on fresh port pairs), then
+  runs `scripts/generate_zonos3.py` (`POST /tts/generate`). `--speaker_mode
+  {reference|embedding}` selects the conditioning, `--laci true` LACI decoding; `--server
+  URL` reuses an external server. `slurm/zonos3_gen_job.sh` is the 8-GPU node job.
 - **`run_generate_omni.sh`** → starts/stops a vLLM-Omni server via
   `scripts/serve_omni.sh`, then runs `scripts/generate_omni.py`
   (`POST /v1/audio/speech`). Inline model registry: qwen3-tts, cosyvoice3, voxcpm2,
@@ -128,7 +134,8 @@ ZTTS2-Eval/
 - `lib_infer_scoring.sh` — `score_lang_dir` and the version-aware resume gates (a leaf
   whose stamps are missing or stale is rescored).
 - `rescore_all.sh` — full rescore of every `results/<sys>/<task>/<lang>` leaf over
-  node × GPU shards (WER, both speaker-sim passes, MSR-UTMOS).
+  node × GPU shards (WER, both speaker-sim passes, MSR-UTMOS); `RESCORE_SYSTEMS="a b"`
+  restricts it to those systems.
 - `run_gt_zero_shot.sh` — scores the ground-truth baselines (`--task zero_shot` or
   `zero_shot_voxblink`; ITW GT is the real target recording vs. the prompt).
 
@@ -196,7 +203,9 @@ populated `results/` tree; the `_cache/` snapshot is gitignored.
 **`slurm/`** — `submit_eval.sh`/`eval_job.sh` (generate + score one model per job),
 `score_job.sh` (one-GPU wrapper for any scoring driver), `submit_metrics.sh` /
 `submit_ground_truth_metrics.sh` (distributional-metric arrays; composable through
-`METRICS_*` env), and `submit_release_run.sh` (the whole release DAG: targets, HF
+`METRICS_*` env; `METRICS_NODES=N` runs them as whole-node tasks via
+`metrics_node_job.sh`), `zonos3_gen_job.sh` (ZONOS3 Mini generation on 8-GPU nodes), and
+`submit_release_run.sh` (the whole release DAG: targets, HF
 upload, full rescore, GT, metrics, final build). See `slurm/README.md`.
 
 ---

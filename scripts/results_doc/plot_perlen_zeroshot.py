@@ -21,7 +21,8 @@ N_BUCKETS = 6
 # override with PERLEN_PLOT_MODELS=comma,separated,labels. Labels absent from a
 # panel's cache are skipped for that panel.
 DEFAULT_MODELS = ["fish-s2-pro", "voxcpm2", "qwen3-1.7b",
-                  "zonos2_accurate", "zonos2_expressive"]
+                  "zonos2_accurate", "zonos2_expressive",
+                  "zonos3-mini_reference", "zonos3-mini_embedding"]
 MODELS = [(m, m) for m in
           os.environ.get("PERLEN_PLOT_MODELS", ",".join(DEFAULT_MODELS)).split(",")
           if m.strip()]
@@ -46,7 +47,7 @@ def draw(ax, d, langs, title):
                   " — skipped", file=sys.stderr)
             continue
         ys = cross(d, label, langs)
-        ax.plot(xs, ys, marker="o", label=t, linewidth=2 if "zonos2" in t else 1.5)
+        ax.plot(xs, ys, marker="o", label=t, linewidth=2 if "zonos" in t else 1.5)
     ax.set_title(title, fontsize=11)
     ax.set_xticks(xs)
     ax.set_xticklabels([f"q{i}" for i in xs], fontsize=9)

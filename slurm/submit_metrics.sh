@@ -16,6 +16,11 @@
 #   METRICS_KINDS       arrays to submit (default "speaking mpm rhythm pitch_range")
 #   METRICS_DEPENDENCY  sbatch --dependency string applied to every array
 #   METRICS_FINALIZE    1 (default) submits the finalizer; 0 skips it
+#   METRICS_NODES       N > 0: instead of one array per kind, ONE array of N whole-node tasks
+#                       (slurm/metrics_node_job.sh) runs every selected kind's rows, GPU rows
+#                       one per GPU; also takes METRICS_CPU_LANES, METRICS_WAIT_JOBS and
+#                       METRICS_WAIT_SYSTEMS (see that script). Default 0 = per-kind arrays
+#   METRICS_RESERVATION sbatch --reservation
 # The last stdout line is always METRICS_JOBS=<id>[:<id>...]: the array job ids, plus the
 # finalizer's when one is submitted.
 set -euo pipefail
@@ -33,6 +38,8 @@ site_args=()
 if [ -n "${partition}" ]; then site_args+=(--partition="${partition}"); fi
 if [ -n "${account}" ]; then site_args+=(--account="${account}"); fi
 if [ -n "${qos}" ]; then site_args+=(--qos="${qos}"); fi
+if [ -n "${METRICS_RESERVATION:-}" ]; then site_args+=(--reservation="${METRICS_RESERVATION}"); fi
+nodes="${METRICS_NODES:-0}"
 kinds="${METRICS_KINDS:-speaking mpm rhythm pitch_range}"
 dependency="${METRICS_DEPENDENCY:-}"
 finalize="${METRICS_FINALIZE:-1}"
@@ -109,20 +116,39 @@ submit_array() {
 }
 
 jobs=()
-speaking_job=""; mpm_job=""; rhythm_job=""; pitch_range_job=""
+speaking_job=""; mpm_job=""; rhythm_job=""; pitch_range_job=""; node_job=""
 for kind in ${kinds}; do
     case "${kind}" in
-        speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
-                     jobs+=("${speaking_job}") ;;
-        mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 10:00:00 1)
-                     jobs+=("${mpm_job}") ;;
-        rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 10:00:00 1)
-                     jobs+=("${rhythm_job}") ;;
-        pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
-                     jobs+=("${pitch_range_job}") ;;
+        speaking|mpm|rhythm|pitch_range) ;;
         *) echo "unknown METRICS_KINDS entry '${kind}'" >&2; exit 1 ;;
     esac
 done
+if [ "${nodes}" -gt 0 ]; then
+    export METRICS_RUN_DIR="${run_dir}" METRICS_NODE_KINDS="${kinds}"
+    cmd=(sbatch --parsable ${site_args[@]+"${site_args[@]}"}
+        --array="0-$((nodes - 1))"
+        --chdir="${METRICS_REPO}"
+        --output="${run_dir}/node-%A_%a.out"
+        --export=ALL)
+    if [ -n "${dependency}" ]; then
+        cmd+=(--dependency="${dependency}")
+    fi
+    node_job=$("${cmd[@]}" slurm/metrics_node_job.sh)
+    jobs+=("${node_job}")
+else
+    for kind in ${kinds}; do
+        case "${kind}" in
+            speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
+                         jobs+=("${speaking_job}") ;;
+            mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 10:00:00 1)
+                         jobs+=("${mpm_job}") ;;
+            rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 10:00:00 1)
+                         jobs+=("${rhythm_job}") ;;
+            pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
+                         jobs+=("${pitch_range_job}") ;;
+        esac
+    done
+fi
 if [ "${#jobs[@]}" -eq 0 ]; then
     echo "METRICS_KINDS selects nothing" >&2
     exit 1
@@ -150,6 +176,7 @@ SPEAKING_JOB=${speaking_job}
 MPM_JOB=${mpm_job}
 RHYTHM_JOB=${rhythm_job}
 PITCH_RANGE_JOB=${pitch_range_job}
+NODE_JOB=${node_job}
 FINALIZE_JOB=${finalize_job}
 EOF
 

@@ -78,7 +78,7 @@ def label(model_dir):
 #   x-vector        : clone via speaker embedding only (x_vector_only_mode)
 #   preset          : fixed built-in voice — NOT cloning the prompt speaker
 #
-# Seeding note: zonos2_* run with a fixed seed (0); the vLLM-Omni-served
+# Seeding note: zonos2_* and zonos3-mini_* run with a fixed seed (0); the vLLM-Omni-served
 # systems pass no seed/temperature (generate_omni.py defaults are None), i.e.
 # unseeded server-default sampling; native recipes note their own defaults.
 CONDITIONS = {
@@ -87,6 +87,21 @@ CONDITIONS = {
                         "audio-only clone; accurate_mode=true; seed 0, temp 1.15 vendor sampling"),
     "zonos2_expressive": ("no-transcript",
                           "audio-only clone; accurate_mode=false; seed 0, temp 1.15 vendor sampling"),
+    # ZONOS3 Mini via the release minisgl server (scripts/generate_zonos3.py -> /tts/generate): audio-only clone.
+    "zonos3-mini_reference": ("no-transcript",
+                              "release server, raw reference prefix (speaker_mode=reference), no transcript; seed 0, "
+                              "T 0.75 top-k 80 top-p 0.69, rep 96×2.4, CFG 1, 0.2 s silence prefill, "
+                              "server TN for en zh de es fr it pt ja ko"),
+    "zonos3-mini_embedding": ("x-vector",
+                              "release server, ownmect_s2 speaker embedding only (speaker_mode=embedding), "
+                              "no transcript; sampling as zonos3-mini_reference"),
+    # As above plus LACI (laci=true; alignment-guarded decoding with rollbacks), served from the z3m-laci
+    # runtime tree (d24d592).
+    "zonos3-mini-laci_reference": ("no-transcript",
+                                   "as zonos3-mini_reference plus LACI (laci=true; ZTTS3-Eval assets/laci heads: "
+                                   "zh heads for cmn, en heads for every other server language)"),
+    "zonos3-mini-laci_embedding": ("x-vector",
+                                   "as zonos3-mini_embedding plus LACI (laci=true; heads as zonos3-mini-laci_reference)"),
     # vLLM-Omni served (scripts/omni_models.sh reftext_policy + generate_omni.py);
     # all unseeded, server-default sampling.
     "omni_voxcpm2": ("no-transcript", "--no-ref-text (reftext_policy); unseeded server defaults"),

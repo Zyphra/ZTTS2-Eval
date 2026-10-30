@@ -72,15 +72,39 @@ hard-coded and come from the submitter.
   shard with its own ASR and Whisper servers. The resume gates are version-aware, so a
   requeued or rerun job resumes at the first stale leaf. Leaf failures are listed in
   `logs/slurm/rescore-all-<array job>-failed.txt` and do not fail the job (a shard
-  whose server cannot start does).
+  whose server cannot start does). `RESCORE_SYSTEMS="a b"` restricts the leaves to those
+  `results/` dirs.
 - **`submit_metrics.sh` / `submit_ground_truth_metrics.sh`** — arrays for the
   distributional metrics: `speaking` (char/s), `mpm` (Clean only), `rhythm` (GPU) and
   `pitch_range` (CPU; on the In-The-Wild set the same job also runs
   `scripts/paired_itw.py`), and for the ground-truth halves `speaking_gt`, `mpm_gt`.
   They compose through the environment: `METRICS_PARTITION` / `METRICS_ACCOUNT` /
-  `METRICS_QOS` (site), `METRICS_KINDS` (which arrays to submit), `METRICS_DEPENDENCY`
-  (an `--dependency` string applied to every array), and `METRICS_FINALIZE` (`0` skips
-  the finalizer). The last stdout line is `METRICS_JOBS=<id>[:<id>...]`.
+  `METRICS_QOS` (site; `submit_metrics.sh` also takes `METRICS_RESERVATION`), `METRICS_KINDS` (which arrays to
+  submit), `METRICS_DEPENDENCY` (an `--dependency` string applied to every array), and
+  `METRICS_FINALIZE` (`0` skips the finalizer). The last stdout line is
+  `METRICS_JOBS=<id>[:<id>...]`.
+- **`metrics_node_job.sh`** — `submit_metrics.sh` with `METRICS_NODES=N` submits one
+  array of N whole-node tasks instead of the per-kind arrays (where jobs asking for
+  fewer than 5 GPUs are routed to a small partition, the 1-GPU arrays starve). Each task
+  runs `metrics_job.sh` rows locally, GPU kinds one per GPU and CPU kinds
+  `METRICS_CPU_LANES` (default 3) at a time; rows are claimed under
+  `<run dir>/claims/`, so the tasks share one list. With `METRICS_WAIT_JOBS="<ids>"` and
+  `METRICS_WAIT_SYSTEMS="a b"` a row starts as soon as those systems' leaves for its
+  language are complete, instead of after the generation jobs end.
+- **`zonos3_gen_job.sh`** — ZONOS3 Mini generation on 8-GPU nodes (array job; always
+  submit with `--array`): one `scripts/serve_zonos3.sh` server per GPU serving every mode
+  and language it is dealt. Leaves (mode × task × lang) go largest-first round-robin over
+  array tasks × GPUs; existing wavs are skipped, so a requeue or resubmit resumes, and a
+  dead server is restarted (at most 3 times per GPU). Environment: `ZONOS3_HOME`,
+  `ZONOS3_ENV`, `Z3_TASKS` (required), `Z3_MODES` (default `reference embedding`),
+  `Z3_LIMIT`, `Z3_MAX_RUNNING` (default 16), `Z3_SYSTEM` (default `zonos3-mini`),
+  `Z3_LACI`, and `Z3_REVERSE=1` for a helper job that walks the same leaves
+  smallest-first. It prints a `COVERAGE <system> <task> <lang> <got>/<want>` line per
+  leaf and exits 1 iff a leaf is left in `logs/slurm/ztts-zonos3-gen-<tag>-failed.txt`.
+  ```bash
+  Z3_TASKS="zero_shot_mini zero_shot_voxblink_mini" sbatch --chdir="$(pwd -P)" \
+      --export=ALL --array=0-0 slurm/zonos3_gen_job.sh
+  ```
 - **`submit_release_run.sh`** — the whole release DAG, run from the repo root on the
   login node: build the target recordings (`build_voxblink_targets.py`), upload them to
   the HF dataset when `HF_TOKEN` is set, full rescore (`rescore_all.sh`), the two GT

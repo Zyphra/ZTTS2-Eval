@@ -530,7 +530,7 @@ frontier; Delta panels estimate differences only) are in
 (offline, CPU-only — it reads the per-utterance scores already in `results/`).
 
 Generation scripts are provided for local/open models (`run_generate_zonos2.sh`,
-`run_generate_omni.sh`) and for hosted providers. For the In-The-Wild set,
+`run_generate_zonos3.sh`, `run_generate_omni.sh`) and for hosted providers. For the In-The-Wild set,
 generation scripts are provided as siblings of the FLEURS-R ones
 (`run_generate_*_voxblink.sh`); they pin `task=zero_shot_voxblink`.
 
@@ -551,6 +551,17 @@ generation scripts are provided as siblings of the FLEURS-R ones
   server defaults to accurate. Under SLURM, `slurm/submit_eval.sh --engine zonos2
   --accurate_mode {true|false}` runs each mode as its own job, writing to
   `results/zonos2_accurate` / `results/zonos2_expressive`.
+* **`run_generate_zonos3.sh`** generates ZONOS3 Mini through the release minisgl server
+  (`scripts/serve_zonos3.sh` → `python -m zonos2` from the `ZONOS3_HOME` checkout,
+  optional site env `ZONOS3_ENV`; client `scripts/generate_zonos3.py` → `POST
+  /tts/generate`), one conditioning mode per call: `--speaker_mode reference` (raw
+  reference prefix) or `--speaker_mode embedding` (speaker embedding only) →
+  `results/zonos3-mini_<mode>`. It sends the release server's sampling defaults
+  explicitly, seed 0, server TN for en zh de es fr it pt ja ko (every other language
+  raw, TN off); `--laci true` adds LACI decoding on a server started with
+  `--laci-heads` (via `ZONOS3_SERVE_ARGS`). Self-managed by default, `--server URL` for
+  an external one. `slurm/zonos3_gen_job.sh` runs both modes over whole 8-GPU nodes
+  (one server per GPU; see [slurm/README.md](slurm/README.md)).
 
 ### Hosted providers
 
