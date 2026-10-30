@@ -49,6 +49,10 @@ const STATE = {
   sortKey: "wer",
   sortDir: null, // 'asc' | 'desc'
   filter: "",
+  // grid colour range: `gridClip` trims that percent of the cells off EACH end of the
+  // automatic range; `gridRange[metric]` = manual {lo, hi} (either null = automatic)
+  gridClip: 0,
+  gridRange: {},
 };
 
 // voxblink per-bin state
@@ -332,6 +336,27 @@ function bindConsole() {
       render();
     };
   });
+  bindGridTools();
+}
+
+function bindGridTools() {
+  const manual = () => (STATE.gridRange[STATE.metric] ||= { lo: null, hi: null });
+  const num = (s) => (s.trim() === "" || isNaN(Number(s)) ? null : Number(s));
+  $("#grid-clip").oninput = (e) => { STATE.gridClip = Number(e.target.value); renderGrid(); };
+  // `change`, not `input`: a half-typed number ("1.", "-") must not rescale the grid
+  $("#grid-lo").onchange = (e) => { manual().lo = num(e.target.value); renderGrid(); };
+  $("#grid-hi").onchange = (e) => { manual().hi = num(e.target.value); renderGrid(); };
+  $("#grid-auto").onclick = () => {
+    delete STATE.gridRange[STATE.metric];
+    STATE.gridClip = 0;
+    renderGrid();
+  };
+}
+
+// Linear-interpolated quantile of a pre-sorted array, q in [0, 1].
+function quantile(sorted, q) {
+  const pos = (sorted.length - 1) * q, i = Math.floor(pos), f = pos - i;
+  return i + 1 < sorted.length ? sorted[i] + (sorted[i + 1] - sorted[i]) * f : sorted[i];
 }
 
 // ---------------------------------------------------------------------------
@@ -349,6 +374,7 @@ function modelTag(model) {
   if (model.startsWith("gt_")) return ["ref", "GT"];
   if (model.startsWith("whisper_")) return ["ref", "ASR"];
   if (model.startsWith("zonos2")) return ["zonos", "Z2"];
+  if (model.startsWith("zonos3")) return ["zonos", "Z3"];
   if (model.startsWith("omni_")) return ["", "OMNI"];
   if (model.startsWith("fal")) return ["", "FAL"];
   return ["", ""];
@@ -374,6 +400,9 @@ function render() {
   $("#rel-view").classList.toggle("hidden", v !== "reliability");
   $("#sr-view").classList.toggle("hidden", v !== "speaking");
   $("#mpm-view").classList.toggle("hidden", v !== "mpm");
+  // board/grid: app layout — the page stops scrolling and only the table box does
+  // (app.css body.app-layout); the chart views keep ordinary page scrolling
+  document.body.classList.toggle("app-layout", v === "board" || v === "grid");
   // task/lang/metric/filter controls don't apply to the voxblink bins /
   // reliability / speaking-rate / prosody-overlap views (each carries its own selectors)
   const selfSel = v === "bins" || v === "reliability" || v === "speaking" || v === "mpm";
@@ -603,9 +632,18 @@ function renderGrid() {
   };
   let vals = collect(true);
   if (!vals.length) vals = collect(false);
-  const lo = vals.length ? Math.min(...vals) : 0;
-  const hi = vals.length ? Math.max(...vals) : 1;
+  vals.sort((a, b) => a - b);
+  const clip = STATE.gridClip / 100;
+  const autoLo = vals.length ? quantile(vals, clip) : 0;
+  const autoHi = vals.length ? quantile(vals, 1 - clip) : 1;
+  const man = STATE.gridRange[STATE.metric] || {};
+  let lo = man.lo != null ? man.lo : autoLo;
+  let hi = man.hi != null ? man.hi : autoHi;
+  const bad = !(hi > lo);   // inverted / empty manual range: fall back to automatic
+  if (bad) { lo = autoLo; hi = autoHi; }
+  // values outside [lo, hi] clamp to the colour extremes (see the cell loop)
   const norm = (v) => { let t = hi > lo ? (v - lo) / (hi - lo) : 1; return m.low ? 1 - t : t; };
+  syncGridTools(m, autoLo, autoHi, man, bad);
 
   const tbl = el("table", "heat");
   const thead = el("thead"); const htr = el("tr");
@@ -644,11 +682,32 @@ function renderGrid() {
 
   const legend = $("#grid-legend");
   legend.innerHTML = "";
+  // the bar runs worse → better, so for lower-is-better metrics the left end is `hi`
+  const [worseV, betterV] = m.low ? [hi, lo] : [lo, hi];
+  const nOut = vals.filter((v) => v < lo || v > hi).length;
   legend.append(el("span", "", `worse`));
+  legend.append(el("span", "legend-end", `${m.low ? "≥" : "≤"} ${m.fmt(worseV)}`));
   const bar = el("div", "legend-bar");
   bar.style.background = "linear-gradient(90deg, rgb(233,180,165), rgb(244,243,238), rgb(166,192,222))";
   legend.append(bar);
-  legend.append(el("span", "", `better · metric: ${m.label}`));
+  legend.append(el("span", "legend-end", `${m.low ? "≤" : "≥"} ${m.fmt(betterV)}`));
+  legend.append(el("span", "", `better · metric: ${m.label}` +
+    (nOut ? ` · ${nOut} cell${nOut > 1 ? "s" : ""} outside the range, shown at the end colour` : "")));
+}
+
+// Reflect the effective range in the (static) knob: the clip slider, and the min/max
+// fields — a manual bound shows as its value, an automatic one as the placeholder.
+function syncGridTools(m, autoLo, autoHi, man, bad) {
+  const r4 = (v) => String(Number(v.toPrecision(4)));
+  $("#grid-clip").value = STATE.gridClip;
+  $("#grid-clip-val").textContent = STATE.gridClip ? `p${STATE.gridClip}–p${100 - STATE.gridClip}` : "min–max";
+  [["#grid-lo", man.lo, autoLo], ["#grid-hi", man.hi, autoHi]].forEach(([id, mv, av]) => {
+    const inp = $(id);
+    if (document.activeElement !== inp) inp.value = mv != null ? r4(mv) : "";
+    inp.placeholder = r4(av);
+    inp.classList.toggle("bad", bad);
+  });
+  $("#grid-auto").disabled = !STATE.gridClip && man.lo == null && man.hi == null;
 }
 
 // ---------------------------------------------------------------------------

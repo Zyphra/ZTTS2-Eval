@@ -68,6 +68,15 @@
   </section>
 
   <section id="grid-view" class="view hidden">
+    <!-- colour-range knob: static (not rebuilt per render) so a drag is never interrupted -->
+    <div class="grid-tools" id="grid-tools">
+      <span class="k">colour range</span>
+      <label>clip <input id="grid-clip" type="range" min="0" max="25" step="1" value="0" /></label>
+      <span id="grid-clip-val" class="grid-clip-val">min–max</span>
+      <label>min <input id="grid-lo" type="number" step="any" /></label>
+      <label>max <input id="grid-hi" type="number" step="any" /></label>
+      <button id="grid-auto" type="button">auto</button>
+    </div>
     <div class="grid-scroll" id="grid-scroll"></div>
     <div class="grid-legend" id="grid-legend"></div>
   </section>
@@ -117,6 +126,10 @@
         <div class="seg" id="sr-type-seg">
           <button data-sr="dref" class="on">d · CI</button>
           <button data-sr="dist">distribution</button>
+        </div>
+        <div class="seg" id="sr-sort-seg" hidden>
+          <button data-sort="pace" class="on">fastest first</button>
+          <button data-sort="dref">closest first</button>
         </div>
       </div>
     </div>

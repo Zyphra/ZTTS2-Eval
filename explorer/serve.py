@@ -24,6 +24,18 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, os.pardir))  # repo root, overridable via --root
+# Extra realpath roots files may resolve into (--allow-root), e.g. a shared result store
+# that results/<system> symlinks point at. Empty = only ROOT.
+ALLOWED_ROOTS = []
+
+
+def _confined(path):
+    """True iff realpath `path` is ROOT, under ROOT, or under an --allow-root dir."""
+    for root in [os.path.realpath(ROOT)] + ALLOWED_ROOTS:
+        if path == root or path.startswith(root + os.sep):
+            return True
+    return False
+
 
 # The per-uid score-file parsers are shared with the coreset tooling. utils/per_uid.py
 # is stdlib-only, so importing it keeps this server zero-dependency. Resolve against the
@@ -341,9 +353,9 @@ def build_utterances(model, task, lang, offset=0, limit=10 ** 9, panel=None):
     rel_parts = ["results", model] + ([task] if task else []) + [lang]
     rdir = os.path.join(*rel_parts)
     rabs = os.path.realpath(_abs(rdir))
-    # belt-and-braces: resolve, then require the leaf to still be under ROOT
-    root = os.path.realpath(ROOT)
-    if rabs != root and not rabs.startswith(root + os.sep):
+    # belt-and-braces: resolve, then require the leaf to still be under ROOT (or an
+    # --allow-root dir)
+    if not _confined(rabs):
         return {"error": "invalid path", "rows": [], "total": 0,
                 "offset": offset, "_code": 400}
 
@@ -506,14 +518,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _safe_path(self, rel):
         """Resolve a path from a .scp (which may be repo-relative or absolute),
-        refusing anything that escapes ROOT."""
+        refusing anything that escapes ROOT and the --allow-root dirs."""
         # some .scp files (e.g. voxblink) store absolute paths; others are relative.
         # realpath (not abspath) so symlinks inside ROOT cannot escape it.
         full = os.path.realpath(rel if os.path.isabs(rel) else os.path.join(ROOT, rel))
-        root = os.path.realpath(ROOT)
-        if full != root and not full.startswith(root + os.sep):
-            return None
-        return full
+        return full if _confined(full) else None
 
     def _serve_audio(self, qs):
         rel = (qs.get("path") or [""])[0]
@@ -637,12 +646,18 @@ def main():
     ap.add_argument("--host", default="127.0.0.1",
                     help="bind address (use 0.0.0.0 to expose on the network)")
     ap.add_argument("--root", default=ROOT, help="repo root containing results/ and data/")
+    ap.add_argument("--allow-root", action="append", default=[], metavar="DIR",
+                    help="also serve files that resolve under DIR (repeatable), e.g. the "
+                         "shared store results/<system> symlinks point into")
     args = ap.parse_args()
     ROOT = os.path.abspath(args.root)
+    ALLOWED_ROOTS.extend(os.path.realpath(d) for d in args.allow_root)
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"ZTTS2 · SIGNAL  →  http://localhost:{args.port}")
     print(f"   root: {ROOT}")
+    for d in ALLOWED_ROOTS:
+        print(f"   also serving files resolving under: {d}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

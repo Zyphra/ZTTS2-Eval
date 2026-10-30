@@ -173,7 +173,8 @@ class GroundTruthSplitTest(unittest.TestCase):
 
 class ExplorerServerTest(unittest.TestCase):
     """Live checks of explorer/serve.py (stdlib server): API basics plus the
-    path-traversal / symlink-escape protections of /api/audio."""
+    path-traversal / symlink-escape protections of /api/audio, and --allow-root
+    (a shared store that results/<system> symlinks point into)."""
 
     @classmethod
     def setUpClass(cls):
@@ -200,12 +201,20 @@ class ExplorerServerTest(unittest.TestCase):
             "".join(f"/w/{u}.wav\t{w}\tref\thyp\t0.0\t0.0\t{w}\n"
                     for u, w in (("uttid_1", 0.1), ("uttid_2", 0.5), ("uttid_3", 0.9))))
 
+        # a system dir that is a symlink into a shared store passed as --allow-root
+        cls.store = tempfile.mkdtemp()
+        sleaf = Path(cls.store) / "s" / "zero_shot_mini" / "en"
+        (sleaf / "wavs").mkdir(parents=True)
+        (sleaf / "wavs" / "uttid_1.wav").write_bytes(b"\x00" * 64)
+        (sleaf / "wav_res_ref_text.wer").write_text("/w/uttid_1.wav\t0.2\tref\thyp\t0.0\t0.0\t0.2\n")
+        os.symlink(Path(cls.store) / "s", Path(cls.root) / "results" / "s")
+
         with socket.socket() as s:  # free port
             s.bind(("127.0.0.1", 0))
             cls.port = s.getsockname()[1]
         cls.proc = subprocess.Popen(
             [sys.executable, str(REPO / "explorer" / "serve.py"),
-             "--port", str(cls.port), "--root", cls.root],
+             "--port", str(cls.port), "--root", cls.root, "--allow-root", cls.store],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(50):  # wait for the server to come up
             try:
@@ -221,6 +230,7 @@ class ExplorerServerTest(unittest.TestCase):
         cls.proc.wait(timeout=10)
         shutil.rmtree(cls.root, ignore_errors=True)
         shutil.rmtree(cls.outside, ignore_errors=True)
+        shutil.rmtree(cls.store, ignore_errors=True)
 
     @classmethod
     def _get(cls, path, headers=None):
@@ -257,6 +267,17 @@ class ExplorerServerTest(unittest.TestCase):
         self.assertEqual(status, 404)
 
     def test_audio_rejects_symlink_escape(self):
+        status, _ = self._get("/api/audio?path=escape_link/secret.wav")
+        self.assertEqual(status, 404)
+
+    def test_allow_root_serves_symlinked_store_but_nothing_else(self):
+        """--allow-root admits the store a results/ symlink resolves into; a symlink to
+        any other directory still cannot escape --root."""
+        _, body = self._get("/api/utterances?model=s&task=zero_shot_mini&lang=en")
+        wer = {r["uid"]: r["wer"] for r in json.loads(body)["rows"]}
+        self.assertEqual(wer["uttid_1"], 0.2)  # scored from the store leaf
+        status, body = self._get("/api/audio?path=results/s/zero_shot_mini/en/wavs/uttid_1.wav")
+        self.assertEqual((status, len(body)), (200, 64))
         status, _ = self._get("/api/audio?path=escape_link/secret.wav")
         self.assertEqual(status, 404)
 

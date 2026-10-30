@@ -55,15 +55,19 @@ function mark(elm, name, emph) {
 // idiom). Hit targets are wide transparent overlays so thin lines are easy to
 // grab. Focus is applied by mutating the live SVG, not by re-rendering.
 
-// tooltip positioned at the mouse, inside chartSel's coordinate frame
+// tooltip at the mouse, inside chartSel's coordinate frame. It is centred above the
+// pointer (CSS translate(-50%, -120%)) and the chart clips overflow, so keep it inside:
+// clamp it sideways, and flip it below the pointer when there is no room above.
 function makeTip(chartSel, tipSel) {
   return {
     show(html, ev) {
       const tip = $(tipSel), r = $(chartSel).getBoundingClientRect();
       tip.innerHTML = html;
-      tip.style.left = (ev.clientX - r.left) + "px";
-      tip.style.top = (ev.clientY - r.top - 8) + "px";
       tip.hidden = false;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      const x = ev.clientX - r.left, y = ev.clientY - r.top - 8;
+      tip.style.left = Math.min(Math.max(x, w / 2 + 4), r.width - w / 2 - 4) + "px";
+      tip.style.top = (y - 1.2 * h < 0 ? y + 1.2 * h + 24 : y) + "px";
     },
     hide() { $(tipSel).hidden = true; },
   };

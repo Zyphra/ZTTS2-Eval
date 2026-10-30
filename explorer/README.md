@@ -15,6 +15,8 @@ python explorer/serve.py            # serves http://localhost:8000 (loopback onl
 # options:
 python explorer/serve.py --port 8080 --root .
 python explorer/serve.py --host 0.0.0.0   # expose on the network (serves results/ + data/)
+# results/<system> symlinked into a shared store: also allow files resolving there
+python explorer/serve.py --allow-root /path/to/shared/results
 ```
 
 Then open <http://localhost:8000>. Stdlib only — no `pip install`, no `uv` needed.
@@ -40,7 +42,8 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   `scripts/results_doc/build_reliability.py`, which reuses `scripts/tufte_common.py`
   so the edit counts match the plates exactly.
 - **Speaking-rate views** are the interactive twin of `scripts/speaking_rate_dist.py`
-  (d ref · bootstrap CI ranking, and the char/s ECDF distributions), rendered from
+  (d ref · bootstrap CI ranking, and per-system pace distributions drawn from the char/s
+  quantile functions), rendered from
   `speaking_rate.json` — built by `scripts/results_doc/build_speaking_rate.py`, which
   reuses the metric itself so the char/s, W2 distances and split-half ceiling match.
   One panel per (test-set, language): char/s is only comparable within a language.
@@ -98,10 +101,11 @@ aggregate views work everywhere.
 | `GET /api/audio?path=<repo-relative .wav>` | wav stream (206 on `Range:`, 416 past EOF) |
 | `GET /api/voxblink/{perbin,perlen,bincounts}` | passthrough of the cache JSON |
 | `GET /api/reliability` | survival / p99 / slopegraph payload (tufte plates) |
-| `GET /api/speaking_rate` | per-(set,lang) char/s d_ref + CI + ECDF per system |
+| `GET /api/speaking_rate` | per-(set,lang) char/s d_ref + CI + quantile function per system |
 | `GET /api/mpm_dist` | per-language MPM spans + per-system means (prosody-overlap view) |
 
-`/api/audio` only serves `.wav` and refuses any path that escapes `--root`; the
+`/api/audio` only serves `.wav` and refuses any path that escapes `--root` (after
+resolving symlinks) unless it resolves under an `--allow-root` dir; the
 `model`/`task`/`lang`/`panel` query parameters are each constrained to a single
 plain path component. `/api/voxblink/perlen` (the per-REF-length trend built by
 `build_perlen.py`) currently has **no explorer view** — it is served and published
@@ -117,7 +121,16 @@ data via `<script src>`.
 - **board** view: every metric column shown; click a header to sort, the metric
   segment sets the default sort + heatmap metric. Gauges are normalized across the
   visible real models (GT rows excluded from scaling and tagged `GT`).
-- **grid** view: model × language heatmap for the active metric (green = better).
+- **board** and **grid** use an app layout: the masthead and console stay put, the page
+  does not scroll, and the table fills the rest of the window and scrolls on its own
+  with its column headings pinned (the grid also pins the model column and corner
+  cell). The chart views scroll as ordinary pages.
+- **grid** view: model × language heatmap for the active metric (rust = worse, blue =
+  better). The colour range defaults to the min–max of the per-language cells of real
+  models (baselines and the ALL column excluded); the **colour range** knob above it
+  clips that range to percentiles (`clip` p5–p95 etc., against outliers) or pins an
+  exact `min`/`max` per metric (`auto` resets). Cells outside the range take the end
+  colour; the legend prints the range's end values.
 - **coreset panels** (`zero_shot_mini`, `zero_shot_delta`, and the VoxBlink twins —
   see [../docs/coreset.md](../docs/coreset.md)) appear as ordinary tasks, captioned
   in the picker with their kind and size. They are *not* ordinary boards:
@@ -166,9 +179,15 @@ data via `<script src>`.
   panels, too many for one chip row), then a chart type. Switching test set keeps the
   current language where that set has it. **d · CI** ranks systems by how
   far their char/s distribution sits from the reference voice (green rule = the
-  split-half ceiling, a perfect system at finite n); **distribution** overlays the
-  char/s ECDFs (reference in green — left of it reads faster, right slower). Hover
-  to focus, click to pin, and drop/restore a system from the legend. NB char/s is
+  split-half ceiling, a perfect system at finite n). **distribution** gives each system
+  one row on a shared char/s axis: a density ridge (estimated from its quantiles) for
+  the shape, a p25–p75 bar with p10/p90 whiskers and a median tick, the reference
+  voice's middle half and median as a green band and line through every row (its shape
+  outlined faintly in each), and median char/s, % vs the natural median and d ×ceil on
+  the right. Rows sort fastest-first or closest-first (by d ref). The axis spans every
+  row's p10–p90, so one extreme system cannot squash the rest; ridge tails beyond it are
+  clipped. The reference's split-half twin (`gt_* · reference half`) is labelled apart
+  from the GT system. Hover a row for its quantiles, click to pin. NB char/s is
   never comparable across languages, so each panel is a single language.
 - **prosody overlap** view: MPM span ranks systems against per-language anchors;
   0 is the real-speech split-half floor and 1 is the contour-scrambled floor. The

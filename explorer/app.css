@@ -112,13 +112,13 @@ html, body {
 .ctl.grow { flex: 1 1 200px; min-width: 160px; }
 .ctl > span { color: var(--mut); }
 
-select, input[type=text] {
+select, input[type=text], input[type=number] {
   background: var(--bg); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--r);
   font-family: var(--sans); font-size: 14px; padding: 7px 10px;
   outline: none; transition: border-color .15s, box-shadow .15s;
 }
-select:focus, input[type=text]:focus {
+select:focus, input[type=text]:focus, input[type=number]:focus {
   border-color: var(--blue); box-shadow: 0 0 0 3px rgba(42,81,153,.14);
 }
 select { cursor: pointer; min-width: 130px; }
@@ -141,6 +141,19 @@ input::placeholder { color: var(--mut); }
 /* main / views ----------------------------------------------------------- */
 main { max-width: 1500px; margin: 0 auto; padding: 26px 30px 80px; }
 .view.hidden { display: none; }
+
+/* board/grid app layout (app.js toggles body.app-layout): masthead, console and the
+   fixed footer stay put; the page never scrolls and the active view's table box fills
+   the remaining height and scrolls on its own, so no amount of page scrolling is
+   needed to line up the table. The chart views keep ordinary page scrolling. */
+body.app-layout { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body.app-layout main {
+  flex: 1 1 auto; min-height: 0; width: 100%;
+  display: flex; flex-direction: column;
+  padding-bottom: 46px;   /* clear the fixed footer */
+}
+body.app-layout main > .view:not(.hidden) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+body.app-layout .board-wrap, body.app-layout .grid-scroll { flex: 1 1 auto; min-height: 0; }
 
 /* coreset panel scope note ------------------------------------------------
    A panel board is a weighted subsample, not the full benchmark. The note is a
@@ -172,14 +185,21 @@ main { max-width: 1500px; margin: 0 auto; padding: 26px 30px 80px; }
 }
 
 /* leaderboard ------------------------------------------------------------ */
-.board-wrap { overflow-x: auto; }
+/* The wrappers are the tables' scroll box: in board/grid view the page itself does not
+   scroll (body.app-layout below), the box takes the remaining height and scrolls both
+   ways, and the column headings stick to its top. `contain: paint` clips rows exactly
+   at the box edge: at fractional box positions Chrome otherwise paints a few pixels of
+   the row scrolling under the heading just above it. */
+.board-wrap, .grid-scroll { overflow: auto; contain: paint; }
 table.board { width: 100%; border-collapse: collapse; min-width: 760px; }
 .board thead th {
   position: sticky; top: 0; z-index: 2;
   background: var(--bg);
   text-align: right; padding: 10px 14px;
   color: var(--mut);
-  border-bottom: 2px solid var(--rule);
+  /* a shadow, not border-bottom: a collapsed border is painted by the table, not the
+     stuck cell, in some engines, and would scroll away from it */
+  box-shadow: inset 0 -2px 0 var(--rule);
   cursor: pointer; white-space: nowrap; user-select: none;
 }
 .board thead th.lead { text-align: left; }
@@ -232,14 +252,22 @@ table.board { width: 100%; border-collapse: collapse; min-width: 760px; }
 .gauge > i.bad  { background: var(--rust); }
 
 /* heatmap grid ----------------------------------------------------------- */
-.grid-scroll { overflow: auto; border: 1px solid var(--faint); border-radius: var(--r); }
-table.heat { border-collapse: collapse; font-size: 13px; }
-.heat th, .heat td { border: 1px solid #fff; }
+/* No top border: the heading row is the top edge. A border there sat between the
+   clip and the stuck heading, and at fractional box positions one device-pixel row of
+   the scrolled rows showed through it. */
+.grid-scroll { border: 1px solid var(--faint); border-top: 0; border-radius: 0 0 var(--r) var(--r); }
+/* `separate`, not `collapse`: a collapsed border is painted by the table, not the stuck
+   cell, in some engines, and would scroll away from the headings. Each cell draws only
+   its right + bottom edge — the same 1px grid as before. */
+table.heat { border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.heat th, .heat td { border: 0 solid #fff; border-width: 0 1px 1px 0; }
 .heat thead th {
   position: sticky; top: 0; z-index: 3; background: var(--bg);
   padding: 9px 6px; color: var(--mut);
   border-bottom: 2px solid var(--rule);
 }
+/* the corner cell (metric label) stays put on both axes, above both sticky edges */
+.heat thead th:first-child { left: 0; z-index: 4; }
 .heat tbody th {
   position: sticky; left: 0; z-index: 2; background: var(--bg);
   text-align: left; padding: 7px 12px 7px 10px; white-space: nowrap;
@@ -267,6 +295,22 @@ table.heat { border-collapse: collapse; font-size: 13px; }
   color: var(--mut); font-size: 13px;
 }
 .legend-bar { height: 10px; width: 220px; border: 1px solid var(--faint); border-radius: 2px; }
+.legend-end { color: var(--ink); font-variant-numeric: tabular-nums; }
+/* colour-range knob above the heatmap */
+.grid-tools {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px;
+  color: var(--mut); font-size: 13px;
+}
+.grid-tools label { display: flex; align-items: center; gap: 6px; }
+.grid-tools input[type=number] { width: 84px; padding: 5px 8px; font-size: 13px; }
+.grid-tools input[type=number].bad { border-color: var(--rust, #b13507); }
+.grid-tools input[type=range] { width: 140px; accent-color: var(--navy); }
+.grid-clip-val { min-width: 62px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.grid-tools button {
+  background: var(--panel); color: var(--navy); border: 0; border-radius: var(--r-pill);
+  font: 700 13px var(--sans); padding: 5px 12px; cursor: pointer;
+}
+.grid-tools button:disabled { color: var(--mut); cursor: default; opacity: .6; }
 
 /* voxblink bins (line chart) -------------------------------------------- */
 .bins-head { margin-bottom: 16px; }
@@ -349,6 +393,9 @@ table.heat { border-collapse: collapse; font-size: 13px; }
 .leg-item.off { opacity: .3; }
 .leg-item .swatch { width: 18px; height: 3px; border-radius: 2px; }
 .leg-item .swatch.dash { background-image: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 9px); }
+/* a key entry (explains a glyph; not a toggle) */
+.leg-key { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--mut); padding: 3px 4px; }
+.leg-key svg { flex: none; }
 
 /* drawer (drill-down) ---------------------------------------------------- */
 .scrim {
@@ -484,3 +531,5 @@ table.heat { border-collapse: collapse; font-size: 13px; }
 .foot-r { color: var(--mut); }
 
 .hidden { display: none; }
+/* the `hidden` attribute must win over component display rules (.seg, .bins-langs …) */
+[hidden] { display: none !important; }
