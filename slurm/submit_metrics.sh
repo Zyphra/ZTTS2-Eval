@@ -21,6 +21,7 @@
 #                       one per GPU; also takes METRICS_CPU_LANES, METRICS_WAIT_JOBS and
 #                       METRICS_WAIT_SYSTEMS (see that script). Default 0 = per-kind arrays
 #   METRICS_RESERVATION sbatch --reservation
+#   METRICS_LANGS       only these languages (space-separated), in every task; empty = all
 # The last stdout line is always METRICS_JOBS=<id>[:<id>...]: the array job ids, plus the
 # finalizer's when one is submitted.
 set -euo pipefail
@@ -62,6 +63,9 @@ for task in zero_shot zero_shot_voxblink; do
     for lang_dir in data/"${task}"/*; do
         [ -d "${lang_dir}/waveform" ] || continue
         lang="${lang_dir##*/}"
+        if [ -n "${METRICS_LANGS:-}" ]; then
+            case " ${METRICS_LANGS} " in *" ${lang} "*) ;; *) continue ;; esac
+        fi
         wav_dirs=(results/*/"${task}"/"${lang}"/wavs)
         [ "${#wav_dirs[@]}" -gt 0 ] || continue
         printf '%s\t%s\n' "${task}" "${lang}" >> "${speaking_manifest}"
