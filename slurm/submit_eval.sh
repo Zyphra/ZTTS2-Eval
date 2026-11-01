@@ -27,7 +27,7 @@
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --engine      omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
-#                 vibevoice15                                       (default omni)
+#                 vibevoice15|audio8                                (default omni)
 #   --model       omni model key or "all"; ignored for zonos2     (default all)
 #   --task        zero_shot | zero_shot_voxblink                  (default zero_shot)
 #   --test_set    space-separated langs (quote it), '' = default  (default '')
@@ -181,8 +181,14 @@ case "${engine}" in
             esac
         done
         ;;
+    audio8)
+        # Audio8-TTS-Realistic-0.6B (SGLang-Omni adapter server, own venv); unit "audio8".
+        models="audio8"
+        [ "${model}" != all ] && [ "${model}" != audio8 ] && \
+            echo "[note] --model is ignored for --engine audio8 (single model)" 1>&2
+        ;;
     *)
-        echo "error: --engine must be omni, zonos2, kokoro, cosyvoice3, moss-tts, neutts, vibevoice or vibevoice15 (got '${engine}')" 1>&2; exit 1 ;;
+        echo "error: --engine must be omni, zonos2, kokoro, cosyvoice3, moss-tts, neutts, vibevoice, vibevoice15 or audio8 (got '${engine}')" 1>&2; exit 1 ;;
 esac
 
 REPO_ROOT="$(pwd -P)"

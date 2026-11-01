@@ -9,7 +9,7 @@
 # problems of `sbatch --export=VAR=value` for multi-word test-set lists):
 #   EJ_REPO       repo root (also passed as sbatch --chdir)          (required)
 #   EJ_ENGINE     omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
-#                 vibevoice15                                        (required)
+#                 vibevoice15|audio8                                 (required)
 #   EJ_MODEL      omni model key, or "zonos2" for the zonos2 engine  (required)
 #   EJ_TASK       zero_shot | zero_shot_voxblink                     (default zero_shot)
 #   EJ_TEST_SET   space-separated langs; empty = the script default  (default empty)
@@ -98,6 +98,7 @@ srv_log_dir="logs/slurm/servers/${SLURM_JOB_ID:-local}"
 mkdir -p "${srv_log_dir}"
 export OMNI_LOG_DIR="${srv_log_dir}"                       # run_generate_omni*.sh reads this
 export ZONOS2_LOG="${srv_log_dir}/zonos2_${OMNI_PORT}.log" # serve_zonos2.sh reads this
+export AUDIO8_LOG="${srv_log_dir}/audio8_${OMNI_PORT}.log" # serve_audio8.sh reads this
 export ASR_LOG="${srv_log_dir}/vllm_asr_${ASR_PORT}.log"   # serve_asr.sh reads this
 export WHISPER_LOG="${srv_log_dir}/vllm_whisper_${WHISPER_PORT}.log"
 
@@ -209,8 +210,17 @@ case "${engine}" in
         gen_script="run_generate_vibevoice15.sh"
         gen_args=(--model "${vv_model}" --task "${task}" --limit "${limit}")
         ;;
+    audio8)
+        # Audio8-TTS-Realistic-0.6B via the upstream SGLang-Omni adapter server
+        # (scripts/serve_audio8.sh, venv ~/.venvs/audio8-sglang), self-managed on the cgroup
+        # GPU, stopped before scoring. WITH-ref-text cloner (prompt wav + prompt_text).
+        # No --workers: the client default (32) matches the server's max running requests.
+        out_base="results/audio8-tts-realistic-0.6b"
+        gen_script="run_generate_audio8.sh"
+        gen_args=(--gpu 0 --port "${OMNI_PORT}" --task "${task}" --limit "${limit}")
+        ;;
     *)
-        echo "eval_job: unknown EJ_ENGINE '${engine}' (omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15)" 1>&2; exit 1 ;;
+        echo "eval_job: unknown EJ_ENGINE '${engine}' (omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15|audio8)" 1>&2; exit 1 ;;
 esac
 # Append --test_set as ONE argument so multi-word lists ("en zh de") aren't split.
 [ -n "${test_set}" ] && gen_args+=(--test_set "${test_set}")

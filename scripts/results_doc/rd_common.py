@@ -126,6 +126,10 @@ CONDITIONS = {
                             "ref_text kept (upstream prescribes ref_audio + ref_text); unseeded server defaults"),
     "omni_voxtral-tts": ("preset", "preset mode (task_type=CustomVoice); unseeded server defaults"),
     # Native in-process recipes.
+    # Upstream SGLang-Omni adapter server (scripts/generate_audio8.py -> /v1/audio/speech).
+    "audio8-tts-realistic-0.6b": ("with-transcript",
+                                  "SGLang-Omni adapter (Audio8_TTS@4eb54a6, sglang-omni@68a5723); prompt wav + "
+                                  "transcript; T 0.8 top-p 0.95 top-k 50, ≤1024 frames; unseeded server sampling"),
     "cosyvoice3": ("with-transcript",
                    "native upstream; prompt wav + transcript (endofprompt-terminated system prompt; ja→katakana)"),
     "moss-tts": ("no-transcript",
