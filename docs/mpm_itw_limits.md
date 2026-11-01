@@ -173,7 +173,7 @@ max so one plosive cannot rescale the contour) is exactly level-invariant — 10
 energy tokens survive any gain change, versus 21% today — and pulls every tested
 system back inside `[0,1]` while preserving the ranking at Kendall τ +0.867.
 
-**APPLIED 2026-08-29** (`score_mpm_shuffle_floor._tokens_for_wav`, anchor cache tag
+**APPLIED 2026-08-29** (`score_mpm_shuffle_floor._tokens`, formerly `_tokens_for_wav`; anchor cache tag
 `v3` → `v4` — the cache key hashes the reference dir's contents but *not* the
 featurization code, so without the bump every anchor would have been silently reused
 and the new spans would have been meaningless). Upstream TTSDS2 is untouched: this repo

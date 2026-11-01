@@ -41,6 +41,9 @@ if [ -n "${account}" ]; then site_args+=(--account="${account}"); fi
 if [ -n "${qos}" ]; then site_args+=(--qos="${qos}"); fi
 if [ -n "${METRICS_RESERVATION:-}" ]; then site_args+=(--reservation="${METRICS_RESERVATION}"); fi
 nodes="${METRICS_NODES:-0}"
+# The 0-GPU finalizer gets no --reservation: job_submit reroutes jobs with < 5 GPUs to dev,
+# where reserved nodes are unavailable and sbatch rejects the job.
+finalize_site_args=(${site_args[@]+"${site_args[@]}"})
 kinds="${METRICS_KINDS:-speaking mpm rhythm pitch_range}"
 dependency="${METRICS_DEPENDENCY:-}"
 finalize="${METRICS_FINALIZE:-1}"
@@ -164,7 +167,7 @@ if [ "${finalize}" != "0" ]; then
     export METRICS_KIND=finalize
     finalize_job=$(sbatch --parsable \
         --job-name=ztts-metrics-finalize \
-        ${site_args[@]+"${site_args[@]}"} \
+        ${finalize_site_args[@]+"${finalize_site_args[@]}"} \
         --dependency="afterok:${dep_ids}" \
         --cpus-per-task=4 --mem=16G --time=01:00:00 \
         --chdir="${METRICS_REPO}" \

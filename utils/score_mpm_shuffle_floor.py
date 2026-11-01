@@ -59,16 +59,33 @@ from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ttsds/mpm_shuffle_floor"))
 SR = 22050
+# MPMBenchmark calls every measure with durations=[1000] (each keeps its first 1000
+# frames); PitchMeasure / VoiceActivityMeasure run DIO at hop 256 (speed 1) at 22.05 kHz.
+DURATIONS = np.array([1000])
+FRAME_PERIOD_MS = 256 / SR * 1000
 _FEAT = None  # per-worker feature extractors (see _feature_worker_init)
 
 
-def _tokens_for_wav(bench, wav, sr):
-    """Replicate mpm._get_distribution tokenization -> (3, T) long tensor."""
-    if sr != 22050:
-        wav = librosa.resample(wav, orig_sr=sr, target_sr=22050)
-    pitch = torch.tensor(bench.pitch_measure(wav, np.array([1000]))["measure"])
-    energy = torch.tensor(bench.energy_measure(wav, np.array([1000]))["measure"])
-    vad = torch.tensor(bench.voice_activity_measure(wav, np.array([1000]))["measure"])
+def _pitch_and_vad(f0):
+    """TTSDS PitchMeasure and VoiceActivityMeasure from ONE stonemask contour.
+
+    Both measures run the identical dio + stonemask on the same audio and differ only in
+    post-processing, so the contour is computed once. The post-processing is theirs line
+    for line (silence_mask=None), followed by the Measure.interpolate their __call__ applies."""
+    from ttsds.util.measures import Measure
+    pitch = f0.astype(np.float32)[: sum(DURATIONS)]
+    pitch[pitch < 1e-6] = np.nan
+    vad = pitch.copy()
+    if np.isnan(pitch).all():
+        pitch[:] = 1e-6
+    vad[~np.isnan(vad)] = 1
+    vad[np.isnan(vad)] = 0
+    return Measure.interpolate(pitch), Measure.interpolate(vad)
+
+
+def _tokens(bench, pitch, energy, vad):
+    """Replicate mpm._get_distribution tokenization of the three measures -> (3, T) long tensor."""
+    pitch, energy, vad = torch.tensor(pitch), torch.tensor(energy), torch.tensor(vad)
     for t in (pitch, energy, vad):
         t[torch.isnan(t)] = -1000
     pitch = torch.clip(pitch, bench.pitch_min, bench.pitch_max) / (bench.pitch_max - bench.pitch_min)
@@ -97,17 +114,16 @@ def _embed(bench, toks):
 
 
 # --- Tokenization runs in a process pool ---------------------------------------------
-# pyworld's dio + stonemask (pitch and VAD) dominate the run time and are single-threaded,
-# so the per-utterance tokens are computed on every CPU of the job while the parent embeds
-# finished utterances on the GPU. Each worker builds its own copies of the three TTSDS
-# measures with the defaults MPMBenchmark uses; the token code is _tokens_for_wav, unchanged.
+# pyworld's dio + stonemask dominate the run time and are single-threaded, so the
+# per-utterance tokens are computed on every CPU of the job while the parent embeds
+# finished utterances on the GPU. The contour is computed once per utterance and shared
+# by the pitch and VAD channels (_pitch_and_vad).
 def _feature_worker_init(consts):
     global _FEAT
-    from ttsds.util.measures import EnergyMeasure, PitchMeasure, VoiceActivityMeasure
+    from ttsds.util.measures import EnergyMeasure
     torch.set_num_threads(1)
     c = dict(consts)
-    _FEAT = SimpleNamespace(pitch_measure=PitchMeasure(), energy_measure=EnergyMeasure(),
-                            voice_activity_measure=VoiceActivityMeasure(),
+    _FEAT = SimpleNamespace(energy_measure=EnergyMeasure(),
                             bins=torch.from_numpy(c.pop("bins")), **c)
 
 
@@ -123,7 +139,9 @@ def _load_wav(path):
 
 
 def _tokens_for_path(path):
-    return _tokens_for_wav(_FEAT, _load_wav(path), SR).numpy()
+    wav = _load_wav(path)
+    pitch, vad = _pitch_and_vad(_f0_pyworld(wav))
+    return _tokens(_FEAT, pitch, _energy(wav), vad).numpy()
 
 
 def _wav_files(wav_dir):
@@ -134,6 +152,17 @@ def _wav_files(wav_dir):
 
 def _feature_pool(bench):
     workers = int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
+def _energy(wav):
+    return _FEAT.energy_measure(wav, DURATIONS)["measure"]
+
+
+def _f0_pyworld(wav):
+    import pyworld as pw
+    x = wav.astype(np.float64)
+    f0, t = pw.dio(x, SR, frame_period=FRAME_PERIOD_MS, speed=1)
+    return pw.stonemask(x, f0, t, SR)
+
+
     consts = dict(pitch_min=bench.pitch_min, pitch_max=bench.pitch_max,
                   vad_min=bench.vad_min, vad_max=bench.vad_max, bins=bench.bins.numpy())
     # spawn: the parent holds a CUDA context, which forked children must not inherit.
@@ -309,15 +338,17 @@ def main():
         if not embs:
             print(f"[skip] {label}: no usable audio")
             continue
-        sys_emb = np.vstack(embs)
+        # One covariance pass over the ~1M x 256 frame matrix serves both distances and
+        # the projection (frechet_distance computes the same mean/cov from a raw matrix).
+        sys_stats = _stats(np.vstack(embs))
         print(f"  {len(embs)} utterances in {time.time() - t0:.0f}s", flush=True)
-        d_ref = frechet_distance(sys_emb, ref_stats)
-        d_noise = frechet_distance(sys_emb, noise_stats)
+        d_ref = frechet_distance(sys_stats, ref_stats)
+        d_noise = frechet_distance(sys_stats, noise_stats)
         score = d_noise / (d_ref + d_noise) * 100
         # position in [d_ref_floor .. d_noise_floor]: 0=indistinguishable, 1=fully scrambled
         span = mpm_span(d_ref, d_ref_floor, d_noise_floor)
         rows.append((label, d_ref, d_noise, score, span))
-        sm, sv = _project(*_stats(sys_emb), U)
+        sm, sv = _project(*sys_stats, U)
         pos, sd_n = _norm(sm, sv)
         dist_systems.append({"name": label, "mean": round(pos, 5), "std": round(sd_n, 5),
                              "span": round(span, 5),
