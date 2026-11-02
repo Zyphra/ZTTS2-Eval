@@ -10,7 +10,8 @@
 # Generation only -- score the output afterwards with run_infer_zonos2_eval.sh.
 #
 # Requires vLLM-Omni (the `vllm-omni` CLI), installed in this repo's .venv (Python
-# 3.12). generate_omni.py is just an HTTP client and also runs from .venv.
+# 3.12) or in the venv named by OMNI_VENV. generate_omni.py is just an HTTP client and
+# runs from the same venv.
 #
 #   bash run_generate_omni.sh --model all
 #   bash run_generate_omni.sh --model qwen3-tts-0.6b
@@ -49,11 +50,13 @@ if [ -n "${test_set}" ] && [ -z "${task}" ]; then
     exit 1
 fi
 
-# Project venv: generate_omni.py (HTTP client) runs with .venv/bin/python; the server
-# is launched with .venv/bin/vllm-omni. Both fall back to PATH if .venv is absent.
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
-if [ -x .venv/bin/vllm-omni ]; then
-    export OMNI_VLLM_BIN=.venv/bin/vllm-omni
+# Project venv: generate_omni.py (HTTP client) runs with <venv>/bin/python; the server
+# is launched with <venv>/bin/vllm-omni. <venv> is OMNI_VENV (default .venv), e.g. another
+# checkout's venv that has the omni extra installed. Both fall back to PATH if absent.
+venv="${OMNI_VENV:-.venv}"
+if [ -x "${venv}/bin/python" ]; then PY="${venv}/bin/python"; else PY=python; fi
+if [ -x "${venv}/bin/vllm-omni" ]; then
+    export OMNI_VLLM_BIN="${venv}/bin/vllm-omni"
 else
     export OMNI_VLLM_BIN=vllm-omni
 fi

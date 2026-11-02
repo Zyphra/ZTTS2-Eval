@@ -124,6 +124,9 @@ CONDITIONS = {
                      "ref_text kept (default policy, no-ref-text unverified); unseeded server defaults"),
     "omni_higgs-audio-v3": ("with-transcript",
                             "ref_text kept (upstream prescribes ref_audio + ref_text); unseeded server defaults"),
+    "omni_drama-3": ("with-transcript",
+                     "ref_text kept (server requires ref_audio + ref_text); vllm-omni 0.32.0 on vllm "
+                     "0.32.0; unseeded server defaults (T 1.0 top-k 30 top-p 0.9)"),
     "omni_voxtral-tts": ("preset", "preset mode (task_type=CustomVoice); unseeded server defaults"),
     # Native in-process recipes.
     # Upstream SGLang-Omni adapter server (scripts/generate_audio8.py -> /v1/audio/speech).

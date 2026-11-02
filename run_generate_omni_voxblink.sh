@@ -8,7 +8,8 @@
 #   bash run_generate_omni_voxblink.sh --model qwen3-tts-0.6b --test_set en --limit 3
 #
 # Score afterwards with run_infer_voxblink_eval.sh and DECODE_DIR pointing at
-# results/omni_<model>/zero_shot_voxblink.
+# results/omni_<model>/zero_shot_voxblink. OMNI_VENV and OMNI_OUT_ROOT work as in
+# run_generate_omni.sh.
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
@@ -28,9 +29,10 @@ limit=0
 overwrite=false
 . utils/parse_options.sh || exit 1
 
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
-if [ -x .venv/bin/vllm-omni ]; then
-    export OMNI_VLLM_BIN=.venv/bin/vllm-omni
+venv="${OMNI_VENV:-.venv}"
+if [ -x "${venv}/bin/python" ]; then PY="${venv}/bin/python"; else PY=python; fi
+if [ -x "${venv}/bin/vllm-omni" ]; then
+    export OMNI_VLLM_BIN="${venv}/bin/vllm-omni"
 else
     export OMNI_VLLM_BIN=vllm-omni
 fi
@@ -124,7 +126,7 @@ for m in ${models}; do
 
     for nm in ${test_set}; do
         data_dir="data/zero_shot_voxblink/${nm}"
-        out_dir="results/omni_${m}/zero_shot_voxblink/${nm}"
+        out_dir="${OMNI_OUT_ROOT:-results}/omni_${m}/zero_shot_voxblink/${nm}"
         if [ ! -f "${data_dir}/text" ]; then
             echo "[skip] ${data_dir}: no 'text' file" 1>&2; continue
         fi

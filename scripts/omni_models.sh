@@ -16,7 +16,7 @@ ALL_MODELS="qwen3-tts-1.7b qwen3-tts-0.6b cosyvoice3 voxcpm2 voxtral-tts fish-s2
 # Newer TTS models shipped by a LATER vllm-omni. Wired in model_spec() and runnable by
 # explicit --model, but kept OUT of ALL_MODELS (the `--model all` sweep) until
 # validated. To enable: bump the runtime, smoke one, then promote.
-NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3"
+NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3 drama-3"
 
 # RETIRED -- kept in model_spec() so an explicit --model still works, but out of both
 # sweep lists so `--model all` can never resurrect them, and their results/ trees were
@@ -56,6 +56,19 @@ model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
         # --trust-remote-code (extra_serve_args), DEEP_GEMM disabled (extra_env), and
         # base64 ref-audio (refaudio_mode; qwen3 multimodal connector rejects file://).
         higgs-audio-v3)      echo "bosonai/higgs-audio-v3-tts-4b|clone|higgs_multimodal_qwen3_high_throughput.yaml" ;;
+        # Fish Audio Drama 3 (35B MoE, 3B active). Needs vllm-omni >= 0.32 on vllm >= 0.31
+        # (model_type fish_omni), newer than the repo .venv: run it with OMNI_VENV pointing
+        # at a separate venv. The benchmark run used (CUDA 12.8 driver -> cu129 builds;
+        # PyPI's torchcodec 0.17 is a CUDA 13 build that fails to load on such nodes):
+        #   uv venv --python 3.12 ~/.venvs/vllm-omni-drama3
+        #   VIRTUAL_ENV=~/.venvs/vllm-omni-drama3 uv pip install --index-strategy \
+        #     unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu129 \
+        #     torch==2.13.0+cu129 torchaudio==2.11.0+cu129 torchvision==0.28.0+cu129 \
+        #     torchcodec==0.16.0+cu129 vllm-omni==0.32.0 \
+        #     https://github.com/vllm-project/vllm/releases/download/v0.32.0/vllm-0.32.0+cu129-cp38-abi3-manylinux_2_28_x86_64.whl
+        # Cloning requires ref_audio + ref_text, so reftext_policy's default (ref_text
+        # kept) applies.
+        drama-3)             echo "fishaudio/drama-3|clone|fish_omni.yaml" ;;
         *)                   echo "" ;;
     esac
 }
@@ -121,9 +134,13 @@ extra_serve_args() {  # key -> extra serve flags (or empty)
 # Extra environment variables a model's server needs, as a space-separated list of
 # NAME=VALUE pairs exported before the server starts (the run drivers eval this).
 # Higgs-Audio V3's README requires DeepGEMM disabled for correct/stable serving.
+# Drama 3's deploy config (platforms.cuda.cuda_mps) starts a private MPS daemon per GPU;
+# vllm-omni treats an inherited CUDA_MPS_PIPE_DIRECTORY (the slurm jobs' daemon-less
+# workaround dir) as an operator-managed daemon and fails at startup, so clear it.
 extra_env() {  # key -> "NAME=VALUE NAME=VALUE ..." (or empty)
     case "$1" in
         higgs-audio-v3) echo "VLLM_USE_DEEP_GEMM=0 VLLM_MOE_USE_DEEP_GEMM=0" ;;
+        drama-3)        echo "CUDA_MPS_PIPE_DIRECTORY=" ;;
         *)              echo "" ;;
     esac
 }

@@ -98,7 +98,8 @@ ZTTS2-Eval/
 - **`run_generate_omni.sh`** → starts/stops a vLLM-Omni server via
   `scripts/serve_omni.sh`, then runs `scripts/generate_omni.py`
   (`POST /v1/audio/speech`). Inline model registry: qwen3-tts, cosyvoice3, voxcpm2,
-  voxtral-tts, moss-tts-nano, fish-s2-pro, etc.
+  voxtral-tts, moss-tts-nano, fish-s2-pro, etc. `OMNI_VENV` names a venv with the omni
+  extra other than `.venv`. `slurm/omni_gen_job.sh` is the 8-GPU node job (both tasks).
 - **Hosted providers**: `run_generate_gemini.sh`, `run_generate_elevenlabs.sh`
   (+ `_clone`), `run_generate_cartesia.sh`, `run_generate_inworld.sh` →
   `scripts/generate_<provider>.py`. Each reads its API key from an env var.
@@ -204,7 +205,8 @@ populated `results/` tree; the `_cache/` snapshot is gitignored.
 `score_job.sh` (one-GPU wrapper for any scoring driver), `submit_metrics.sh` /
 `submit_ground_truth_metrics.sh` (distributional-metric arrays; composable through
 `METRICS_*` env; `METRICS_NODES=N` runs them as whole-node tasks via
-`metrics_node_job.sh`), `zonos3_gen_job.sh` (ZONOS3 Mini generation on 8-GPU nodes), and
+`metrics_node_job.sh`), `zonos3_gen_job.sh` / `moss_gen_job.sh` / `omni_gen_job.sh`
+(ZONOS3 Mini, MOSS-TTS family and vLLM-Omni generation on 8-GPU nodes), and
 `submit_release_run.sh` (the whole release DAG: targets, HF
 upload, full rescore, GT, metrics, final build). See `slurm/README.md`.
 
