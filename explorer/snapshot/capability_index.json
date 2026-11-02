@@ -1,0 +1,1557 @@
+{
+ "method": {
+  "model": "performance = sigmoid(slope_item * (capability_system - difficulty_item))",
+  "reference": "Epoch Capabilities Index, https://epoch.ai/data/eci-documentation/methodology",
+  "anchors": {
+   "real speech": 100.0,
+   "zonos2_accurate": 50.0
+  },
+  "dimensions": [
+   "intelligibility",
+   "voice",
+   "quality",
+   "prosody"
+  ],
+  "metrics": {
+   "wer": {
+    "dimension": "intelligibility",
+    "performance": "1 \u2212 WER_CLIP/100"
+   },
+   "tail50": {
+    "dimension": "intelligibility",
+    "performance": "1 \u2212 Tail>50%/100"
+   },
+   "spk": {
+    "dimension": "voice",
+    "performance": "SPK prompt / 100",
+    "set": "zero_shot"
+   },
+   "spk_xutt": {
+    "dimension": "voice",
+    "performance": "SPK held-out / 100",
+    "set": "zero_shot_voxblink"
+   },
+   "msr_utmos": {
+    "dimension": "quality",
+    "performance": "(MSR-UTMOS \u2212 1) / 4"
+   },
+   "mpm_span": {
+    "dimension": "prosody",
+    "performance": "1 \u2212 MPM span, clipped to [0, 1]"
+   },
+   "rhythm_rate_x": {
+    "dimension": "prosody",
+    "performance": "min(1, 1 / rhythm pace \u00d7ceil)"
+   },
+   "rhythm_x": {
+    "dimension": "prosody",
+    "performance": "min(1, 1 / rhythm pause \u00d7ceil)"
+   },
+   "pitch_range_x": {
+    "dimension": "prosody",
+    "performance": "min(1, 1 / pitch range \u00d7ceil)"
+   }
+  },
+  "ridge": 0.1,
+  "ci_level": 0.9,
+  "bootstrap": 500,
+  "n_obs": 12317,
+  "n_items": 420,
+  "n_langs": {
+   "zero_shot": 35,
+   "zero_shot_voxblink": 20
+  }
+ },
+ "systems": [
+  {
+   "name": "real speech",
+   "index": 100.0,
+   "ci": null,
+   "anchor": true,
+   "n_items": 650,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   }
+  },
+  {
+   "name": "moss-tts-v1.5",
+   "index": 69.4,
+   "ci": [
+    64.1,
+    71.9
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-05-26",
+   "release_source": "OpenMOSS/MOSS-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 8.0,
+    "active": null,
+    "source": "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"
+   }
+  },
+  {
+   "name": "omni_drama-3",
+   "index": 62.8,
+   "ci": [
+    58.5,
+    65.8
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-10-13",
+   "release_source": "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)",
+   "prerelease": false,
+   "params": {
+    "total": 35.0,
+    "active": 3.0,
+    "source": "fishaudio/drama-3 card: 35B MoE, 3B active per token"
+   }
+  },
+  {
+   "name": "omni_higgs-audio-v3",
+   "index": 62.2,
+   "ci": [
+    57.8,
+    64.3
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-06-04",
+   "release_source": "Boson AI blog, 'Higgs Audio v3 TTS'",
+   "prerelease": false,
+   "params": {
+    "total": 4.0,
+    "active": null,
+    "source": "model name (higgs-audio-v3-tts-4b)"
+   }
+  },
+  {
+   "name": "moss-tts",
+   "index": 61.2,
+   "ci": [
+    55.3,
+    63.6
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-02-10",
+   "release_source": "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)",
+   "prerelease": false,
+   "params": {
+    "total": 8.0,
+    "active": null,
+    "source": "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"
+   }
+  },
+  {
+   "name": "omni_fish-s2-pro",
+   "index": 58.8,
+   "ci": [
+    52.7,
+    63.9
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-03-09",
+   "release_source": "Fish Audio blog, 'Fish Audio Open-Sources S2'",
+   "prerelease": false,
+   "params": {
+    "total": 4.4,
+    "active": null,
+    "source": "fishaudio/s2-pro card: slow AR 4B + fast AR 0.4B"
+   }
+  },
+  {
+   "name": "omni_voxcpm2-reftext",
+   "index": 56.1,
+   "ci": [
+    51.0,
+    59.7
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-04-03",
+   "release_source": "HF openbmb/VoxCPM2 first commit (README news: 2026.04)",
+   "prerelease": false,
+   "params": {
+    "total": 2.0,
+    "active": null,
+    "source": "openbmb/VoxCPM2 card: '2B parameters'"
+   }
+  },
+  {
+   "name": "zonos3-rate30-20k_embedding",
+   "index": 55.2,
+   "ci": [
+    51.7,
+    58.2
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   }
+  },
+  {
+   "name": "zonos3-mini-laci_embedding",
+   "index": 51.9,
+   "ci": [
+    48.5,
+    54.2
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-11-13",
+   "release_source": "Zyphra release plan",
+   "prerelease": true,
+   "params": {
+    "total": 0.886,
+    "active": 0.155,
+    "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+   }
+  },
+  {
+   "name": "vibevoice-1.5b",
+   "index": 51.4,
+   "ci": [
+    37.7,
+    70.0
+   ],
+   "anchor": false,
+   "n_items": 30,
+   "langs": {
+    "zero_shot": 2,
+    "zero_shot_voxblink": 2
+   },
+   "release": "2025-08-25",
+   "release_source": "microsoft/VibeVoice README news (VibeVoice-TTS open-sourced)",
+   "prerelease": false,
+   "params": {
+    "total": 1.5,
+    "active": null,
+    "source": "model name (VibeVoice-1.5B)"
+   }
+  },
+  {
+   "name": "omni_omnivoice-reftext",
+   "index": 50.9,
+   "ci": [
+    47.4,
+    52.8
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-04-01",
+   "release_source": "arXiv 2604.00688 v1 (OmniVoice)",
+   "prerelease": false,
+   "params": {
+    "total": 0.6,
+    "active": null,
+    "source": "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"
+   }
+  },
+  {
+   "name": "vibevoice-7b",
+   "index": 50.5,
+   "ci": [
+    47.6,
+    52.3
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2025-08-25",
+   "release_source": "microsoft/VibeVoice README news (VibeVoice-TTS; Large = 7B)",
+   "prerelease": false,
+   "params": {
+    "total": 7.0,
+    "active": null,
+    "source": "model name (VibeVoice-7B / Large)"
+   }
+  },
+  {
+   "name": "zonos2_accurate",
+   "index": 50.0,
+   "ci": null,
+   "anchor": true,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-06-12",
+   "release_source": "Zyphra blog, 'ZONOS2'",
+   "prerelease": false,
+   "params": {
+    "total": 8.0,
+    "active": 0.9,
+    "source": "Zyphra blog, 'ZONOS2'"
+   }
+  },
+  {
+   "name": "zonos3-mini_embedding",
+   "index": 49.8,
+   "ci": [
+    47.2,
+    52.4
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-11-13",
+   "release_source": "Zyphra release plan",
+   "prerelease": true,
+   "params": {
+    "total": 0.886,
+    "active": 0.155,
+    "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+   }
+  },
+  {
+   "name": "zonos3-mini-laci_reference",
+   "index": 47.6,
+   "ci": [
+    45.1,
+    50.8
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-11-13",
+   "release_source": "Zyphra release plan",
+   "prerelease": true,
+   "params": {
+    "total": 0.886,
+    "active": 0.155,
+    "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+   }
+  },
+  {
+   "name": "omni_voxcpm2",
+   "index": 47.3,
+   "ci": [
+    44.3,
+    50.4
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-04-03",
+   "release_source": "HF openbmb/VoxCPM2 first commit (README news: 2026.04)",
+   "prerelease": false,
+   "params": {
+    "total": 2.0,
+    "active": null,
+    "source": "openbmb/VoxCPM2 card: '2B parameters'"
+   }
+  },
+  {
+   "name": "zonos3-mini_reference",
+   "index": 46.1,
+   "ci": [
+    42.8,
+    49.3
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-11-13",
+   "release_source": "Zyphra release plan",
+   "prerelease": true,
+   "params": {
+    "total": 0.886,
+    "active": 0.155,
+    "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+   }
+  },
+  {
+   "name": "zonos3-rate30-20k_reference",
+   "index": 45.9,
+   "ci": [
+    42.7,
+    48.8
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   }
+  },
+  {
+   "name": "audio8-tts-realistic-0.6b",
+   "index": 44.3,
+   "ci": [
+    41.9,
+    47.9
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-10-29",
+   "release_source": "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)",
+   "prerelease": false,
+   "params": {
+    "total": 0.601,
+    "active": null,
+    "source": "Edge0/Audio8-TTS-Realistic-0.6b card: 601,159,424 main-model params, codec excluded"
+   }
+  },
+  {
+   "name": "moss-tts-local",
+   "index": 43.7,
+   "ci": [
+    37.7,
+    48.1
+   ],
+   "anchor": false,
+   "n_items": 135,
+   "langs": {
+    "zero_shot": 9,
+    "zero_shot_voxblink": 9
+   },
+   "release": "2026-02-10",
+   "release_source": "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)",
+   "prerelease": false,
+   "params": {
+    "total": 1.7,
+    "active": null,
+    "source": "OpenMOSS/MOSS-TTS README (MossTTSLocal 1.7B)"
+   }
+  },
+  {
+   "name": "omni_qwen3-tts-1.7b-reftext",
+   "index": 40.4,
+   "ci": [
+    37.8,
+    49.4
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-01-22",
+   "release_source": "QwenLM/Qwen3-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 1.7,
+    "active": null,
+    "source": "model name (Qwen3-TTS-12Hz-1.7B)"
+   }
+  },
+  {
+   "name": "gemini_3.8-flash",
+   "index": 39.9,
+   "ci": [
+    6.8,
+    43.7
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-09-23",
+   "release_source": "Google blog, 'Gemini 3.8 text-to-speech says hello'",
+   "prerelease": false
+  },
+  {
+   "name": "zonos2_expressive",
+   "index": 39.7,
+   "ci": [
+    24.7,
+    42.5
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-06-12",
+   "release_source": "Zyphra blog, 'ZONOS2'",
+   "prerelease": false,
+   "params": {
+    "total": 8.0,
+    "active": 0.9,
+    "source": "Zyphra blog, 'ZONOS2'"
+   }
+  },
+  {
+   "name": "omni_qwen3-tts-1.7b",
+   "index": 38.6,
+   "ci": [
+    35.9,
+    44.5
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-01-22",
+   "release_source": "QwenLM/Qwen3-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 1.7,
+    "active": null,
+    "source": "model name (Qwen3-TTS-12Hz-1.7B)"
+   }
+  },
+  {
+   "name": "omni_qwen3-tts-0.6b-reftext",
+   "index": 37.2,
+   "ci": [
+    34.0,
+    42.2
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-01-22",
+   "release_source": "QwenLM/Qwen3-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 0.6,
+    "active": null,
+    "source": "model name (Qwen3-TTS-12Hz-0.6B)"
+   }
+  },
+  {
+   "name": "omni_qwen3-tts-0.6b",
+   "index": 36.2,
+   "ci": [
+    32.9,
+    41.8
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-01-22",
+   "release_source": "QwenLM/Qwen3-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 0.6,
+    "active": null,
+    "source": "model name (Qwen3-TTS-12Hz-0.6B)"
+   }
+  },
+  {
+   "name": "omni_omnivoice",
+   "index": 35.2,
+   "ci": [
+    22.5,
+    37.6
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-04-01",
+   "release_source": "arXiv 2604.00688 v1 (OmniVoice)",
+   "prerelease": false,
+   "params": {
+    "total": 0.6,
+    "active": null,
+    "source": "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"
+   }
+  },
+  {
+   "name": "cosyvoice3",
+   "index": 30.5,
+   "ci": [
+    18.3,
+    34.8
+   ],
+   "anchor": false,
+   "n_items": 351,
+   "langs": {
+    "zero_shot": 29,
+    "zero_shot_voxblink": 17
+   },
+   "release": "2025-12-11",
+   "release_source": "HF FunAudioLLM/Fun-CosyVoice3-0.5B-2512 first commit (README undated)",
+   "prerelease": false,
+   "params": {
+    "total": 0.5,
+    "active": null,
+    "source": "model name (Fun-CosyVoice3-0.5B)"
+   }
+  },
+  {
+   "name": "vibevoice-rt-0.5b",
+   "index": 14.8,
+   "ci": [
+    -12.9,
+    36.4
+   ],
+   "anchor": false,
+   "n_items": 150,
+   "langs": {
+    "zero_shot": 10,
+    "zero_shot_voxblink": 10
+   },
+   "release": "2025-12-03",
+   "release_source": "microsoft/VibeVoice README news (VibeVoice-Realtime-0.5B)",
+   "prerelease": false,
+   "params": {
+    "total": 0.5,
+    "active": null,
+    "source": "model name (VibeVoice-Realtime-0.5B)"
+   }
+  },
+  {
+   "name": "kokoro",
+   "index": 9.1,
+   "ci": [
+    -18.4,
+    15.4
+   ],
+   "anchor": false,
+   "n_items": 120,
+   "langs": {
+    "zero_shot": 8,
+    "zero_shot_voxblink": 8
+   },
+   "release": "2025-01-27",
+   "release_source": "hexgrad/Kokoro-82M model card, Releases table (v1.0)",
+   "prerelease": false,
+   "params": {
+    "total": 0.082,
+    "active": null,
+    "source": "model name (Kokoro-82M)"
+   }
+  },
+  {
+   "name": "moss-tts-local-v1.5",
+   "index": 6.0,
+   "ci": [
+    -16.2,
+    29.9
+   ],
+   "anchor": false,
+   "n_items": 135,
+   "langs": {
+    "zero_shot": 9,
+    "zero_shot_voxblink": 9
+   },
+   "release": "2026-06-18",
+   "release_source": "OpenMOSS/MOSS-TTS README news",
+   "prerelease": false,
+   "params": {
+    "total": 4.0,
+    "active": null,
+    "source": "OpenMOSS/MOSS-TTS README news (4B MossTTSLocal)"
+   }
+  },
+  {
+   "name": "omni_voxtral-tts",
+   "index": -4.3,
+   "ci": [
+    -32.7,
+    -6.5
+   ],
+   "anchor": false,
+   "n_items": 420,
+   "langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   },
+   "release": "2026-03-23",
+   "release_source": "Mistral blog, 'Speaking of Voxtral'",
+   "prerelease": false,
+   "params": {
+    "total": 4.0,
+    "active": null,
+    "source": "model name (Voxtral-4B-TTS-2603)"
+   }
+  },
+  {
+   "name": "omni_glm-tts",
+   "index": -13.7,
+   "ci": [
+    -43.8,
+    -13.6
+   ],
+   "anchor": false,
+   "n_items": 231,
+   "langs": {
+    "zero_shot": 21,
+    "zero_shot_voxblink": 9
+   },
+   "release": "2025-12-11",
+   "release_source": "zai-org/GLM-TTS README news (open-sourced)",
+   "prerelease": false,
+   "params": {
+    "total": 1.55,
+    "active": null,
+    "source": "zai-org/GLM-TTS llm/ weights: 6.2 GB fp32 Llama (28 L, d 2048)"
+   }
+  },
+  {
+   "name": "neutts-2e",
+   "index": -27.6,
+   "ci": [
+    -130.9,
+    25.5
+   ],
+   "anchor": false,
+   "n_items": 15,
+   "langs": {
+    "zero_shot": 1,
+    "zero_shot_voxblink": 1
+   },
+   "release": "2026-07-30",
+   "release_source": "Neuphonic blog, 'Introducing NeuTTS-2E'",
+   "prerelease": false,
+   "params": {
+    "total": 0.125,
+    "active": null,
+    "source": "Neuphonic blog, '125M-parameter'"
+   }
+  }
+ ],
+ "prosody": {
+  "method": {
+   "model": "performance = sigmoid(slope_item * (capability_system - difficulty_item))",
+   "reference": "Epoch Capabilities Index, https://epoch.ai/data/eci-documentation/methodology",
+   "anchors": {
+    "real speech": 100.0,
+    "zonos2_accurate": 50.0
+   },
+   "dimensions": [
+    "pace",
+    "pauses",
+    "pitch",
+    "contour"
+   ],
+   "metrics": {
+    "rhythm_rate_x": {
+     "dimension": "pace",
+     "performance": "min(1, 1 / rhythm pace \u00d7ceil)"
+    },
+    "charsec_x": {
+     "dimension": "pace",
+     "performance": "min(1, 1 / char/s \u00d7ceil)"
+    },
+    "paired_dur": {
+     "dimension": "pace",
+     "performance": "1 / (1 + paired Dur |log2|)",
+     "set": "zero_shot_voxblink"
+    },
+    "rhythm_x": {
+     "dimension": "pauses",
+     "performance": "min(1, 1 / rhythm pause \u00d7ceil)"
+    },
+    "paired_pause": {
+     "dimension": "pauses",
+     "performance": "1 / (1 + paired Pause \u0394)",
+     "set": "zero_shot_voxblink"
+    },
+    "pitch_range_x": {
+     "dimension": "pitch",
+     "performance": "min(1, 1 / pitch range \u00d7ceil)"
+    },
+    "paired_range": {
+     "dimension": "pitch",
+     "performance": "1 / (1 + paired Range |log2|)",
+     "set": "zero_shot_voxblink"
+    },
+    "mpm_span": {
+     "dimension": "contour",
+     "performance": "1 \u2212 MPM span, clipped to [0, 1]"
+    }
+   },
+   "ridge": 0.1,
+   "ci_level": 0.9,
+   "bootstrap": 500,
+   "n_obs": 8746,
+   "n_items": 315,
+   "n_langs": {
+    "zero_shot": 35,
+    "zero_shot_voxblink": 20
+   }
+  },
+  "systems": [
+   {
+    "name": "real speech",
+    "index": 100.0,
+    "ci": null,
+    "anchor": true,
+    "n_items": 150,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    }
+   },
+   {
+    "name": "moss-tts-v1.5",
+    "index": 55.9,
+    "ci": [
+     52.6,
+     55.9
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-05-26",
+    "release_source": "OpenMOSS/MOSS-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 8.0,
+     "active": null,
+     "source": "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"
+    }
+   },
+   {
+    "name": "omni_higgs-audio-v3",
+    "index": 53.6,
+    "ci": [
+     51.6,
+     53.7
+    ],
+    "anchor": false,
+    "n_items": 313,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-06-04",
+    "release_source": "Boson AI blog, 'Higgs Audio v3 TTS'",
+    "prerelease": false,
+    "params": {
+     "total": 4.0,
+     "active": null,
+     "source": "model name (higgs-audio-v3-tts-4b)"
+    }
+   },
+   {
+    "name": "moss-tts",
+    "index": 53.5,
+    "ci": [
+     51.2,
+     53.7
+    ],
+    "anchor": false,
+    "n_items": 311,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-02-10",
+    "release_source": "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)",
+    "prerelease": false,
+    "params": {
+     "total": 8.0,
+     "active": null,
+     "source": "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"
+    }
+   },
+   {
+    "name": "omni_drama-3",
+    "index": 53.3,
+    "ci": [
+     51.5,
+     53.4
+    ],
+    "anchor": false,
+    "n_items": 315,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-10-13",
+    "release_source": "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)",
+    "prerelease": false,
+    "params": {
+     "total": 35.0,
+     "active": 3.0,
+     "source": "fishaudio/drama-3 card: 35B MoE, 3B active per token"
+    }
+   },
+   {
+    "name": "omni_voxcpm2-reftext",
+    "index": 51.7,
+    "ci": [
+     50.4,
+     52.6
+    ],
+    "anchor": false,
+    "n_items": 313,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-04-03",
+    "release_source": "HF openbmb/VoxCPM2 first commit (README news: 2026.04)",
+    "prerelease": false,
+    "params": {
+     "total": 2.0,
+     "active": null,
+     "source": "openbmb/VoxCPM2 card: '2B parameters'"
+    }
+   },
+   {
+    "name": "omni_qwen3-tts-0.6b",
+    "index": 51.3,
+    "ci": [
+     50.2,
+     51.7
+    ],
+    "anchor": false,
+    "n_items": 299,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-01-22",
+    "release_source": "QwenLM/Qwen3-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 0.6,
+     "active": null,
+     "source": "model name (Qwen3-TTS-12Hz-0.6B)"
+    }
+   },
+   {
+    "name": "zonos3-rate30-20k_embedding",
+    "index": 51.0,
+    "ci": [
+     50.1,
+     51.7
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    }
+   },
+   {
+    "name": "vibevoice-1.5b",
+    "index": 51.0,
+    "ci": [
+     47.4,
+     55.3
+    ],
+    "anchor": false,
+    "n_items": 24,
+    "langs": {
+     "zero_shot": 2,
+     "zero_shot_voxblink": 2
+    },
+    "release": "2025-08-25",
+    "release_source": "microsoft/VibeVoice README news (VibeVoice-TTS open-sourced)",
+    "prerelease": false,
+    "params": {
+     "total": 1.5,
+     "active": null,
+     "source": "model name (VibeVoice-1.5B)"
+    }
+   },
+   {
+    "name": "omni_qwen3-tts-1.7b-reftext",
+    "index": 50.8,
+    "ci": [
+     49.8,
+     51.4
+    ],
+    "anchor": false,
+    "n_items": 309,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-01-22",
+    "release_source": "QwenLM/Qwen3-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 1.7,
+     "active": null,
+     "source": "model name (Qwen3-TTS-12Hz-1.7B)"
+    }
+   },
+   {
+    "name": "vibevoice-7b",
+    "index": 50.7,
+    "ci": [
+     49.8,
+     51.1
+    ],
+    "anchor": false,
+    "n_items": 313,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2025-08-25",
+    "release_source": "microsoft/VibeVoice README news (VibeVoice-TTS; Large = 7B)",
+    "prerelease": false,
+    "params": {
+     "total": 7.0,
+     "active": null,
+     "source": "model name (VibeVoice-7B / Large)"
+    }
+   },
+   {
+    "name": "omni_fish-s2-pro",
+    "index": 50.7,
+    "ci": [
+     49.3,
+     52.5
+    ],
+    "anchor": false,
+    "n_items": 313,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-03-09",
+    "release_source": "Fish Audio blog, 'Fish Audio Open-Sources S2'",
+    "prerelease": false,
+    "params": {
+     "total": 4.4,
+     "active": null,
+     "source": "fishaudio/s2-pro card: slow AR 4B + fast AR 0.4B"
+    }
+   },
+   {
+    "name": "omni_voxcpm2",
+    "index": 50.4,
+    "ci": [
+     49.7,
+     50.8
+    ],
+    "anchor": false,
+    "n_items": 313,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-04-03",
+    "release_source": "HF openbmb/VoxCPM2 first commit (README news: 2026.04)",
+    "prerelease": false,
+    "params": {
+     "total": 2.0,
+     "active": null,
+     "source": "openbmb/VoxCPM2 card: '2B parameters'"
+    }
+   },
+   {
+    "name": "zonos3-mini-laci_embedding",
+    "index": 50.1,
+    "ci": [
+     49.5,
+     50.6
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-11-13",
+    "release_source": "Zyphra release plan",
+    "prerelease": true,
+    "params": {
+     "total": 0.886,
+     "active": 0.155,
+     "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+    }
+   },
+   {
+    "name": "zonos2_accurate",
+    "index": 50.0,
+    "ci": null,
+    "anchor": true,
+    "n_items": 315,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-06-12",
+    "release_source": "Zyphra blog, 'ZONOS2'",
+    "prerelease": false,
+    "params": {
+     "total": 8.0,
+     "active": 0.9,
+     "source": "Zyphra blog, 'ZONOS2'"
+    }
+   },
+   {
+    "name": "omni_qwen3-tts-1.7b",
+    "index": 49.8,
+    "ci": [
+     49.1,
+     50.8
+    ],
+    "anchor": false,
+    "n_items": 306,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-01-22",
+    "release_source": "QwenLM/Qwen3-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 1.7,
+     "active": null,
+     "source": "model name (Qwen3-TTS-12Hz-1.7B)"
+    }
+   },
+   {
+    "name": "zonos3-mini_embedding",
+    "index": 49.7,
+    "ci": [
+     49.2,
+     50.2
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-11-13",
+    "release_source": "Zyphra release plan",
+    "prerelease": true,
+    "params": {
+     "total": 0.886,
+     "active": 0.155,
+     "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+    }
+   },
+   {
+    "name": "omni_qwen3-tts-0.6b-reftext",
+    "index": 49.6,
+    "ci": [
+     48.7,
+     50.2
+    ],
+    "anchor": false,
+    "n_items": 304,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-01-22",
+    "release_source": "QwenLM/Qwen3-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 0.6,
+     "active": null,
+     "source": "model name (Qwen3-TTS-12Hz-0.6B)"
+    }
+   },
+   {
+    "name": "omni_omnivoice-reftext",
+    "index": 49.4,
+    "ci": [
+     48.9,
+     50.1
+    ],
+    "anchor": false,
+    "n_items": 315,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-04-01",
+    "release_source": "arXiv 2604.00688 v1 (OmniVoice)",
+    "prerelease": false,
+    "params": {
+     "total": 0.6,
+     "active": null,
+     "source": "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"
+    }
+   },
+   {
+    "name": "zonos3-mini-laci_reference",
+    "index": 49.3,
+    "ci": [
+     48.8,
+     50.1
+    ],
+    "anchor": false,
+    "n_items": 315,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-11-13",
+    "release_source": "Zyphra release plan",
+    "prerelease": true,
+    "params": {
+     "total": 0.886,
+     "active": 0.155,
+     "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+    }
+   },
+   {
+    "name": "zonos3-mini_reference",
+    "index": 49.0,
+    "ci": [
+     48.6,
+     49.8
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-11-13",
+    "release_source": "Zyphra release plan",
+    "prerelease": true,
+    "params": {
+     "total": 0.886,
+     "active": 0.155,
+     "source": "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)"
+    }
+   },
+   {
+    "name": "zonos3-rate30-20k_reference",
+    "index": 48.9,
+    "ci": [
+     48.4,
+     49.8
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    }
+   },
+   {
+    "name": "cosyvoice3",
+    "index": 48.7,
+    "ci": [
+     47.9,
+     50.7
+    ],
+    "anchor": false,
+    "n_items": 235,
+    "langs": {
+     "zero_shot": 29,
+     "zero_shot_voxblink": 17
+    },
+    "release": "2025-12-11",
+    "release_source": "HF FunAudioLLM/Fun-CosyVoice3-0.5B-2512 first commit (README undated)",
+    "prerelease": false,
+    "params": {
+     "total": 0.5,
+     "active": null,
+     "source": "model name (Fun-CosyVoice3-0.5B)"
+    }
+   },
+   {
+    "name": "moss-tts-local-v1.5",
+    "index": 48.3,
+    "ci": [
+     47.5,
+     49.5
+    ],
+    "anchor": false,
+    "n_items": 103,
+    "langs": {
+     "zero_shot": 9,
+     "zero_shot_voxblink": 9
+    },
+    "release": "2026-06-18",
+    "release_source": "OpenMOSS/MOSS-TTS README news",
+    "prerelease": false,
+    "params": {
+     "total": 4.0,
+     "active": null,
+     "source": "OpenMOSS/MOSS-TTS README news (4B MossTTSLocal)"
+    }
+   },
+   {
+    "name": "moss-tts-local",
+    "index": 48.2,
+    "ci": [
+     47.4,
+     49.2
+    ],
+    "anchor": false,
+    "n_items": 108,
+    "langs": {
+     "zero_shot": 9,
+     "zero_shot_voxblink": 9
+    },
+    "release": "2026-02-10",
+    "release_source": "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)",
+    "prerelease": false,
+    "params": {
+     "total": 1.7,
+     "active": null,
+     "source": "OpenMOSS/MOSS-TTS README (MossTTSLocal 1.7B)"
+    }
+   },
+   {
+    "name": "audio8-tts-realistic-0.6b",
+    "index": 46.5,
+    "ci": [
+     45.9,
+     48.2
+    ],
+    "anchor": false,
+    "n_items": 312,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-10-29",
+    "release_source": "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)",
+    "prerelease": false,
+    "params": {
+     "total": 0.601,
+     "active": null,
+     "source": "Edge0/Audio8-TTS-Realistic-0.6b card: 601,159,424 main-model params, codec excluded"
+    }
+   },
+   {
+    "name": "omni_omnivoice",
+    "index": 45.7,
+    "ci": [
+     44.7,
+     47.4
+    ],
+    "anchor": false,
+    "n_items": 306,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-04-01",
+    "release_source": "arXiv 2604.00688 v1 (OmniVoice)",
+    "prerelease": false,
+    "params": {
+     "total": 0.6,
+     "active": null,
+     "source": "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"
+    }
+   },
+   {
+    "name": "neutts-2e",
+    "index": 45.4,
+    "ci": [
+     40.5,
+     48.0
+    ],
+    "anchor": false,
+    "n_items": 12,
+    "langs": {
+     "zero_shot": 1,
+     "zero_shot_voxblink": 1
+    },
+    "release": "2026-07-30",
+    "release_source": "Neuphonic blog, 'Introducing NeuTTS-2E'",
+    "prerelease": false,
+    "params": {
+     "total": 0.125,
+     "active": null,
+     "source": "Neuphonic blog, '125M-parameter'"
+    }
+   },
+   {
+    "name": "vibevoice-rt-0.5b",
+    "index": 44.5,
+    "ci": [
+     43.0,
+     47.1
+    ],
+    "anchor": false,
+    "n_items": 120,
+    "langs": {
+     "zero_shot": 10,
+     "zero_shot_voxblink": 10
+    },
+    "release": "2025-12-03",
+    "release_source": "microsoft/VibeVoice README news (VibeVoice-Realtime-0.5B)",
+    "prerelease": false,
+    "params": {
+     "total": 0.5,
+     "active": null,
+     "source": "model name (VibeVoice-Realtime-0.5B)"
+    }
+   },
+   {
+    "name": "gemini_3.8-flash",
+    "index": 44.5,
+    "ci": [
+     43.2,
+     46.7
+    ],
+    "anchor": false,
+    "n_items": 315,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-09-23",
+    "release_source": "Google blog, 'Gemini 3.8 text-to-speech says hello'",
+    "prerelease": false
+   },
+   {
+    "name": "zonos2_expressive",
+    "index": 43.9,
+    "ci": [
+     42.1,
+     46.2
+    ],
+    "anchor": false,
+    "n_items": 314,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-06-12",
+    "release_source": "Zyphra blog, 'ZONOS2'",
+    "prerelease": false,
+    "params": {
+     "total": 8.0,
+     "active": 0.9,
+     "source": "Zyphra blog, 'ZONOS2'"
+    }
+   },
+   {
+    "name": "omni_voxtral-tts",
+    "index": 42.3,
+    "ci": [
+     40.5,
+     45.2
+    ],
+    "anchor": false,
+    "n_items": 278,
+    "langs": {
+     "zero_shot": 35,
+     "zero_shot_voxblink": 20
+    },
+    "release": "2026-03-23",
+    "release_source": "Mistral blog, 'Speaking of Voxtral'",
+    "prerelease": false,
+    "params": {
+     "total": 4.0,
+     "active": null,
+     "source": "model name (Voxtral-4B-TTS-2603)"
+    }
+   },
+   {
+    "name": "omni_glm-tts",
+    "index": 37.5,
+    "ci": [
+     31.0,
+     41.1
+    ],
+    "anchor": false,
+    "n_items": 135,
+    "langs": {
+     "zero_shot": 21,
+     "zero_shot_voxblink": 9
+    },
+    "release": "2025-12-11",
+    "release_source": "zai-org/GLM-TTS README news (open-sourced)",
+    "prerelease": false,
+    "params": {
+     "total": 1.55,
+     "active": null,
+     "source": "zai-org/GLM-TTS llm/ weights: 6.2 GB fp32 Llama (28 L, d 2048)"
+    }
+   },
+   {
+    "name": "kokoro",
+    "index": 33.9,
+    "ci": [
+     26.1,
+     40.8
+    ],
+    "anchor": false,
+    "n_items": 96,
+    "langs": {
+     "zero_shot": 8,
+     "zero_shot_voxblink": 8
+    },
+    "release": "2025-01-27",
+    "release_source": "hexgrad/Kokoro-82M model card, Releases table (v1.0)",
+    "prerelease": false,
+    "params": {
+     "total": 0.082,
+     "active": null,
+     "source": "model name (Kokoro-82M)"
+    }
+   }
+  ]
+ }
+}
