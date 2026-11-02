@@ -67,3 +67,5 @@ data/zero_shot_voxblink/*/target_wav/
 # Per-leaf pitch-range caches (utils/pitch_range.ranges_cached) are regenerable.
 results/gt_zero_shot/*/pitch_range.tsv
 results/gt_zero_shot_voxblink/*/pitch_range.tsv
+# Per-leaf char/s duration caches (scripts/speaking_rate_dist.durations) are regenerable.
+results/gt_zero_shot*/*/speaking_rate_durations.tsv

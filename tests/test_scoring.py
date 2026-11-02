@@ -157,6 +157,24 @@ class CharSecContentFilterTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(sr.heard_files(self._leaf(d, [None, None])), ([], 0.0))
 
+    def test_duration_cache_rereads_a_regenerated_wav(self):
+        # The per-leaf cache must not serve a stale duration after a wav is regenerated
+        # in place (same name, new audio): rebuilds would silently keep the old char/s.
+        import speaking_rate_dist as sr
+        tone = lambda s: (0.3 * np.sin(2 * np.pi * 200 * np.arange(int(s * 16000)) / 16000)).astype(np.float32)
+        with tempfile.TemporaryDirectory() as d:
+            wavs = Path(d) / "leaf" / "wavs"
+            wavs.mkdir(parents=True)
+            p = str(wavs / "uttid_1.wav")
+            sf.write(p, tone(1.0), 16000)
+            first = sr.durations([p], 35.0, 1)[p][0]
+            self.assertTrue((Path(d) / "leaf" / "speaking_rate_durations.tsv").is_file())
+            self.assertEqual(sr.durations([p], 35.0, 1)[p][0], first)        # served from the cache
+            sf.write(p, tone(2.0), 16000)
+            second = sr.durations([p], 35.0, 1)[p][0]
+        self.assertAlmostEqual(first, 1.0, delta=0.05)
+        self.assertAlmostEqual(second, 2.0, delta=0.05)
+
 
 class MpmSpanTest(unittest.TestCase):
     def test_span_anchors(self):

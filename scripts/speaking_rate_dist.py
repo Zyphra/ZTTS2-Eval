@@ -88,6 +88,7 @@ import argparse
 import glob
 import os
 import sys
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 import librosa
@@ -186,12 +187,85 @@ def _probe(args):
         return path, None, None
 
 
+def duration_cache_path(wav_dir):
+    """Where a wav dir's durations are cached: next to a system leaf's other caches
+    (<leaf>/speaking_rate_durations.tsv, beside pitch_range.tsv), or, for a reference
+    dir data/<set>/<lang>/waveform, results/_speaking_rate_ref/<set>_<lang>.tsv, so no
+    cache file lands in the dataset itself."""
+    d = os.path.normpath(os.path.abspath(wav_dir))
+    if os.path.basename(d) == "waveform":
+        lang, task = os.path.basename(os.path.dirname(d)), os.path.basename(os.path.dirname(os.path.dirname(d)))
+        return os.path.join(REPO, "results", "_speaking_rate_ref", f"{task}_{lang}.tsv")
+    return os.path.join(os.path.dirname(d), "speaking_rate_durations.tsv")
+
+
+def _read_cache(path):
+    out = {}
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                p = line.rstrip("\n").split("\t")
+                if len(p) == 6 and p[0] != "name":
+                    out[p[0]] = (int(p[1]), int(p[2]), float(p[3]), _num(p[4]), _num(p[5]))
+    return out
+
+
+def _num(s):
+    return None if s in ("", "nan") else float(s)
+
+
+def _write_cache(path, rows):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".speaking_rate_", suffix=".tsv")
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write("name\tsize\tmtime_ns\ttop_db\td_trim\td_raw\n")
+        for name in sorted(rows):
+            size, mtime, top_db, d_trim, d_raw = rows[name]
+            fh.write(f"{name}\t{size}\t{mtime}\t{top_db}\t{'' if d_trim is None else d_trim}\t"
+                     f"{'' if d_raw is None else d_raw}\n")
+    os.replace(tmp, path)
+
+
+def durations(files, top_db, workers):
+    """{path: (trimmed s, raw s)} (None where unreadable), from the per-dir cache when the
+    file's size, mtime and the trim threshold all match, else probed and cached. Decoding
+    and trimming every wav is the whole cost of char/s, so a rebuild only probes what changed."""
+    by_dir = {}
+    for f in files:
+        by_dir.setdefault(os.path.dirname(f), []).append(f)
+    out = {}
+    for d, fs in by_dir.items():
+        cpath = duration_cache_path(d)
+        cache = _read_cache(cpath)
+        todo, stat = [], {}
+        for f in fs:
+            st = os.stat(f)
+            stat[f] = (st.st_size, st.st_mtime_ns)
+            c = cache.get(os.path.basename(f))
+            if c and c[:2] == stat[f] and c[2] == float(top_db):
+                out[f] = (c[3], c[4])
+            else:
+                todo.append(f)
+        if not todo:
+            continue
+        with ProcessPoolExecutor(workers) as ex:
+            res = list(ex.map(_probe, [(f, top_db) for f in todo], chunksize=4))
+        for path, d_trim, d_raw in res:
+            out[path] = (d_trim, d_raw)
+            cache[os.path.basename(path)] = (*stat[path], float(top_db), d_trim, d_raw)
+        try:
+            _write_cache(cpath, cache)
+        except OSError as e:                       # read-only tree: still correct, just uncached
+            print(f"  [speaking_rate] cache not written ({cpath}): {e}", file=sys.stderr)
+    return out
+
+
 def char_rates(files, textmap, top_db, workers):
     """-> (char/s array, mean lead+trail silence seconds)."""
-    with ProcessPoolExecutor(workers) as ex:
-        res = list(ex.map(_probe, [(f, top_db) for f in files], chunksize=4))
+    dur = durations(files, top_db, workers)
     rates, pads = [], []
-    for path, d_trim, d_raw in res:
+    for path in files:
+        d_trim, d_raw = dur[path]
         text = textmap.get(utt_of(path))
         if not text or not d_trim or d_trim <= 0:
             continue

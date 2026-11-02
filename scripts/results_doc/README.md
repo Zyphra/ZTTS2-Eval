@@ -74,6 +74,13 @@ per-file copies.
 
 ## Notes
 
+- Char/s decodes and trims every wav, which used to make `build_speaking_rate.py` the
+  slowest step of `run.sh` (hours). Each wav's trimmed and raw duration is now cached per
+  directory (`<leaf>/speaking_rate_durations.tsv`; the references' in
+  `results/_speaking_rate_ref/<set>_<lang>.tsv`), keyed on file name, size, mtime and the
+  trim threshold, so a rebuild only probes wavs that changed (VoxBlink2 `en`: 219 s cold,
+  22 s warm, identical output). The WER content filter is applied after the cache, so it
+  never goes stale with a rescore.
 - `build_perbin.py` reconstructs the MSR-UTMOS-bin assignment by mirroring the
   selection algorithm in `scripts/prepare_voxblink2_eval_stage_b.py` against the
   cached manifest. Defaults: 5 bins, MSR-UTMOS range [1.0, 4.0] (bin width 0.6).
