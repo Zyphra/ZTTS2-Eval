@@ -219,8 +219,10 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   a parallel MOS predictor; checkpoint pinned to a commit).
 * **Speaking-rate distance** — 2-Wasserstein distance between generated and
   reference characters-per-second distributions, computed at the same half-vs-half
-  geometry as the ceiling. Lower is better; the reference split-half distance is the
-  finite-sample ceiling.
+  geometry as the ceiling. Only utterances the ASR heard with WER ≤ 20% are scored, so
+  a dropped or runaway sentence counts against intelligibility, not pace
+  ([controls C7](docs/controls_2026-08.md)). Lower is better; the reference split-half
+  distance is the finite-sample ceiling.
 * **Rhythm** — per-utterance timing statistics of the run-length distribution of
   deduplicated mHuBERT-147 k-means tokens, scored as the 2-Wasserstein distance to
   the reference at split-half geometry and reported as a multiple of the real-speech
@@ -237,9 +239,10 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
 * **Paired prosody (In-The-Wild only)** — every In-The-Wild item has a real
   recording of the same speaker saying the target sentence, so prosody is also
   compared utterance by utterance against it (same 500-utterance sample): median
-  |log2 duration ratio|, mean |pause-count difference| (a pause is an internal gap
-  ≥ 0.2 s), and median |log2 pitch-range ratio|. 0 means the generation matches the
-  real recording; lower is better.
+  |log2 duration ratio| (on the generations with WER ≤ 20%, as for speaking rate),
+  mean |pause-count difference| (a pause is an internal gap ≥ 0.2 s), and median
+  |log2 pitch-range ratio|. 0 means the generation matches the real recording; lower
+  is better.
 * **MPM span (Clean set only)** — Masked Prosody Model distance normalized per
   language between the real-speech split-half floor (0) and a contour-scrambled
   floor (1). Lower is better, and **values above 1 are worse than the same speech

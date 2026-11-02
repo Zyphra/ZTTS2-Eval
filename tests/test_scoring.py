@@ -130,6 +130,34 @@ class SplitHalfGeometryTest(unittest.TestCase):
         self.assertTrue(0.5 < ratio < 2, ratio)
 
 
+class CharSecContentFilterTest(unittest.TestCase):
+    # char/s divides the TARGET text by the duration, so a truncated or runaway
+    # utterance reads as a pace error: only the ones the ASR heard (WER <= MAX_WER) count.
+    def _leaf(self, d, wers):
+        wavs = Path(d) / "wavs"
+        wavs.mkdir()
+        lines = []
+        for i, w in enumerate(wers, 1):
+            sf.write(wavs / f"uttid_{i}.wav", np.zeros(1600, np.float32), 16000)
+            if w is not None:
+                lines.append(f"{wavs}/uttid_{i}.wav\t{w}\tref\thyp\n")
+        if lines:
+            (Path(d) / "wav_res_ref_text.wer.raw").write_text("".join(lines))
+        return str(wavs)
+
+    def test_only_utterances_the_asr_heard_are_scored(self):
+        import speaking_rate_dist as sr
+        with tempfile.TemporaryDirectory() as d:
+            files, share = sr.heard_files(self._leaf(d, [0.0, sr.MAX_WER, 0.75, None]))
+        self.assertEqual([Path(f).stem for f in files], ["uttid_1", "uttid_2"])
+        self.assertAlmostEqual(share, 0.5)
+
+    def test_untranscribed_leaf_gets_no_char_s(self):
+        import speaking_rate_dist as sr
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(sr.heard_files(self._leaf(d, [None, None])), ([], 0.0))
+
+
 class MpmSpanTest(unittest.TestCase):
     def test_span_anchors(self):
         from utils.score_mpm_shuffle_floor import mpm_span

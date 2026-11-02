@@ -65,7 +65,8 @@ function srSummary(r, col) {
       `<span class="meta">${xc ? xc.slice(3) + " · " : ""}n ${r.n.toLocaleString()}</span>`;
   return head +
     `d<sub>ref</sub> <b>${r.d_ref.toFixed(2)}</b> char/s · 95% CI [${r.ci[0].toFixed(2)}, ${r.ci[1].toFixed(2)}]<br>` +
-    `<span class="meta">median ${r.median} char/s · trunc ${r.truncation_pct}%${xc} · n ${r.n.toLocaleString()}</span>`;
+    `<span class="meta">median ${r.median} char/s${r.heard_pct != null ? ` · scored ${r.heard_pct}% (WER ≤ 20%)` : ""} · ` +
+    `trunc ${r.truncation_pct}%${xc} · n ${r.n.toLocaleString()}</span>`;
 }
 
 // focus emphasises the primary paths via stroke width (colour already encodes

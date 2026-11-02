@@ -368,6 +368,60 @@ at `results/_mpm_shuffle_floor/pre_trim_20261031/` and
 
 ---
 
+## C7 — Content errors scored as pace · **ADOPTED (char/s and paired duration re-scored)**
+
+**Question.** After C6, every other prosody metric was audited for the same kind of
+pitfall. Char/s divides the *target* text length by the trimmed duration, and paired
+duration compares against a real recording of that text, so a content error moves both:
+dropped words read as fast speech, a runaway or hallucinated tail as slow speech. The
+40 char/s truncation cap only catches the extreme case.
+
+**Measurement.** Char/s ×ceil per system (Clean `en de fr ja`, 300 utterances each) on
+every utterance vs only the utterances the ASR heard with WER ≤ 20%. Most systems move
+by ≤ 0.3×, but where a few utterances failed, those few dominate the W2 tail:
+
+| System, language | all utterances | WER ≤ 20% only | kept |
+|---|--:|--:|--:|
+| cosyvoice3, ja | 17.9× | 5.6× | 86% |
+| zonos2_accurate, ja | 13.2× | 6.4× | 93% |
+| zonos2_expressive, de | 13.1× | 5.2× | 90% |
+| moss-tts-v1.5, ja | 9.1× | 3.0× | 92% |
+| qwen3-tts-0.6b-reftext, fr | 8.5× | 4.6× | 96% |
+
+**Design/adoption.** `scripts/speaking_rate_dist.py` scores char/s only on utterances
+whose WER in the leaf's `wav_res_ref_text.wer.raw` is ≤ `MAX_WER` = 0.2 (`heard_files`);
+a leaf with no transcription gets no char/s, and `heard_pct` reports the share kept.
+`scripts/paired_itw.py` applies the same rule to the duration columns only (`n_dur`
+counts the pairs behind them; below 50 they are empty). Pauses and pitch range keep every
+pair. Intelligibility stays in WER and tail rate, where it is already scored. The real
+reference speech is not filtered.
+
+**Result.** All 55 char/s panels and all 20 paired ITW languages re-scored.
+
+- **Char/s rankings mostly hold.** Per-language Spearman between old and new ×ceil has a
+  median of +0.89 on Clean (lowest +0.61) and +0.95 on In-The-Wild (lowest +0.49); 51% of
+  Clean and 71% of ITW leaves move by ≤ 0.3×.
+- **The large moves are content failures leaving the pace score.** omnivoice hr
+  35.5× → 20.0× (10% of its utterances heard), zonos2_expressive hr 14.1× → 2.3×,
+  qwen3-tts-1.7b-reftext hi 18.8× → 6.6×. On In-The-Wild, zonos3-mini_reference zh
+  17.0× → 2.4× and ja 10.1× → 1.2×: its char/s distance there was almost all the
+  18% of utterances it got wrong.
+- **Systems that fail a language outright now have no pace score in it** instead of an
+  extreme one: fewer than 100 heard utterances drops the leaf (Clean: glm-tts 21
+  languages, cosyvoice3 21, voxtral 19; paired duration likewise, e.g. cosyvoice3 in
+  9 ITW languages). Their failures stay in WER and tail rate.
+- **Paired duration** keeps its ranking (Spearman 0.88–1.00 per language); the biggest
+  change is qwen3-tts-1.7b-reftext hi, 2.25 → 0.31 |log2|. Pause and pitch-range columns
+  are unchanged by construction.
+- **Prosody index**, refit on one snapshot with only these inputs swapped: Spearman
+  +0.999; content-failing systems stop paying twice (glm-tts +5.7, kokoro +5.6, voxtral
+  +3.4, zonos2_expressive +2.7). The capability index reads neither metric.
+
+The previous outputs are kept at `results/_prosody_pre_c7_20261101/` (paired CSVs and the
+speaking-rate payload).
+
+---
+
 ## Open items that need humans
 
 Two review findings cannot be closed by compute:

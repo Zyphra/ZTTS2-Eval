@@ -48,8 +48,18 @@ excluded from d_ref and reported separately as truncation_pct.
 
 truncation_pct is a CHEAP FLAG, NOT A MEASUREMENT. The cap only catches severe
 truncation; a generation dropping 20 % of its text lands inside the normal range
-and is invisible. WER is the right instrument (every excluded file scored
-WER 0.5-1.0). Use this column to know d_ref is clean, not to rank robustness.
+and is invisible. That is what the content filter below is for.
+
+CONTENT FILTER (MAX_WER)
+------------------------
+The numerator is the TARGET text, so a content error reads as a pace error:
+dropped words look fast, a runaway or hallucinated tail looks slow. A few such
+utterances dominate W2 (zonos2_accurate ja: 13.2x ceiling on every utterance, 6.4x
+on the 93 % the ASR heard; docs/controls_2026-08.md C7). Only utterances whose
+WER (the leaf's wav_res_ref_text.wer.raw) is <= MAX_WER are scored, so this
+measures pace and intelligibility stays in WER; a leaf with no transcription
+gets no char/s. heard_pct reports the share kept. The reference (real prompt
+speech, no transcription) is not filtered.
 
 Usage
 -----
@@ -126,6 +136,41 @@ def utt_of(path):
     if base.startswith("prompt_audio_"):
         return "uttid_" + base.split("_")[-1]
     return base
+
+
+MAX_WER = 0.2
+
+
+def heard_uids(wav_dir, max_wer=MAX_WER):
+    """uids of a system leaf the ASR transcribed with WER <= max_wer, read from the
+    leaf's wav_res_ref_text.wer.raw (<wav path>\\t<WER fraction>\\t...); None when the
+    leaf has no transcription."""
+    raw = os.path.join(os.path.dirname(os.path.normpath(wav_dir)), "wav_res_ref_text.wer.raw")
+    if not os.path.isfile(raw):
+        return None
+    out = set()
+    with open(raw, encoding="utf-8") as fh:
+        for line in fh:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 2:
+                continue
+            try:
+                if float(parts[1]) <= max_wer:
+                    out.add(utt_of(parts[0]))
+            except ValueError:
+                continue
+    return out
+
+
+def heard_files(wav_dir):
+    """(the leaf's wavs the ASR heard, share of its wavs they are) — the content
+    filter (module docstring); ([], 0.0) for an untranscribed leaf."""
+    files = sorted(glob.glob(os.path.join(wav_dir, "*.wav")))
+    heard = heard_uids(wav_dir)
+    if heard is None or not files:
+        return [], 0.0
+    kept = [f for f in files if utt_of(f) in heard]
+    return kept, len(kept) / len(files)
 
 
 def _probe(args):
@@ -299,7 +344,7 @@ def main():
     systems = find_systems(args.test_set, args.lang, args.models)
     rows = []
     for name, d in sorted(systems.items()):
-        files = sorted(glob.glob(d + "/*.wav"))
+        files, heard_pct = heard_files(d)
         if len(files) < args.min_utts:
             continue
         rates, pad = char_rates(files, target_text, args.top_db, args.workers)
@@ -309,7 +354,8 @@ def main():
         trunc = 100.0 * (rates.size - keep.size) / rates.size
         d_ref = w2_fair(keep, ref)
         lo, hi = boot_ci(keep, ref, args.n_boot)
-        rows.append(dict(system=name, n=rates.size, char_s_median=float(np.median(keep)),
+        rows.append(dict(system=name, n=rates.size, heard_pct=100.0 * heard_pct,
+                         char_s_median=float(np.median(keep)),
                          pad_s=pad, truncation_pct=trunc, d_ref=d_ref, ci_lo=lo, ci_hi=hi,
                          x_ceiling=d_ref / ceil))
         print(f"  {name:34s} n={rates.size:4d} {np.median(keep):6.2f} char/s  "
@@ -319,10 +365,10 @@ def main():
     out = args.out or os.path.join(REPO, "results", f"speaking_rate_{args.test_set}_{args.lang}.csv")
     import csv as _csv
     with open(out, "w", newline="") as fh:
-        w = _csv.DictWriter(fh, fieldnames=["rank", "system", "n", "char_s_median", "pad_s",
+        w = _csv.DictWriter(fh, fieldnames=["rank", "system", "n", "heard_pct", "char_s_median", "pad_s",
                                             "truncation_pct", "d_ref", "ci_lo", "ci_hi", "x_ceiling"])
         w.writeheader()
-        w.writerow(dict(rank=0, system="__CEILING_split_half__", n=ref.size,
+        w.writerow(dict(rank=0, system="__CEILING_split_half__", n=ref.size, heard_pct=100.0,
                         char_s_median=float(np.median(ref)), pad_s=ref_pad, truncation_pct=0.0,
                         d_ref=ceil, ci_lo="", ci_hi="", x_ceiling=1.0))
         for i, r in enumerate(rows):

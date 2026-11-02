@@ -4,7 +4,10 @@ On the in-the-wild set every item has a held-out real recording of the same spea
 saying the target sentence (data/zero_shot_voxblink/<lang>/target_wav.scp), so prosody
 can be compared utterance by utterance instead of only as distributions:
 
-  dur_log2    log2(trimmed duration of the generation / of the real recording)
+  dur_log2    log2(trimmed duration of the generation / of the real recording), on the
+              generations the ASR heard (WER <= speaking_rate_dist.MAX_WER) only: the target
+              text is fixed, so a truncated or runaway generation is a content error, not
+              pace (docs/controls_2026-08.md C7)
   pause_diff  #pauses(generation) - #pauses(real); a pause is an internal gap >= 0.2 s
               between librosa.effects.split(top_db=35) intervals
   range_log2  log2(pitch range of the generation / of the real recording), utils/pitch_range
@@ -16,8 +19,9 @@ typical utterance is. Uses the same fixed uid sample as scripts/pitch_range_dist
 
     python scripts/paired_itw.py --lang en
 
-Output: results/paired_itw_<lang>.csv with columns system, n, dur_log2_med, dur_abs_med,
-pause_diff_mean, pause_abs_mean, range_log2_med, range_abs_med, benchmark_version.
+Output: results/paired_itw_<lang>.csv with columns system, n, n_dur, dur_log2_med, dur_abs_med,
+pause_diff_mean, pause_abs_mean, range_log2_med, range_abs_med, benchmark_version (n_dur =
+the heard pairs behind the duration columns; they are nan below DUR_MIN_N).
 The real-recording GT system (gt_zero_shot_voxblink) is not a row: it IS the reference.
 """
 import argparse
@@ -32,7 +36,7 @@ import numpy as np
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
-from speaking_rate_dist import find_systems  # noqa: E402
+from speaking_rate_dist import find_systems, heard_uids  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION, sample_uids  # noqa: E402
 from utils.pitch_range import ranges_cached  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
@@ -42,6 +46,7 @@ GT_NAME = f"gt_{TASK}"
 SR = 16000
 TOP_DB = 35.0
 PAUSE_S = 0.2
+DUR_MIN_N = 50
 
 
 def audio_stats(path):
@@ -114,31 +119,35 @@ def main():
         st = stats_for(wavs, args.workers)
         rng = ranges_cached(wavs, os.path.join(os.path.dirname(wav_dir), "pitch_range.tsv"),
                             args.workers)
+        heard = heard_uids(wav_dir) or set()
         dur, pause, prange = [], [], []
         for u in wavs:
             s, t = st[u], tgt_stats.get(u)
             if s is None or t is None:
                 continue
-            dur.append(math.log2(s[0] / t[0]))
+            if u in heard:
+                dur.append(math.log2(s[0] / t[0]))
             pause.append(s[1] - t[1])
             r = log2_ratio(rng[u], tgt_range.get(u))
             if r is not None:
                 prange.append(r)
-        if len(dur) < need:
+        if len(pause) < need:
             continue
+        dur_ok = len(dur) >= DUR_MIN_N
         rows.append(dict(
-            system=name, n=len(dur),
-            dur_log2_med=med(dur), dur_abs_med=med(np.abs(dur)),
+            system=name, n=len(pause), n_dur=len(dur),
+            dur_log2_med=med(dur) if dur_ok else float("nan"),
+            dur_abs_med=med(np.abs(dur)) if dur_ok else float("nan"),
             pause_diff_mean=float(np.mean(pause)), pause_abs_mean=float(np.mean(np.abs(pause))),
             range_log2_med=med(prange), range_abs_med=med(np.abs(prange)),
             benchmark_version=BENCHMARK_VERSION))
         r = rows[-1]
-        print(f"  {name:34s} n={r['n']:4d} dur {r['dur_log2_med']:+.3f} |{r['dur_abs_med']:.3f}|  "
+        print(f"  {name:34s} n={r['n']:4d} dur(n={r['n_dur']}) {r['dur_log2_med']:+.3f} |{r['dur_abs_med']:.3f}|  "
               f"pauses {r['pause_diff_mean']:+.2f} |{r['pause_abs_mean']:.2f}|  "
               f"range {r['range_log2_med']:+.3f} |{r['range_abs_med']:.3f}|", flush=True)
 
     out = args.out or os.path.join(REPO, "results", f"paired_itw_{args.lang}.csv")
-    fields = ["system", "n", "dur_log2_med", "dur_abs_med", "pause_diff_mean", "pause_abs_mean",
+    fields = ["system", "n", "n_dur", "dur_log2_med", "dur_abs_med", "pause_diff_mean", "pause_abs_mean",
               "range_log2_med", "range_abs_med", "benchmark_version"]
     with open(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=fields)

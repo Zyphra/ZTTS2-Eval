@@ -13,8 +13,9 @@ without numpy or librosa:
 
   - the reference: n, median char/s, lead+trail silence, and a quantile function
     (char/s at a fixed probability grid P — plotting (q, P) gives the ECDF);
-  - per system: n, median, truncation_pct, d_ref + bootstrap 95% CI, x_ceiling,
-    and the same quantile function.
+  - per system: n, heard_pct (share of its utterances the ASR heard with WER <= 20%,
+    the only ones scored: speaking_rate_dist's content filter), median,
+    truncation_pct, d_ref + bootstrap 95% CI, x_ceiling, and the same quantile function.
 
 char/s is only comparable WITHIN a language (a Chinese character is a whole
 syllable), so every panel is one language — never cross-lang. Languages/systems
@@ -109,7 +110,7 @@ def build_panel(test_set, lang, args):
         "seed": args.seed,
     })
     for name, d in sorted(systems.items()):
-        files = sorted(glob.glob(os.path.join(d, "*.wav")))
+        files, heard_pct = sr.heard_files(d)          # content filter: WER <= sr.MAX_WER only
         if len(files) < args.min_utts:
             continue
         rates, pad = sr.char_rates(files, target_text, args.top_db, args.workers)
@@ -122,6 +123,7 @@ def build_panel(test_set, lang, args):
         series.append({
             "name": name,
             "n": int(rates.size),
+            "heard_pct": round(100.0 * heard_pct, 1),
             "median": round(float(np.median(keep)), 2),
             "pad_s": round(pad, 3),
             "truncation_pct": round(trunc, 2),

@@ -434,7 +434,8 @@ def render(recs, dedup=None, cap_index=None):
     W("  speaker's absolute register drops out and only expressiveness remains. Method:")
     W("  [`docs/pitch_range.md`](docs/pitch_range.md).")
     W("- **Characters/s** — 2-Wasserstein distance to the reference speaking-rate")
-    W("  distribution (explorer speaking-rate view).")
+    W("  distribution (explorer speaking-rate view), on the utterances with WER ≤ 20%")
+    W("  (docs/controls_2026-08.md C7).")
     W("- **MPM span: Clean set only — anchors collapse on in-the-wild audio "
       "(docs/mpm_itw_limits.md); values >1 are worse than contour-scrambled speech.** "
       "0 = real-speech split-half floor, 1 = contour-scrambled floor. Leading/trailing "
@@ -528,11 +529,13 @@ def render(recs, dedup=None, cap_index=None):
     W("  semitone-range distributions of generated and real speech, in units of the")
     W("  split-half ceiling, on a fixed 500-utterance sample per language")
     W("  (`scripts/pitch_range_dist.py`, `docs/pitch_range.md`).")
-    W("- **Paired ITW prosody** = per-utterance median |log2| duration ratio, mean absolute")
-    W("  pause-count difference and median |log2| pitch-range ratio of each generation")
-    W("  against the real target recording (`scripts/paired_itw.py`); ITW only.")
+    W("- **Paired ITW prosody** = per-utterance median |log2| duration ratio (generations")
+    W("  with WER ≤ 20% only), mean absolute pause-count difference and median |log2|")
+    W("  pitch-range ratio of each generation against the real target recording")
+    W("  (`scripts/paired_itw.py`); ITW only.")
     W("- **Characters/s distance** = 2-Wasserstein distance between generated and")
-    W("  reference speaking-rate distributions (`scripts/speaking_rate_dist.py`); lower is better.")
+    W("  reference speaking-rate distributions on the utterances the ASR heard with")
+    W("  WER ≤ 20% (`scripts/speaking_rate_dist.py`); lower is better.")
     W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
     W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`), on audio")
     W("  with leading/trailing silence trimmed (`docs/controls_2026-08.md` C6). Clean")

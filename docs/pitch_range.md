@@ -77,7 +77,7 @@ sample:
 
 | per-utterance quantity | definition |
 |---|---|
-| `dur_log2` | log2(trimmed duration of the generation / of the real recording) |
+| `dur_log2` | log2(trimmed duration of the generation / of the real recording), over the generations the ASR heard with WER ≤ 20% (`n_dur` of them; empty below 50) |
 | `pause_diff` | #pauses(generation) − #pauses(real); a pause is an internal gap ≥ 0.2 s between `librosa.effects.split(top_db=35)` intervals of the trimmed audio |
 | `range_log2` | log2(pitch range of the generation / of the real recording) |
 

@@ -97,7 +97,8 @@ per-file copies.
   item counts only for a leaf that `results_snapshot.json` scored (`scored_leaves`): the
   speaking-rate payload also keeps partial generations that the coverage gate drops. Real
   speech's char/s items are the ground-truth split-half rows `build_speaking_rate.py`
-  computes for every panel.
+  computes for every panel. System char/s is scored only on utterances with WER ≤ 20%
+  (`speaking_rate_dist.MAX_WER`; `docs/controls_2026-08.md` C7).
 - Release dates for the over-time chart live in `rd_common.RELEASES`, one entry per results
   dir with its source. They are taken from each project's announcement or dated news
   log, not Hugging Face `createdAt` (repos are often created privately weeks before
