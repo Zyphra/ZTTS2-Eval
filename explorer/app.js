@@ -1,6 +1,6 @@
 /* ============================================================
    ZTTS2 · Eval — explorer (vanilla js, no deps)
-   "Our World in Data" theme (see app.css)
+   Zyphra theme (see app.css)
    ============================================================ */
 "use strict";
 
@@ -54,10 +54,6 @@ const STATE = {
   gridClip: 0,
   gridRange: {},
 };
-
-// voxblink per-bin state
-const BINS = { perbin: null, counts: null, lang: "en", hidden: new Set(), models: [], langs: [],
-  initHidden: false };
 
 // ---------------------------------------------------------------------------
 // JSONP data loader
@@ -130,10 +126,9 @@ async function pagedGet(baseUrl, total, page = 120) {
 // boot
 // ---------------------------------------------------------------------------
 async function boot() {
-  buildMetricSeg();
+  buildMetricSelect();
   bindConsole();
   bindDrawer();
-  bindBinResize();
   loadSnapshot();
 }
 
@@ -143,10 +138,8 @@ function applySnapshot(snap) {
     $("#ro-models").textContent = snap.models.length;
     initTaskLang();
     render();
-    foot(`loaded ${snap.rows.length} aggregate rows · ${snap.models.length} models`);
   } catch (e) {
     console.error("render failed after snapshot loaded:", e);
-    foot(`render error: ${e.message}`);
     $("#board-body").innerHTML =
       `<tr><td class="empty-state">snapshot loaded OK, but rendering threw:<br>` +
       `<small>${e.message}</small><br><br>open the browser console for the full stack trace.</td></tr>`;
@@ -154,7 +147,6 @@ function applySnapshot(snap) {
 }
 
 async function loadSnapshot() {
-  foot("loading snapshot…");
   $("#board-body").innerHTML = `<tr><td class="empty-state loading">acquiring snapshot</td></tr>`;
   try {
     const meta = await apiGet("/api/meta");                 // tiny: total + option lists
@@ -163,17 +155,14 @@ async function loadSnapshot() {
                     panels: meta.panels || {} });
   } catch (e) {
     console.error("snapshot load failed:", e);
-    foot(`failed to load snapshot from ${location.origin} — ${e.message}`);
     $("#board-body").innerHTML =
       `<tr><td class="empty-state">couldn't load snapshot from <b>${location.origin}</b><br>` +
       `<small>${e.message}</small><br><br>` +
-      `<button id="retry-snap" style="font:inherit;color:#fff;background:var(--navy);border:0;border-radius:4px;padding:5px 12px;cursor:pointer">retry</button></td></tr>`;
+      `<button id="retry-snap" style="font:inherit;color:var(--bg);background:var(--primary);border:0;border-radius:4px;padding:5px 12px;cursor:pointer">retry</button></td></tr>`;
     const rb = document.getElementById("retry-snap");
     if (rb) rb.onclick = () => loadSnapshot();
   }
 }
-
-function foot(msg) { $("#foot-status").textContent = msg; }
 
 // GT and Whisper are reference baselines: flat results/<model>/<set>/ dirs, so
 // their leaf carries an empty task and is joined into the board of the full task
@@ -263,10 +252,11 @@ function tasksAvailable() {
   STATE.snap.rows.forEach((r) => { if (isBaseline(r.model)) s.add(gtTaskOf(r.model)); });
   return Array.from(s).sort();
 }
-// The reserved set name build_results.py gives a panel's macro-averaged row: the
-// panel estimate over all its languages, which IS the panel's score. Sorts first so
-// it heads the picker, and is the default scope on a panel board — a per-language
-// panel cell is a handful of items and reads as noise unless you asked for it.
+// The reserved set name build_results.py gives a macro-averaged row: on a panel it is the
+// panel estimate over all its languages, which IS the panel's score; on a full set it is
+// the unweighted macro over the set's language basket (RESULTS_CURRENT.md's headline
+// number). Sorts first so it heads the picker, and it is the default scope: one number
+// per system first, the per-language cells one pick away.
 const ALL_SET = "ALL";
 function langsForTask(task) {
   const s = new Set();
@@ -278,7 +268,7 @@ function langsForTask(task) {
 
 function defaultLang(task) {
   const langs = langsForTask(task);
-  if (panelOf(task) && langs.includes(ALL_SET)) return ALL_SET;
+  if (langs.includes(ALL_SET)) return ALL_SET;
   return langs.includes("en") ? "en" : langs[0];
 }
 
@@ -292,12 +282,11 @@ function initTaskLang() {
   refreshLangSelect();
 }
 
-// Switching INTO a panel snaps to its aggregate, and switching out of it snaps back
-// to a real language — carrying "ALL" onto a full task would land on an empty board,
-// and carrying a language into a panel would open on its noisiest view.
+// Switching INTO a panel snaps to its aggregate: carrying a language into a panel would
+// open on its noisiest view. Otherwise the scope carries over when the task has it.
 function refreshLangSelect() {
   const langs = langsForTask(STATE.task);
-  if (!langs.includes(STATE.lang) || (STATE.lang === ALL_SET) !== !!panelOf(STATE.task)) {
+  if (!langs.includes(STATE.lang) || (panelOf(STATE.task) && STATE.lang !== ALL_SET)) {
     STATE.lang = defaultLang(STATE.task);
   }
   const sel = $("#sel-lang");
@@ -309,20 +298,18 @@ function refreshLangSelect() {
 // ---------------------------------------------------------------------------
 // console (filter bar) wiring
 // ---------------------------------------------------------------------------
-function buildMetricSeg() {
-  const seg = $("#metric-seg");
-  METRICS.forEach((m) => {
-    const b = el("button", m.key === STATE.metric ? "on" : "", m.label);
-    b.dataset.metric = m.key;
-    b.onclick = () => {
-      STATE.metric = m.key;
-      STATE.sortKey = m.key;
-      STATE.sortDir = null;
-      $$("#metric-seg button").forEach((x) => x.classList.toggle("on", x === b));
-      render();
-    };
-    seg.append(b);
-  });
+// the grid's heatmap metric (the board shows every metric as a column); picking one
+// also makes it the board's sort, as the old pill row did
+function buildMetricSelect() {
+  const sel = $("#sel-metric");
+  METRICS.forEach((m) => sel.append(new Option(m.label, m.key)));
+  sel.value = STATE.metric;
+  sel.onchange = () => {
+    STATE.metric = sel.value;
+    STATE.sortKey = sel.value;
+    STATE.sortDir = null;
+    render();
+  };
 }
 
 function bindConsole() {
@@ -377,6 +364,7 @@ function modelTag(model) {
   if (model.startsWith("zonos3")) return ["zonos", "Z3"];
   if (model.startsWith("omni_")) return ["", "OMNI"];
   if (model.startsWith("fal")) return ["", "FAL"];
+  if (/^(elevenlabs|cartesia|inworld|gemini)_/.test(model)) return ["", "API"];
   return ["", ""];
 }
 // Pretty display names for results dirs whose on-disk name is not the public
@@ -396,27 +384,31 @@ function render() {
   const v = STATE.view;
   $("#board-view").classList.toggle("hidden", v !== "board");
   $("#grid-view").classList.toggle("hidden", v !== "grid");
-  $("#bins-view").classList.toggle("hidden", v !== "bins");
   $("#rel-view").classList.toggle("hidden", v !== "reliability");
   $("#sr-view").classList.toggle("hidden", v !== "speaking");
   $("#mpm-view").classList.toggle("hidden", v !== "mpm");
+  $("#ci-view").classList.toggle("hidden", v !== "index");
   // board/grid: app layout — the page stops scrolling and only the table box does
   // (app.css body.app-layout); the chart views keep ordinary page scrolling
   document.body.classList.toggle("app-layout", v === "board" || v === "grid");
-  // task/lang/metric/filter controls don't apply to the voxblink bins /
-  // reliability / speaking-rate / prosody-overlap views (each carries its own selectors)
-  const selfSel = v === "bins" || v === "reliability" || v === "speaking" || v === "mpm";
-  [$("#sel-task"), $("#sel-lang"), $("#inp-filter"), $("#metric-seg")].forEach((elm) => {
-    const c = elm.closest(".ctl"); if (c) c.style.display = selfSel ? "none" : "";
+  // task/lang/metric/filter controls don't apply to the reliability / speaking-rate /
+  // prosody-overlap / index views (each carries its own selectors), and the board shows
+  // every metric as a sortable column, so the metric picker is the grid's alone; the
+  // grid shows every language as a column, so it has no language picker
+  const selfSel = v === "reliability" || v === "speaking" || v === "mpm" || v === "index";
+  const hide = { "sel-metric": v === "board", "sel-lang": v === "grid" };
+  [$("#sel-task"), $("#sel-lang"), $("#inp-filter"), $("#sel-metric")].forEach((elm) => {
+    const c = elm.closest(".ctl");
+    if (c) c.style.display = selfSel || hide[elm.id] ? "none" : "";
   });
   // before the self-selecting views return early — those ignore STATE.task, so a
   // panel note left over from the board would caption data it has nothing to do with
   renderPanelNote();
-  if (v === "bins") { $("#ro-channel").textContent = `voxblink / ${BINS.lang}`; renderBins(); return; }
   if (v === "reliability") { if (window.renderReliability) window.renderReliability(); return; }
   if (v === "speaking") { if (window.renderSpeaking) window.renderSpeaking(); return; }
   if (v === "mpm") { if (window.renderMPM) window.renderMPM(); return; }
-  $("#ro-channel").textContent = `${STATE.task} / ${STATE.lang}`;
+  if (v === "index") { if (window.renderIndex) window.renderIndex(); return; }
+  $("#ro-channel").textContent = v === "grid" ? STATE.task : `${STATE.task} / ${STATE.lang}`;
   if (v === "board") renderBoard(); else renderGrid();
 }
 
@@ -519,6 +511,13 @@ function renderBoard() {
         wrap.append(t);
       }
     }
+    // a full-set macro needs every language: a system scored on fewer says how many
+    if (r.macro && r.macro.langs < r.macro.of) {
+      const t = el("span", "tag thin", `${r.macro.langs}/${r.macro.of} langs`);
+      t.title = `scored on ${r.macro.langs} of the set's ${r.macro.of} languages: no macro, ` +
+        `a mean over a different language subset is a different quantity`;
+      wrap.append(t);
+    }
     lead.append(wrap);
     row.append(lead);
 
@@ -577,9 +576,10 @@ function setSort(key) {
 // heatmap grid
 // ---------------------------------------------------------------------------
 function lerpColor(t) {
-  // t: 0=worst .. .5=neutral .. 1=best — an owid-flavoured RdBu diverging
-  // scale, pale enough for dark text to read on top (worse=rust, best=blue).
-  const stops = [[233, 180, 165], [244, 243, 238], [166, 192, 222]];
+  // t: 0=worst .. .5=neutral .. 1=best — a zyphra orange↔blue diverging scale,
+  // pale enough for dark text to read on top (worse=orange, best=blue). The neutral
+  // stop is the surface white, so it stays distinct from empty (--bg) cells.
+  const stops = [[243, 190, 156], [250, 250, 249], [176, 208, 250]];
   const seg = t < 0.5 ? 0 : 1;
   const f = t < 0.5 ? t / 0.5 : (t - 0.5) / 0.5;
   const a = stops[seg], b = stops[seg + 1];
@@ -655,7 +655,7 @@ function renderGrid() {
   models.forEach((mo) => {
     const tr = el("tr");
     const th = el("th", "", cleanName(mo));
-    th.onclick = () => openDrawer(mo, task, STATE.lang);
+    th.onclick = () => openDrawer(mo, task, ALL_SET);   // the system's per-language breakdown
     tr.append(th);
     langs.forEach((l) => {
       const r = lookup(mo, l);
@@ -684,15 +684,13 @@ function renderGrid() {
   legend.innerHTML = "";
   // the bar runs worse → better, so for lower-is-better metrics the left end is `hi`
   const [worseV, betterV] = m.low ? [hi, lo] : [lo, hi];
-  const nOut = vals.filter((v) => v < lo || v > hi).length;
   legend.append(el("span", "", `worse`));
   legend.append(el("span", "legend-end", `${m.low ? "≥" : "≤"} ${m.fmt(worseV)}`));
   const bar = el("div", "legend-bar");
-  bar.style.background = "linear-gradient(90deg, rgb(233,180,165), rgb(244,243,238), rgb(166,192,222))";
+  bar.style.background = `linear-gradient(90deg, ${lerpColor(0)}, ${lerpColor(0.5)}, ${lerpColor(1)})`;
   legend.append(bar);
   legend.append(el("span", "legend-end", `${m.low ? "≤" : "≥"} ${m.fmt(betterV)}`));
-  legend.append(el("span", "", `better · metric: ${m.label}` +
-    (nOut ? ` · ${nOut} cell${nOut > 1 ? "s" : ""} outside the range, shown at the end colour` : "")));
+  legend.append(el("span", "", "better"));
 }
 
 // Reflect the effective range in the (static) knob: the clip slider, and the min/max
@@ -771,15 +769,17 @@ function openDrawer(model, task, lang) {
   });
 }
 
-// Drill-down for a panel's ALL row: the per-language pieces the macro-average is
-// built from, worst first. This is the honest view of a panel aggregate — it shows
-// how much of the number one bad language is carrying, which a single figure hides.
+// Drill-down for an ALL row: the per-language pieces the macro-average is built from,
+// worst first. This is the honest view of an aggregate — it shows how much of the
+// number one bad language is carrying, which a single figure hides.
 function openAggregateDrawer(model, task) {
   const m = METRIC[STATE.metric === "n" ? "wer" : STATE.metric];
+  // a baseline's full-set rows are flat (task ""); on a panel it has real panel rows
+  const t = isBaseline(model) && !panelOf(task) ? "" : task;
   const agg = STATE.snap.rows.find(
-    (r) => r.model === model && r.task === task && r.set === ALL_SET);
+    (r) => r.model === model && r.task === t && r.set === ALL_SET);
   const parts = STATE.snap.rows
-    .filter((r) => r.model === model && r.task === task && r.set !== ALL_SET)
+    .filter((r) => r.model === model && r.task === t && r.set !== ALL_SET)
     .map((r) => ({ row: r, v: m.get(r) }))
     .filter((p) => p.v != null && !isNaN(p.v))
     .sort((a, b) => (m.low ? b.v - a.v : a.v - b.v));   // worst first
@@ -1077,7 +1077,7 @@ function makePlayer(url, kind, title) {
   audio.src = url;
   ALL_AUDIO.add(audio);
 
-  const accent = kind === "gen" ? "#b13507" : "#4C6A9C";   // gen=rust, prompt=blue
+  const accent = kind === "gen" ? "#e7620f" : "#2684ff";   // gen=orange, prompt=blue
   let peaks = null, dur = 0;
 
   function draw() {
@@ -1090,7 +1090,7 @@ function makePlayer(url, kind, title) {
     const W = canvas.width, H = canvas.height, mid = H / 2;
     const prog = dur ? audio.currentTime / dur : 0;
     if (!peaks) {
-      ctx.strokeStyle = "rgba(133,133,133,.5)";   // owid grey baseline
+      ctx.strokeStyle = "rgba(99,99,95,.5)";   // muted baseline
       ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
       return;
     }
@@ -1099,7 +1099,7 @@ function makePlayer(url, kind, title) {
       const h = Math.max(dpr, peaks[k] * H * 0.92);
       const x = k * bw;
       const played = k / peaks.length <= prog;
-      ctx.fillStyle = played ? accent : "rgba(210,210,210,.95)";   // grey unplayed
+      ctx.fillStyle = played ? accent : "rgba(212,212,208,.95)";   // grey unplayed
       ctx.fillRect(x, mid - h / 2, Math.max(dpr, bw - dpr), h);
     }
   }
@@ -1148,251 +1148,26 @@ function resetAudio() {
 }
 
 // ---------------------------------------------------------------------------
-// voxblink per-MSR-UTMOS-bin scope chart
+// SVG helpers shared by the chart views (chart_common.js and the view files)
 // ---------------------------------------------------------------------------
-// owid-distinct categorical line colours (their line-chart entity palette)
-const BIN_PALETTE = [
-  "#4C6A9C", "#b13507", "#578145", "#B16214", "#6D3E91", "#00847E",
-  "#C15065", "#9A5129", "#CF0A66", "#883039", "#00588A", "#C36A2D",
-];
 const NSVG = "http://www.w3.org/2000/svg";
 const svgEl = (tag, attrs) => {
   const n = document.createElementNS(NSVG, tag);
   for (const k in attrs) n.setAttribute(k, attrs[k]);
   return n;
 };
-// Colour is keyed on the model's index in the *global* list, not its position among
-// the models present in the current language — otherwise a system changes colour as
-// you page through languages and the chart stops being comparable.
-function binColor(model) {
-  if (model === "gt") return "#1d3d63";       // ground-truth floor = navy, dashed
-  if (model === "whisper") return "#858585";  // ASR re-transcription ceiling, dashed
-  const i = BINS.models.indexOf(model);
-  return BIN_PALETTE[(i < 0 ? 0 : i) % BIN_PALETTE.length];
-}
-function isBinBaseline(m) { return m === "gt" || m === "whisper"; }
-function binModelLabel(m) {
-  if (m === "gt") return "ground-truth";
-  if (m === "whisper") return "whisper re-asr";
-  return m;
-}
-
-async function ensureBins() {
-  if (BINS.perbin) return true;
-  try {
-    const [pb, bc] = await Promise.all([
-      apiGet("/api/voxblink/perbin"),
-      apiGet("/api/voxblink/bincounts").catch(() => ({})),
-    ]);
-    if (!pb || pb.error) return false;
-    BINS.perbin = pb;
-    BINS.counts = bc && !bc.error ? bc : {};
-    const ms = new Set(), ls = new Set();
-    Object.keys(pb).forEach((k) => { const [m, l] = k.split("|"); ms.add(m); ls.add(l); });
-    // Mirror of rd_common.CANON_LANG_ORDER (keep in sync; yo removed 2026-08-29).
-    const VORD = ["en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru", "pt", "ar", "hi", "id", "tr", "tl", "pl", "th", "nl", "uk", "vi"];
-    const ord = (list, x) => { const i = list.indexOf(x); return i < 0 ? 99 : i; };
-    BINS.langs = Array.from(ls).sort((a, b) => ord(VORD, a) - ord(VORD, b) || a.localeCompare(b));
-    // systems first (alphabetical, so the colour index is stable), reference
-    // baselines last — they are the floor/ceiling of the panel, not competitors
-    BINS.models = Array.from(ms).sort((a, b) =>
-      (isBinBaseline(a) - isBinBaseline(b)) || a.localeCompare(b));
-    if (!BINS.langs.includes(BINS.lang)) BINS.lang = BINS.langs.includes("en") ? "en" : BINS.langs[0];
-    // Start on a readable set: the whisper ceiling is off by default, one legend click from being back.
-    if (!BINS.initHidden) {
-      BINS.initHidden = true;
-      BINS.models.forEach((m) => { if (m === "whisper") BINS.hidden.add(m); });
-    }
-    return true;
-  } catch (e) { return false; }
-}
-
-async function renderBins() {
-  const ok = await ensureBins();
-  const tip = $("#bins-tip");
-  if (!ok) {
-    $("#bins-chart").innerHTML = `<div class="loading">no voxblink bin cache on disk</div>`;
-    $("#bins-legend").innerHTML = ""; $("#bins-langs").innerHTML = "";
-    $("#bins-source").innerHTML = "";
-    return;
-  }
-  renderBinsLangs();
-  renderBinsLegend();
-  drawBinsChart();
-  const src = $("#bins-source");
-  if (src) src.innerHTML =
-    `<span><b>Data:</b> ZTTS2-Eval · VoxBlink2 in-the-wild, one trace per system, ` +
-    `prompts stratified by reference MSR-UTMOS · dashed = reference baselines</span>` +
-    `<span class="lic">CC BY</span>`;
-  $("#ro-rows").textContent = modelsForLang().filter((m) => !BINS.hidden.has(m)).length;
-}
-
-function modelsForLang() {
-  return BINS.models.filter((m) => BINS.perbin[`${m}|${BINS.lang}`]);
-}
-
-function renderBinsLangs() {
-  const box = $("#bins-langs");
-  box.innerHTML = "";
-  BINS.langs.forEach((l) => {
-    const c = el("button", "lang-chip" + (l === BINS.lang ? " on" : ""), l);
-    c.onclick = () => { BINS.lang = l; render(); };
-    box.append(c);
-  });
-}
-
-function renderBinsLegend() {
-  const box = $("#bins-legend");
-  box.innerHTML = "";
-  modelsForLang().forEach((m, i) => {
-    const item = el("div", "leg-item" + (BINS.hidden.has(m) ? " off" : ""));
-    const sw = el("span", "swatch" + (isBinBaseline(m) ? " dash" : ""));
-    const col = binColor(m);
-    sw.style.color = col; sw.style.background = isBinBaseline(m) ? "" : col;
-    item.append(sw, el("span", "", binModelLabel(m)));
-    item.onclick = () => {
-      if (BINS.hidden.has(m)) BINS.hidden.delete(m); else BINS.hidden.add(m);
-      render();
-    };
-    box.append(item);
-  });
-}
-
-function drawBinsChart() {
-  const chart = $("#bins-chart");
-  const tip = $("#bins-tip");
-  chart.querySelectorAll("svg").forEach((s) => s.remove());
-  tip.hidden = true;
-
-  const W = Math.max(360, chart.clientWidth);
-  const H = 440;
-  const ml = 48, mr = 124, mt = 18, mb = 38;   // wide right margin for direct labels
-  const plotW = W - ml - mr, plotH = H - mt - mb;
-
-  const models = modelsForLang();
-  const visible = models.filter((m) => !BINS.hidden.has(m));
-  const lang = BINS.lang;
-
-  // bin count comes from the cache (build_perbin.py), not a hardcoded value.
-  let NB = 0;
-  models.forEach((m) => { const a = BINS.perbin[`${m}|${lang}`]; if (a) NB = Math.max(NB, a.length); });
-  if (!NB) NB = 5;
-
-  let ymax = 0;
-  visible.forEach((m) => (BINS.perbin[`${m}|${lang}`] || []).forEach((v) => {
-    if (v != null && isFinite(v) && v > ymax) ymax = v;
-  }));
-  ymax = Math.max(10, Math.ceil((ymax * 1.08) / 5) * 5);
-
-  const x = (j) => ml + (NB === 1 ? 0 : (j / (NB - 1)) * plotW);
-  const y = (v) => mt + plotH * (1 - v / ymax);
-
-  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, preserveAspectRatio: "none" });
-
-  // y gridlines + labels (owid: horizontal gridlines only, no frame; value=0 is
-  // the darker baseline; the top tick carries the unit)
-  const ticks = 5;
-  for (let t = 0; t <= ticks; t++) {
-    const val = (ymax / ticks) * t;
-    const yy = y(val);
-    svg.append(svgEl("line", { class: t === 0 ? "zero-line" : "gridline", x1: ml, y1: yy, x2: ml + plotW, y2: yy }));
-    const lbl = svgEl("text", { class: "axis-txt", x: ml - 8, y: yy + 3, "text-anchor": "end" });
-    lbl.textContent = t === ticks ? `${val.toFixed(0)}%` : val.toFixed(0);
-    svg.append(lbl);
-  }
-  // x labels (bins)
-  for (let j = 0; j < NB; j++) {
-    const t = svgEl("text", { class: "axis-txt", x: x(j), y: mt + plotH + 16, "text-anchor": "middle" });
-    t.textContent = "b" + j;
-    svg.append(t);
-    const n = BINS.counts[lang] ? BINS.counts[lang][j] : null;
-    if (n != null) {
-      const cnt = svgEl("text", { class: "axis-txt", x: x(j), y: mt + plotH + 28, "text-anchor": "middle", "font-size": "9", fill: "#858585" });
-      cnt.textContent = `n${n}`;
-      svg.append(cnt);
-    }
-  }
-  // x-axis caption only (owid: no frame, no rotated y-title — the y unit rides the
-  // top tick and the metric is named in the subtitle above the chart)
-  const xlab = svgEl("text", { class: "axis-lab", x: ml + plotW / 2, y: H - 4, "text-anchor": "middle" });
-  xlab.textContent = "reference MSR-UTMOS bin · worst → best";
-  svg.append(xlab);
-
-  // traces
-  models.forEach((m, i) => {
-    if (BINS.hidden.has(m)) return;
-    const vals = BINS.perbin[`${m}|${lang}`] || [];
-    const col = binColor(m);
-    // build path, breaking across nulls
-    let d = "", pen = false;
-    for (let j = 0; j < NB; j++) {
-      const v = vals[j];
-      if (v == null || !isFinite(v)) { pen = false; continue; }
-      d += `${pen ? "L" : "M"}${x(j).toFixed(1)} ${y(v).toFixed(1)} `;
-      pen = true;
-    }
-    if (d) {
-      const path = svgEl("path", { class: "trace", d, stroke: col });
-      if (isBinBaseline(m)) path.setAttribute("stroke-dasharray", "5 4");
-      svg.append(path);
-    }
-    // dots
-    for (let j = 0; j < NB; j++) {
-      const v = vals[j];
-      if (v == null || !isFinite(v)) continue;
-      const dot = svgEl("circle", { class: "dot", cx: x(j), cy: y(v), r: 3, fill: col });
-      dot.addEventListener("mouseenter", () => {
-        const n = BINS.counts[lang] ? BINS.counts[lang][j] : null;
-        tip.innerHTML =
-          `<span class="sw" style="background:${col}"></span><b>${binModelLabel(m)}</b> · b${j}<br>` +
-          `WER_CLIP <b>${(+v).toFixed(2)}</b>%<br>` +
-          `<span class="meta">${lang} · MSR-UTMOS bin ${j}/${NB - 1}${n != null ? " · n=" + n : ""}</span>`;
-        tip.style.left = x(j) + "px";
-        tip.style.top = (y(v) - 8) + "px";
-        tip.hidden = false;
-      });
-      dot.addEventListener("mouseleave", () => { tip.hidden = true; });
-      svg.append(dot);
-    }
-  });
-
-  // direct labels at the right edge (tufte idiom: name the line, drop the legend
-  // hunt). Collect each visible trace's last drawn point, then de-collide.
-  const labs = [];
-  models.forEach((m, i) => {
-    if (BINS.hidden.has(m)) return;
-    const vals = BINS.perbin[`${m}|${lang}`] || [];
-    let lj = -1;
-    for (let j = NB - 1; j >= 0; j--) { const v = vals[j]; if (v != null && isFinite(v)) { lj = j; break; } }
-    if (lj < 0) return;
-    labs.push({ m, col: binColor(m), yv: y(vals[lj]), text: binModelLabel(m) });
-  });
-  labs.sort((a, b) => a.yv - b.yv);
-  const GAP = 13;                                   // min vertical spacing
-  for (let k = 1; k < labs.length; k++)             // greedy push-down
-    if (labs[k].yv < labs[k - 1].yv + GAP) labs[k].yv = labs[k - 1].yv + GAP;
-  const lx = ml + plotW + 8;
-  labs.forEach((L) => {
-    const t = svgEl("text", { class: "series-lab", x: lx, y: L.yv,
-      "dominant-baseline": "middle", fill: L.col });
-    t.textContent = L.text;
-    svg.append(t);
-  });
-
-  chart.append(svg);
-}
-
-// redraw bins chart on resize when it's the active view
-let _binResizeBound = false;
-function bindBinResize() {
-  if (_binResizeBound) return;
-  _binResizeBound = true;
-  let raf = 0;
-  new ResizeObserver(() => {
-    if (STATE.view !== "bins" || !BINS.perbin) return;
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(drawBinsChart);
-  }).observe($("#bins-chart"));
+// Widest rendered width of `texts` set in chart text class `cls` (series-lab, axis-txt …)
+// inside `chart`. Label margins are sized from this, not a per-character guess, so they
+// fit whatever font the theme sets. Returns 0 while `chart` is not laid out.
+function labelWidth(chart, cls, texts) {
+  if (!texts.length) return 0;
+  const probe = svgEl("svg", {});
+  probe.style.cssText = "position:absolute;visibility:hidden;width:0;height:0";
+  texts.forEach((s) => { const t = svgEl("text", { class: cls }); t.textContent = s; probe.append(t); });
+  chart.append(probe);
+  const w = Math.max(...Array.from(probe.children, (t) => t.getComputedTextLength()));
+  probe.remove();
+  return Math.ceil(w);
 }
 
 boot();

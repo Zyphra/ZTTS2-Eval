@@ -1,15 +1,15 @@
 /* ============================================================
    ZTTS2 · Eval — speaking-rate views (scripts/speaking_rate_dist.py, live)
    Interactive SVG twins of the char/s distributional metric, in the
-   "Our World in Data" theme. Reads /api/speaking_rate (built by
+   Zyphra theme. Reads /api/speaking_rate (built by
    scripts/results_doc/build_speaking_rate.py).
-   Depends on globals from app.js ($, $$, el, svgEl, apiGet,
-   BIN_PALETTE) and the chart kit + R_* palette + SMALL_N from
+   Depends on globals from app.js ($, $$, el, svgEl, apiGet)
+   and the chart kit + R_* palette + SMALL_N from
    chart_common.js (loaded first).
    ============================================================ */
 "use strict";
 
-const SR_GREEN = "#417a4f";   // ceiling / reference "natural speech" accent
+const SR_GREEN = "#1f9d55";   // ceiling / reference "natural speech" accent (zyphra green)
 
 // sort: row order of the distribution view — "pace" (fastest median first) or "dref"
 const SR = { data: null, panel: null, type: "dref", sort: "pace", pin: null };
@@ -59,13 +59,17 @@ const srKey = (r) => (r.split ? `${r.name}#half` : r.name);
 
 function srSummary(r, col) {
   const xc = r.x_ceiling != null ? ` · ${r.x_ceiling}× ceiling` : "";
-  return `<span class="sw" style="background:${col || R_NAVY}"></span><b>${srLabel(r)}</b><br>` +
+  const head = `<span class="sw" style="background:${col || R_PRIMARY}"></span><b>${srLabel(r)}</b><br>`;
+  if (!r.ci)    // an "all" macro row: no interval, no single median
+    return head + `d<sub>ref</sub> <b>${r.d_ref.toFixed(2)}</b> char/s · macro over ${r.n_langs} languages<br>` +
+      `<span class="meta">${xc ? xc.slice(3) + " · " : ""}n ${r.n.toLocaleString()}</span>`;
+  return head +
     `d<sub>ref</sub> <b>${r.d_ref.toFixed(2)}</b> char/s · 95% CI [${r.ci[0].toFixed(2)}, ${r.ci[1].toFixed(2)}]<br>` +
     `<span class="meta">median ${r.median} char/s · trunc ${r.truncation_pct}%${xc} · n ${r.n.toLocaleString()}</span>`;
 }
 
 // focus emphasises the primary paths via stroke width (colour already encodes
-// the system here, unlike the reliability plates' navy recolour)
+// the system here, unlike the reliability plates' black recolour)
 const setSrFocus = makeFocus("#sr-chart", {
   dim: "0.12",
   emph: (e, on) => {
@@ -82,9 +86,45 @@ function ensureSr() {
   return ensureCache(SR, "/api/speaking_rate",
     (d) => !!(d.panels && d.panels.length),
     (d) => {
+      addSrMacroPanels(d);
+      // open on the first set's "all" panel (the macro), like the board and the bins
       if (!SR.panel || !d.panels.some((x) => x.key === SR.panel))
-        SR.panel = (d.panels.find((x) => x.lang === "en") || d.panels[0] || {}).key;
+        SR.panel = (d.panels.find((x) => x.aggregate) || d.panels.find((x) => x.lang === "en") || d.panels[0] || {}).key;
     });
+}
+
+// One "all" panel per test set: each system's d_ref (and ×ceiling) macro-averaged over
+// the set's languages, only for systems scored on every one of them — a mean over a
+// different language subset is a different quantity. It carries no interval (per-language
+// bootstrap intervals don't combine into one) and no distribution: char/s is only
+// comparable within a language, so the pace strips stay per-language.
+const SR_ALL = "all";
+function addSrMacroPanels(d) {
+  const sets = [];
+  d.panels.forEach((p) => { if (!sets.includes(p.set)) sets.push(p.set); });
+  sets.forEach((set) => {
+    const ps = d.panels.filter((p) => p.set === set);
+    const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const series = [];
+    ps[0].series.forEach((r0) => {
+      const rs = ps.map((p) => p.series.find((r) => srKey(r) === srKey(r0)));
+      if (rs.some((r) => !r)) return;
+      const xcs = rs.map((r) => r.x_ceiling);
+      series.push({
+        name: r0.name, split: r0.split, seed: r0.seed, n_langs: ps.length,
+        n: rs.reduce((s, r) => s + r.n, 0),
+        d_ref: +mean(rs.map((r) => r.d_ref)).toFixed(3),
+        x_ceiling: xcs.every((v) => v != null) ? +mean(xcs).toFixed(2) : null,
+        ci: null,
+      });
+    });
+    const agg = {
+      key: `${set}|${SR_ALL}`, set, set_label: ps[0].set_label, lang: SR_ALL, aggregate: true,
+      n_langs: ps.length, ceiling: mean(ps.map((p) => p.ceiling)),
+      ref: { n: ps.reduce((s, p) => s + p.ref.n, 0) }, series,
+    };
+    d.panels.splice(d.panels.indexOf(ps[0]), 0, agg);   // heads its set's chip row
+  });
 }
 
 function curPanel() {
@@ -109,12 +149,13 @@ window.renderSpeaking = async function () {
   $("#ro-channel").textContent = `speaking rate / ${p.lang}`;
   renderSrSets();
   renderSrPanels();
-  bindSrTypeSeg();
+  bindSrTypeSeg(p);
   updateSrHead(p);
   drawSr(p);
   const src = $("#sr-source");
   if (src) src.innerHTML =
-    `<span><b>Data:</b> ZTTS2-Eval · ${p.set_label} · ${p.lang} · characters per second over trimmed speech, ` +
+    `<span><b>Data:</b> ZTTS2-Eval · ${p.set_label} · ` +
+    (p.aggregate ? `macro over ${p.n_langs} languages` : p.lang) + ` · characters per second over trimmed speech, ` +
     `2-Wasserstein vs the reference-voice distribution</span><span class="lic">CC BY</span>`;
 };
 
@@ -159,10 +200,19 @@ function renderSrPanels() {
 }
 
 let _srSegBound = false;
-function bindSrTypeSeg() {
-  $$("#sr-type-seg button").forEach((b) => b.classList.toggle("on", b.dataset.sr === SR.type));
+function bindSrTypeSeg(p) {
+  // an "all" panel has no distributions to draw (char/s is only comparable within a
+  // language): the switch stays, its distribution half disabled, so the option is
+  // visibly there one language-pick away. SR.type is kept for when a language returns.
+  const shown = p.aggregate ? "dref" : SR.type;
+  $$("#sr-type-seg button").forEach((b) => {
+    const off = !!p.aggregate && b.dataset.sr === "dist";
+    b.disabled = off;
+    b.title = off ? "per language only: characters per second aren't comparable across languages — pick a language" : "";
+    b.classList.toggle("on", b.dataset.sr === shown);
+  });
   $$("#sr-sort-seg button").forEach((b) => b.classList.toggle("on", b.dataset.sort === SR.sort));
-  $("#sr-sort-seg").hidden = SR.type !== "dist";   // row order only applies to the strips
+  $("#sr-sort-seg").hidden = shown !== "dist";   // row order only applies to the strips
   if (_srSegBound) return;
   _srSegBound = true;
   $$("#sr-type-seg button").forEach((b) => {
@@ -174,6 +224,15 @@ function bindSrTypeSeg() {
 }
 
 function updateSrHead(p) {
+  if (p.aggregate) {
+    $("#sr-title").textContent = "Speaking rate — distance from natural pacing, all languages";
+    $("#sr-note").textContent =
+      `Dot = d ref (2-Wasserstein between the system's and the reference voice's char/s) averaged over ` +
+      `the set's ${p.n_langs} languages, for the ${p.series.length} systems scored on every one of them. ` +
+      `No interval: per-language bootstrap intervals don't combine into one. Lower = closer to natural ` +
+      `pace; the green rule is the mean split-half ceiling. Pace distributions are per language only.`;
+    return;
+  }
   const stat = `${p.series.length} system${p.series.length !== 1 ? "s" : ""} · ${p.lang} · ` +
     `reference n ${p.ref.n.toLocaleString()} · ceiling ${p.ceiling.toFixed(2)} char/s`;
   const H = {
@@ -202,7 +261,7 @@ function clearSrChart() {
 }
 
 function drawSr(p) {
-  if (SR.type === "dist") return drawSrDist(p);
+  if (SR.type === "dist" && !p.aggregate) return drawSrDist(p);
   return drawSrDref(p);
 }
 
@@ -215,17 +274,19 @@ function drawSrDref(p) {
   const rows = p.series.slice().sort((a, b) => a.d_ref - b.d_ref);
 
   const W = Math.max(360, chart.clientWidth);
-  const maxLabel = Math.max(...rows.map((r) => r.name.length), 3);
-  const ml = Math.min(200, Math.max(64, maxLabel * 7.4 + 20));
-  const mr = 92, mt = 16, mb = 46, rowH = 24;
+  const tagOf = (r) => (r.x_ceiling != null ? `${r.d_ref.toFixed(2)}  ${r.x_ceiling}×` : r.d_ref.toFixed(2));
+  const ml = Math.min(260, Math.max(64, labelWidth(chart, "series-lab", rows.map(srLabel)) + 16));
+  const mr = Math.max(60, labelWidth(chart, "axis-txt", rows.map(tagOf)) + 16), mt = 16, mb = 46, rowH = 24;
   const plotW = W - ml - mr;
   const H = mt + rows.length * rowH + mb;
 
-  const xmax = Math.max(p.ceiling, ...rows.map((r) => r.ci[1])) * 1.04;
+  const span = (r) => r.ci || [r.d_ref, r.d_ref];   // "all" rows have no interval
+  const xmax = Math.max(p.ceiling, ...rows.map((r) => span(r)[1])) * 1.04;
   const ticks = srTicks(0, xmax, 5);
   const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
   const tickMax = ticks[ticks.length - 1];
-  const x = linMap(0, tickMax, ml, ml + plotW);
+  // the ticks can stop short of xmax: map the full data range so CI ends stay in the plot
+  const x = linMap(0, Math.max(tickMax, xmax), ml, ml + plotW);
   const gap = 0.006 * tickMax;
 
   const svg = newSvg(W, H);
@@ -249,16 +310,15 @@ function drawSrDref(p) {
   rows.forEach((r, idx) => {
     const yi = mt + idx * rowH + rowH / 2;
     const small = r.n < SMALL_N;
-    const c = small ? R_MUT : R_NAVY;
-    const [lo, hi] = r.ci;
+    const c = small ? R_MUT : R_PRIMARY;
+    const [lo, hi] = span(r);
     if (lo < r.d_ref - gap)
       mark(svg.appendChild(svgEl("line", { x1: x(lo), y1: yi, x2: x(r.d_ref - gap), y2: yi, stroke: R_RULE, "stroke-width": 1.4 })), srKey(r));
     if (hi > r.d_ref + gap)
       mark(svg.appendChild(svgEl("line", { x1: x(r.d_ref + gap), y1: yi, x2: x(hi), y2: yi, stroke: R_RULE, "stroke-width": 1.4 })), srKey(r));
     mark(svg.appendChild(svgEl("circle", { class: "dot", cx: x(r.d_ref), cy: yi, r: 3.6, fill: c })), srKey(r));
     mark(svg.appendChild(stext("series-lab", ml - 8, yi, srLabel(r), { "text-anchor": "end", "dominant-baseline": "middle", fill: R_INK })), srKey(r));
-    const tag = r.x_ceiling != null ? `${r.d_ref.toFixed(2)}  ${r.x_ceiling}×` : r.d_ref.toFixed(2);
-    mark(svg.appendChild(stext("axis-txt", x(hi) + 8, yi, tag,
+    mark(svg.appendChild(stext("axis-txt", x(hi) + 8, yi, tagOf(r),
       { "text-anchor": "start", "dominant-baseline": "middle", fill: R_MUT })), srKey(r));
     const band = svgEl("rect", { x: ml, y: yi - rowH / 2, width: plotW, height: rowH, fill: "transparent" });
     srBind(band, srKey(r), r);
@@ -328,7 +388,7 @@ function srDistSummary(r, ref) {
 }
 
 // real-speech baselines (gt_*) are drawn grey: they are the floor, not a competitor
-const srRowColor = (r) => (r.name.startsWith("gt_") || r.n < SMALL_N ? R_MID : R_NAVY);
+const srRowColor = (r) => (r.name.startsWith("gt_") || r.n < SMALL_N ? R_MID : R_PRIMARY);
 
 function drawSrDist(p) {
   const chart = clearSrChart();
@@ -338,8 +398,8 @@ function drawSrDist(p) {
     : (a, b) => b.median - a.median);
 
   const W = Math.max(520, chart.clientWidth);
-  const maxLabel = Math.max(...rows.map((r) => srLabel(r).length), 16);
-  const ml = Math.min(230, Math.max(120, maxLabel * 7.2 + 24));
+  const ml = Math.min(230, Math.max(120,
+    labelWidth(chart, "series-lab", [...rows.map(srLabel), "natural speech (reference)"]) + 20));
   const cols = [["median", "char/s", 56], ["vs natural", "", 74], ["d", "×ceil", 58]];
   const mr = cols.reduce((s, c) => s + c[2], 0) + 12;
   const rowH = 30, mt = 58, mb = 46;
@@ -411,7 +471,7 @@ function drawSrDist(p) {
     const q75 = srQuantile(r.q, P, 0.75), q90 = srQuantile(r.q, P, 0.9);
     g.append(svgEl("line", { x1: X(q10), y1: ym, x2: X(q90), y2: ym, stroke: col, "stroke-width": 1.4 }));
     g.append(svgEl("rect", { x: X(q25), y: ym - 3.5, width: Math.max(1, X(q75) - X(q25)), height: 7, rx: 2, fill: col }));
-    g.append(svgEl("line", { x1: X(r.median), y1: ym - 5, x2: X(r.median), y2: ym + 5, stroke: "#fff", "stroke-width": 2 }));
+    g.append(svgEl("line", { x1: X(r.median), y1: ym - 5, x2: X(r.median), y2: ym + 5, stroke: "#fafaf9", "stroke-width": 2 }));
     g.append(stext("series-lab", ml - 10, top + rowH / 2, isRef ? "natural speech (reference)" : srLabel(r),
       { "text-anchor": "end", "dominant-baseline": "middle", fill: isRef ? SR_GREEN : R_INK }));
     // numbers: median · vs natural · d ×ceil
@@ -449,8 +509,8 @@ function renderSrKey() {
     it.append(el("span", "", text));
     box.append(it);
   };
-  item(`<path d="M1 13 C9 13 10 2 17 2 C24 2 25 13 33 13" fill="${R_NAVY}" fill-opacity=".16" stroke="${R_NAVY}" stroke-opacity=".55"/>`, "distribution shape");
-  item(`<line x1="2" y1="7" x2="32" y2="7" stroke="${R_NAVY}" stroke-width="1.4"/><rect x="10" y="3.5" width="14" height="7" rx="2" fill="${R_NAVY}"/><line x1="17" y1="2" x2="17" y2="12" stroke="#fff" stroke-width="2"/>`, "p10 · p25–p75 · median · p90");
+  item(`<path d="M1 13 C9 13 10 2 17 2 C24 2 25 13 33 13" fill="${R_PRIMARY}" fill-opacity=".16" stroke="${R_PRIMARY}" stroke-opacity=".55"/>`, "distribution shape");
+  item(`<line x1="2" y1="7" x2="32" y2="7" stroke="${R_PRIMARY}" stroke-width="1.4"/><rect x="10" y="3.5" width="14" height="7" rx="2" fill="${R_PRIMARY}"/><line x1="17" y1="2" x2="17" y2="12" stroke="#fafaf9" stroke-width="2"/>`, "p10 · p25–p75 · median · p90");
   item(`<rect x="8" y="0" width="18" height="14" fill="${SR_GREEN}" opacity=".18"/><line x1="17" y1="0" x2="17" y2="14" stroke="${SR_GREEN}" stroke-width="1.4" stroke-dasharray="4 3"/>`, "natural speech: middle half · median");
   item(`<path d="M1 13 C9 13 10 2 17 2 C24 2 25 13 33 13" fill="none" stroke="${SR_GREEN}" stroke-opacity=".6"/>`, "natural speech shape");
 }

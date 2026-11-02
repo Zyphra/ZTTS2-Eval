@@ -183,6 +183,95 @@ def marked_label(model_dir):
     return label(model_dir) + COND_MARKER.get(cond[0], "")
 
 
+# --- release dates ------------------------------------------------------------
+# Public release of the weights each results/ dir was generated from: (YYYY-MM-DD,
+# source, pre-release?). Used to plot the capability index over time. Dates come from
+# the project's own announcement or dated news log, not Hugging Face `createdAt`: repos
+# are often created privately weeks before launch (Voxtral-4B-TTS-2603: created
+# 2025-11-17, released 2026-03-23). Variants of one checkpoint (-reftext, _embedding,
+# -laci, accurate/expressive) share its date. A system without an entry is undated
+# and left out of the time plot. Hosted API systems (no released weights) are dated by
+# the vendor's public API launch.
+RELEASES = {
+    "kokoro": ("2025-01-27", "hexgrad/Kokoro-82M model card, Releases table (v1.0)", False),
+    "vibevoice-1.5b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS open-sourced)", False),
+    "vibevoice-7b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS; Large = 7B)", False),
+    "vibevoice-rt-0.5b": ("2025-12-03", "microsoft/VibeVoice README news (VibeVoice-Realtime-0.5B)", False),
+    "omni_glm-tts": ("2025-12-11", "zai-org/GLM-TTS README news (open-sourced)", False),
+    "cosyvoice3": ("2025-12-11", "HF FunAudioLLM/Fun-CosyVoice3-0.5B-2512 first commit (README undated)", False),
+    "omni_qwen3-tts-0.6b": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
+    "omni_qwen3-tts-0.6b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
+    "omni_qwen3-tts-1.7b": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
+    "omni_qwen3-tts-1.7b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
+    "moss-tts": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)", False),
+    "moss-tts-local": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)", False),
+    "omni_fish-s2-pro": ("2026-03-09", "Fish Audio blog, 'Fish Audio Open-Sources S2'", False),
+    "omni_voxtral-tts": ("2026-03-23", "Mistral blog, 'Speaking of Voxtral'", False),
+    "omni_omnivoice": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)", False),
+    "omni_omnivoice-reftext": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)", False),
+    "omni_voxcpm2": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)", False),
+    "omni_voxcpm2-reftext": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)", False),
+    "inworld_2_clone": ("2026-05-05", "Inworld TTS release notes, 'Realtime TTS-2'", False),
+    "moss-tts-v1.5": ("2026-05-26", "OpenMOSS/MOSS-TTS README news", False),
+    "omni_higgs-audio-v3": ("2026-06-04", "Boson AI blog, 'Higgs Audio v3 TTS'", False),
+    "zonos2_accurate": ("2026-06-12", "Zyphra blog, 'ZONOS2'", False),
+    "zonos2_expressive": ("2026-06-12", "Zyphra blog, 'ZONOS2'", False),
+    "moss-tts-local-v1.5": ("2026-06-18", "OpenMOSS/MOSS-TTS README news", False),
+    "neutts-2e": ("2026-07-30", "Neuphonic blog, 'Introducing NeuTTS-2E'", False),
+    "cartesia_sonic-3.6_clone": ("2026-08-27", "Cartesia docs, Sonic 3.6 dated snapshot sonic-3.6-2026-08-27 (Stable)", False),
+    "gemini_3.8-flash": ("2026-09-23", "Google blog, 'Gemini 3.8 text-to-speech says hello'", False),
+    "elevenlabs_v4_clone": ("2026-09-28", "ElevenLabs blog, 'Eleven v4'", False),
+    "omni_drama-3": ("2026-10-13", "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)", False),
+    "audio8-tts-realistic-0.6b": ("2026-10-29", "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)", False),
+    # not public yet: dated by the planned public release
+    "zonos3-mini_reference": ("2026-11-13", "Zyphra release plan", True),
+    "zonos3-mini_embedding": ("2026-11-13", "Zyphra release plan", True),
+    "zonos3-mini-laci_reference": ("2026-11-13", "Zyphra release plan", True),
+    "zonos3-mini-laci_embedding": ("2026-11-13", "Zyphra release plan", True),
+}
+
+# --- parameter counts -----------------------------------------------------------
+# Published size of each system's main generative model (LM / backbone), in billions:
+# (total, active or None, source). Codecs and vocoders are excluded unless the
+# developer's own headline number includes them, so this is the size a model is known
+# by, not every weight it loads (Hugging Face repo totals mix both: VibeVoice-1.5B's
+# repo holds 2.7B with its tokenizers). For mixture-of-experts models `active` is the
+# per-token count; the chart plots `total`. Variants of one checkpoint share an entry.
+# Hosted API systems publish no size and have no entry.
+_Z3M = (0.886, 0.155, "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)")
+PARAMS = {
+    "kokoro": (0.082, None, "model name (Kokoro-82M)"),
+    "neutts-2e": (0.125, None, "Neuphonic blog, '125M-parameter'"),
+    "cosyvoice3": (0.5, None, "model name (Fun-CosyVoice3-0.5B)"),
+    "vibevoice-rt-0.5b": (0.5, None, "model name (VibeVoice-Realtime-0.5B)"),
+    "vibevoice-1.5b": (1.5, None, "model name (VibeVoice-1.5B)"),
+    "vibevoice-7b": (7.0, None, "model name (VibeVoice-7B / Large)"),
+    "omni_glm-tts": (1.55, None, "zai-org/GLM-TTS llm/ weights: 6.2 GB fp32 Llama (28 L, d 2048)"),
+    "omni_qwen3-tts-0.6b": (0.6, None, "model name (Qwen3-TTS-12Hz-0.6B)"),
+    "omni_qwen3-tts-0.6b-reftext": (0.6, None, "model name (Qwen3-TTS-12Hz-0.6B)"),
+    "omni_qwen3-tts-1.7b": (1.7, None, "model name (Qwen3-TTS-12Hz-1.7B)"),
+    "omni_qwen3-tts-1.7b-reftext": (1.7, None, "model name (Qwen3-TTS-12Hz-1.7B)"),
+    "moss-tts": (8.0, None, "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"),
+    "moss-tts-v1.5": (8.0, None, "OpenMOSS/MOSS-TTS README (MossTTSDelay 8B)"),
+    "moss-tts-local": (1.7, None, "OpenMOSS/MOSS-TTS README (MossTTSLocal 1.7B)"),
+    "moss-tts-local-v1.5": (4.0, None, "OpenMOSS/MOSS-TTS README news (4B MossTTSLocal)"),
+    "omni_fish-s2-pro": (4.4, None, "fishaudio/s2-pro card: slow AR 4B + fast AR 0.4B"),
+    "omni_voxtral-tts": (4.0, None, "model name (Voxtral-4B-TTS-2603)"),
+    "omni_omnivoice": (0.6, None, "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"),
+    "omni_omnivoice-reftext": (0.6, None, "k2-fsa/OmniVoice card: Qwen3-0.6B backbone"),
+    "omni_voxcpm2": (2.0, None, "openbmb/VoxCPM2 card: '2B parameters'"),
+    "omni_voxcpm2-reftext": (2.0, None, "openbmb/VoxCPM2 card: '2B parameters'"),
+    "omni_higgs-audio-v3": (4.0, None, "model name (higgs-audio-v3-tts-4b)"),
+    "omni_drama-3": (35.0, 3.0, "fishaudio/drama-3 card: 35B MoE, 3B active per token"),
+    "audio8-tts-realistic-0.6b": (0.601, None, "Edge0/Audio8-TTS-Realistic-0.6b card: 601,159,424 main-model params, codec excluded"),
+    "zonos2_accurate": (8.0, 0.9, "Zyphra blog, 'ZONOS2'"),
+    "zonos2_expressive": (8.0, 0.9, "Zyphra blog, 'ZONOS2'"),
+    "zonos3-mini_reference": _Z3M,
+    "zonos3-mini_embedding": _Z3M,
+    "zonos3-mini-laci_reference": _Z3M,
+    "zonos3-mini-laci_embedding": _Z3M,
+}
+
 # --- system discovery -------------------------------------------------------
 def discover_systems(task, root=RESULTS_ROOT):
     """{label: results-dir} for every model with a `<root>/<model>/<task>/` leaf.

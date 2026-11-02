@@ -1,9 +1,9 @@
 # ZTTS2 · Eval — reliability explorer
 
 A zero-dependency web UI for browsing the ZTTS2-Eval TTS benchmark, styled after
-*Our World in Data* (white ground, Playfair Display titles over Lato, the
-owid-distinct categorical line palette, faint horizontal gridlines, pill tab
-controls, navy/rust/blue accents). A sortable model × language leaderboard (and
+[zyphra.com](https://www.zyphra.com/) (warm off-white ground, Inter throughout with
+light-weight headings, JetBrains Mono for the small uppercase labels, black active
+pills, one orange accent, faint horizontal gridlines). A sortable model × language leaderboard (and
 heatmap) built from the existing aggregate snapshot, with drill-down into
 per-utterance rows where you can **listen** to the generated audio against the
 reference prompt and read the WER ref→hyp diff.
@@ -24,21 +24,21 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
 
 ## What it reads (nothing is recomputed)
 
-- **Leaderboard / heatmap / bins / reliability / speaking rate / MPM:** the data
-  snapshot, resolved live-first then published (see [Sharing](#sharing)) —
-  `results_snapshot.json`, `voxblink_perbin.json`, `voxblink_bin_counts.json`,
-  `reliability.json`, `speaking_rate.json`, `mpm_dist.json`, and `panels.json`
+- **Leaderboard / heatmap / reliability / speaking rate / MPM / indices:**
+  the data snapshot, resolved live-first then published (see [Sharing](#sharing)) —
+  `results_snapshot.json`, `reliability.json`, `speaking_rate.json`, `mpm_dist.json`,
+  `capability_index.json`, and `panels.json`
   (coreset panel provenance). The board columns are WER, tail rate (`Tail>50%`,
   from `WER_TAIL50`), speaker similarity — **SPK held-out** (ITW, against the real
   recording; `spk_simi_scores.xutt.txt`) and **SPK prompt** (`spk_simi_scores.txt`) —
   MSR-UTMOS, **MPM (Clean only)**, the rhythm **pace** and **pause** factors and the
   **pitch range** factor (each as a multiple of the real-speech split-half ceiling,
   from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`), and, on the
-  In-The-Wild set, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
-  `Range |log2|`, from `paired_itw_<lang>.csv`).
+  In-The-Wild sets, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
+  `Range |log2|`, from `paired_itw_<set>_<lang>.csv`).
 - **Reliability views** are the interactive twins of the `scripts/tufte_*` plates
   (p99 + bootstrap CI, survival overlay, small multiples, slopegraph), rendered as
-  native OWID-styled SVG from `reliability.json` — built by
+  native SVG from `reliability.json` — built by
   `scripts/results_doc/build_reliability.py`, which reuses `scripts/tufte_common.py`
   so the edit counts match the plates exactly.
 - **Speaking-rate views** are the interactive twin of `scripts/speaking_rate_dist.py`
@@ -66,10 +66,9 @@ fresh clone renders without any of the heavy private inputs:
   and is rebuilt from the full `results/` tree + the 13 MB VoxBlink manifest + the
   MSR-UTMOS cache. Never committed.
 - **`explorer/snapshot/`** — the **committed**, portable payload: only the small
-  aggregate JSONs the board/grid/bins/reliability/speaking-rate/MPM views need
-  (`results_snapshot.json`, `voxblink_perbin.json`, `voxblink_bin_counts.json`,
-  `voxblink_perlen.json`, `reliability.json`, `speaking_rate.json`,
-  `mpm_dist.json`, `panels.json`; no host paths). This is what ships with the
+  aggregate JSONs the board/grid/reliability/speaking-rate/MPM/index views need
+  (`results_snapshot.json`, `voxblink_perlen.json`, `reliability.json`, `speaking_rate.json`,
+  `mpm_dist.json`, `capability_index.json`, `panels.json`; no host paths). This is what ships with the
   repo — the full allowlist is `PUBLISHED` in
   `scripts/results_doc/publish_snapshot.py`.
 
@@ -99,10 +98,11 @@ aggregate views work everywhere.
 | `GET /api/rows?offset=&limit=` | paginated snapshot rows — what the client actually loads the board from |
 | `GET /api/utterances?model=&task=&lang=[&panel=]` | per-utterance rows joined by uid; `panel` restricts to that panel's items and attaches each weight `w` |
 | `GET /api/audio?path=<repo-relative .wav>` | wav stream (206 on `Range:`, 416 past EOF) |
-| `GET /api/voxblink/{perbin,perlen,bincounts}` | passthrough of the cache JSON |
+| `GET /api/voxblink/perlen` | passthrough of the cache JSON |
 | `GET /api/reliability` | survival / p99 / slopegraph payload (tufte plates) |
 | `GET /api/speaking_rate` | per-(set,lang) char/s d_ref + CI + quantile function per system |
 | `GET /api/mpm_dist` | per-language MPM spans + per-system means (prosody-overlap view) |
+| `GET /api/capability_index` | per-system ECI-style capability index + 90% bootstrap CI + language coverage; the prosody index is its `prosody` member, same shape (indices view) |
 
 `/api/audio` only serves `.wav` and refuses any path that escapes `--root` (after
 resolving symlinks) unless it resolves under an `--allow-root` dir; the
@@ -118,19 +118,47 @@ data via `<script src>`.
 
 ## UI notes
 
-- **board** view: every metric column shown; click a header to sort, the metric
-  segment sets the default sort + heatmap metric. Gauges are normalized across the
-  visible real models (GT rows excluded from scaling and tagged `GT`).
+- The console puts the **view** picker on its own first row, then task, language,
+  **metric** and filter on one line. The board has no metric dropdown (every metric is a
+  column; click a header to sort) and the grid has no language dropdown (every language
+  is a column; clicking a model name opens its per-language breakdown). The metric
+  dropdown drives the grid's heatmap and sets the board's sort. Gauges are normalized
+  across the visible real models (GT rows excluded from scaling and tagged `GT`).
+- **ALL langs** (board + grid, both full sets; the default scope): the unweighted macro over the set's
+  language basket, built by `build_results.py` from the same rows as
+  `RESULTS_CURRENT.md`'s headline macros, so the two never disagree. A metric gets a
+  macro only where the system has it in every basket language; a system scored on fewer
+  stays on the board with a `k/N langs` tag and no numbers. Clicking an ALL row lists
+  the per-language pieces, worst first. The panel tasks' ALL is their weighted panel
+  estimate, as before.
 - **board** and **grid** use an app layout: the masthead and console stay put, the page
   does not scroll, and the table fills the rest of the window and scrolls on its own
   with its column headings pinned (the grid also pins the model column and corner
   cell). The chart views scroll as ordinary pages.
-- **grid** view: model × language heatmap for the active metric (rust = worse, blue =
+- **grid** view: model × language heatmap for the active metric (orange = worse, blue =
   better). The colour range defaults to the min–max of the per-language cells of real
-  models (baselines and the ALL column excluded); the **colour range** knob above it
+  models (baselines and the ALL column excluded); the **colour range** knob beside the legend, under the grid,
   clips that range to percentiles (`clip` p5–p95 etc., against outliers) or pins an
   exact `min`/`max` per metric (`auto` resets). Cells outside the range take the end
   colour; the legend prints the range's end values.
+- **indices** view: one score per system across both sets, fit like Epoch's
+  Capabilities Index (item response theory over every metric × set × language item;
+  `scripts/results_doc/build_capability_index.py`), ranked with its 90% bootstrap
+  interval. **capability** fits every metric; **prosody** fits the prosody metrics only
+  (pace, pauses, pitch and contour weighing equally). Both anchor real speech = 100 and
+  `zonos2_accurate` = 50, and the ranking, over-time and parameters modes all work on
+  either. Grey rows are not
+  scored on every language; their index is still on the common scale, with a wider
+  interval. The axis spans the point estimates, so an interval running past it is cut at
+  the edge with an arrowhead (the tooltip has the full range). **over time** plots the
+  same index against each system's public release date (`rd_common.RELEASES`, source in
+  the tooltip), with the frontier: the best public system scored on every language
+  released by then. Zyphra systems are orange; not-yet-public ones are hollow, dated by
+  their planned release; real speech is the dashed level at 100. **parameters** plots
+  the index against each system's published model size (`rd_common.PARAMS`: the LM /
+  backbone the developer names, codecs excluded; log scale) with the size frontier, the
+  best system scored on every language at or below that size. Mixture-of-experts models
+  sit at their total parameters; the active count is in the tooltip.
 - **coreset panels** (`zero_shot_mini`, `zero_shot_delta`, and the VoxBlink twins —
   see [../docs/coreset.md](../docs/coreset.md)) appear as ordinary tasks, captioned
   in the picker with their kind and size. They are *not* ordinary boards:
@@ -153,8 +181,8 @@ data via `<script src>`.
       derived, i.e. what the panel *would* have said, not an independent trial of it.
       On the two systems that have both, the two agree to 0.02 pt macro WER_CLIP.
     - A leaf missing part of the panel renormalises the weights over what it has, so
-      it estimates a slightly different population; the covered share is shown as a
-      rust `%` tag, and anything under `MIN_PANEL_COVERAGE` (90%) is dropped and
+      it estimates a slightly different population; the covered share is shown as an
+      orange `%` tag, and anything under `MIN_PANEL_COVERAGE` (90%) is dropped and
       listed on stderr rather than quietly averaged.
   - A scope note sits above the board: `mini` estimates the full-set level, `delta`
     resolves *differences only* and its level is biased by construction. Note the
@@ -163,17 +191,11 @@ data via `<script src>`.
     paired aggregate (`score_panel.py`), not in these cells.
   - The drawer follows suit — it shows only the panel's utterances (for a baseline,
     its full leaf filtered down), weights its summary, and prints each item's `w`.
-- **reliability** view: the `tufte_*` plates live — pick a dataset (FLEURS-R /
+- **reliability** view: the `tufte_*` plates live — pick a dataset (TTS systems, read
+  speech or in the wild, listed first and opened by default; then the GT sets FLEURS-R /
   VoxBlink2 / ASR-backend) and a chart type (p99 · CI, survival overlay, small
   multiples, slopegraph). In the survival overlay, click a legend chip to drop or
   restore a language; best / least-reliable / most-catastrophic are auto-highlighted.
-- **voxblink bins** view: WER_CLIP against the reference prompt's MSR-UTMOS bin,
-  **one trace per system** plus the two dashed reference baselines (ground-truth
-  floor, whisper re-ASR). Systems are discovered from the results tree by
-  `build_perbin.py`, so a newly scored system appears on the next rebuild. Colour is
-  keyed on the global model list, not the models present in the current language, so
-  a system keeps its colour as you page through languages. The whisper ceiling
-  starts hidden to keep the default readable — one legend click restores it.
 - **speaking rate** view: `scripts/speaking_rate_dist.py` live — pick the test set,
   then the language within it (the reliability view's two-row idiom; there are ~50
   panels, too many for one chip row), then a chart type. Switching test set keeps the
@@ -188,7 +210,11 @@ data via `<script src>`.
   row's p10–p90, so one extreme system cannot squash the rest; ridge tails beyond it are
   clipped. The reference's split-half twin (`gt_* · reference half`) is labelled apart
   from the GT system. Hover a row for its quantiles, click to pin. NB char/s is
-  never comparable across languages, so each panel is a single language.
+  never comparable across languages, so each panel is a single language. The **all**
+  chip of each set (the view opens on Clean's) ranks systems by d ref averaged over the set's languages (only
+  systems scored on every one), with no interval. The chart-type switch stays, with
+  **distribution** greyed out (tooltip says why) until a language is picked; the last
+  choice comes back with it.
 - **prosody overlap** view: MPM span ranks systems against per-language anchors;
   0 is the real-speech split-half floor and 1 is the contour-scrambled floor. The
   chart is one row per system, so it sizes its own SVG (`newSvg`, inline width/height)
@@ -197,8 +223,8 @@ data via `<script src>`.
 - Click any row/cell to open the drill-down drawer; expand an utterance for the
   ASR diff, prompt transcript, extra measures, and the two waveform players.
 
-Files: `serve.py` (server) · `index.html` · `app.css` (our-world-in-data theme) ·
-`app.js` (board/grid/bins/drawer) · `chart_common.js` (shared chart kit:
+Files: `serve.py` (server) · `index.html` · `app.css` (Zyphra theme) ·
+`app.js` (board/grid/drawer) · `chart_common.js` (shared chart kit:
 tooltip/focus/hit/loader/resize + SVG helpers) · `reliability.js` (reliability
 views) · `speaking_rate.js` (speaking-rate views) · `mpm.js` (prosody-overlap
-view).
+view) · `capability.js` (capability-index views).

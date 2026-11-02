@@ -568,5 +568,48 @@ class PanelSnapshotTest(unittest.TestCase):
                 "m", "zero_shot_mini", "zz", str(Path(tmp) / "leaf"), panel))
 
 
+class FullSetMacroTest(unittest.TestCase):
+    """build_results.full_aggregates: the full sets' ALL row is the macro over the set's
+    frozen language basket, defined only where a system covers EVERY basket language —
+    a mean over a different language subset is a different quantity."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(REPO / "scripts" / "results_doc"))
+        import build_results
+        from utils.benchmark import ITW_LANGS
+        cls.br, cls.langs = build_results, ITW_LANGS
+
+    def _rec(self, model, task, lang, i):
+        r = self.br.new_rec(model, task, lang)
+        r.update(wer=[2.0 * i, 1.0 * i, 1.5 * i], spk_xutt=50.0 + i, msr_utmos=3.0, n=10)
+        return r
+
+    def test_macro_needs_every_language(self):
+        task = "zero_shot_voxblink"
+        recs = [self._rec("full", task, l, i) for i, l in enumerate(self.langs)]
+        recs[0]["msr_utmos"] = None                       # one language lacks MSR
+        recs += [self._rec("part", task, l, i) for i, l in enumerate(self.langs[1:])]
+        recs += [self._rec("gt_zero_shot_voxblink", "", l, i) for i, l in enumerate(self.langs)]
+        out = {r["model"]: r for r in self.br.full_aggregates(recs) if r["task"] in (task, "")}
+
+        mean_i = (len(self.langs) - 1) / 2
+        full = out["full"]
+        self.assertEqual(full["set"], "ALL")
+        self.assertEqual(full["wer"], [round(2 * mean_i, 3), round(mean_i, 3), round(1.5 * mean_i, 3)])
+        self.assertAlmostEqual(full["spk_xutt"], 50.0 + mean_i, places=4)
+        self.assertIsNone(full["msr_utmos"])              # not a mean over 19 languages
+        self.assertEqual(full["macro"], {"langs": 20, "of": 20})
+        self.assertEqual(full["n"], 200)
+
+        part = out["part"]
+        self.assertEqual(part["macro"], {"langs": 19, "of": 20})
+        self.assertIsNone(part["wer"])
+        self.assertIsNone(part["spk_xutt"])
+
+        self.assertEqual(out["gt_zero_shot_voxblink"]["task"], "")   # flat, like its rows
+        self.assertIsNotNone(out["gt_zero_shot_voxblink"]["wer"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

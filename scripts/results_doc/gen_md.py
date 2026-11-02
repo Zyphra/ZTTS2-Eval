@@ -21,6 +21,7 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 OUT = os.path.join(REPO_ROOT, "RESULTS_CURRENT.md")
+CAP_INDEX = os.path.join(SCRIPT_DIR, "_cache", "capability_index.json")
 
 sys.path.insert(0, REPO_ROOT)
 sys.path.insert(0, SCRIPT_DIR)
@@ -153,8 +154,9 @@ SPK_EMBEDDER_NOTE = (
 )
 
 
-def render(recs, dedup=None):
-    """RESULTS_CURRENT.md text for a snapshot (list of records)."""
+def render(recs, dedup=None, cap_index=None):
+    """RESULTS_CURRENT.md text for a snapshot (list of records) and, when built, the
+    capability index payload (build_capability_index.py)."""
     idx = index_records(recs)
     buf = []
     W = buf.append
@@ -216,6 +218,57 @@ def render(recs, dedup=None):
       "distances divided by the real-speech split-half ceiling (1.0 = indistinguishable "
       "from real speech, lower is better). The figure shows accuracy (x) against rhythm "
       "pause factor (left) and pitch-range distance (right); bottom-left is best.\n")
+    if cap_index:
+        m = cap_index["method"]
+        (hi_s, hi_v), (lo_s, lo_v) = m["anchors"].items()
+        name = lambda s: s if s == hi_s else marked_label(s)
+        W("### Capability index (both sets)\n")
+        W("One score per system, fit like Epoch's Capabilities Index "
+          "([ECI](https://epoch.ai/data/eci-documentation/methodology)): item response theory, "
+          "`performance = sigmoid(slope_item · (capability_system − difficulty_item))`, over "
+          f"{m['n_items']} items — one metric on one set in one language — so a system scored on "
+          "only some languages is still placed on the common scale, which no macro can do. "
+          "Each metric enters as a performance in [0, 1]: "
+          + "; ".join(f"{v['performance']}" + (f" ({'Clean' if v['set'] == CLEAN else 'ITW'})"
+                                              if v.get("set") else "")
+                      for v in m["metrics"].values())
+          + f". Intelligibility, voice, quality and prosody weigh equally. Scale anchors: "
+          f"{hi_s} = {hi_v:g}, {label(lo_s)} = {lo_v:g}. Interval = {m['ci_level']:.0%} "
+          f"bootstrap over each system's own items ({m['bootstrap']} refits); anchors have none "
+          "by definition. Few languages = wide interval.\n")
+        W("Over time, each system at its public release date (sources in "
+          "`rd_common.RELEASES`; variants of one checkpoint share its date). The line is the "
+          "frontier: the best public system scored on every language released by that date. "
+          "Hollow points are not yet public and are dated by their planned release.\n")
+        W("![Capability index over time](assets/plots/capability_index_time.png)\n")
+
+        def index_table(p):
+            pm = p["method"]
+            W("| # | System | Index | 90% CI | Languages (Clean · ITW) |")
+            W("|--:|---|--:|---|---|")
+            for rank, s in enumerate(p["systems"], 1):
+                band = "anchor" if s["anchor"] else f"{s['ci'][0]:.1f} – {s['ci'][1]:.1f}"
+                W(f"| {rank} | {name(s['name'])} | **{s['index']:.1f}** | {band} | "
+                  f"{s['langs'][CLEAN]}/{pm['n_langs'][CLEAN]} · {s['langs'][ITW]}/{pm['n_langs'][ITW]} |")
+            W("")
+
+        index_table(cap_index)
+        pros = cap_index.get("prosody")
+        if pros:
+            pm = pros["method"]
+            aspects = "; ".join(
+                f"**{dim}** — " + ", ".join(
+                    v["performance"] + (f" ({'Clean' if v['set'] == CLEAN else 'ITW'})" if v.get("set") else "")
+                    for v in pm["metrics"].values() if v["dimension"] == dim)
+                for dim in pm["dimensions"])
+            W("### Prosody index (both sets)\n")
+            W(f"The same fit over {pm['n_items']} prosody items only (ECI's domain-specific "
+              "index), with every prosody metric rather than the capability index's four: "
+              f"{aspects}. The {len(pm['dimensions'])} aspects weigh equally, so a quantity "
+              "measured several ways does not outvote one measured once. MPM span is scored "
+              "on silence-trimmed audio (`docs/controls_2026-08.md` C6). Same anchors and "
+              "interval as the capability index.\n")
+            index_table(pros)
     for task, title, extra in (
             (CLEAN, "Clean (FLEURS-R)", ""),
             (ITW, "ITW (VoxBlink2, in the wild)",
@@ -500,7 +553,11 @@ def main():
         recs = load_snapshot()
     except OSError:
         sys.exit("gen_md: results_snapshot.json missing -- run build_results.py first")
-    text = render(recs, dedup_counts())
+    cap_index = None
+    if os.path.isfile(CAP_INDEX):
+        with open(CAP_INDEX, encoding="utf-8") as f:
+            cap_index = json.load(f)
+    text = render(recs, dedup_counts(), cap_index)
     with open(OUT, "w") as f:
         f.write(text)
     print(f"Wrote {OUT} ({len(text)} chars, {text.count(chr(10)) + 1} lines)")

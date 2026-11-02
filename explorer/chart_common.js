@@ -11,10 +11,11 @@
    ============================================================ */
 "use strict";
 
-// palette (owid theme — mirrors app.css :root); shared by all chart views
-const R_INK = "#333333", R_NAVY = "#1d3d63", R_MUT = "#858585",
-      R_FAINT = "#e7e7e7", R_RULE = "#dadada", R_BUNDLE = "#e0e0e0",
-      R_MID = "#9a9a9a", R_RED = "#b13507", R_GOLD = "#C0870B", R_BLUE = "#4C6A9C";
+// palette (zyphra theme — mirrors app.css :root); shared by all chart views.
+// R_PRIMARY is the near-black data ink; R_RED the orange accent (worst / blow-up marks).
+const R_INK = "#111111", R_PRIMARY = "#161616", R_MUT = "#63635f",
+      R_FAINT = "#e3e3df", R_RULE = "#d4d4d0", R_BUNDLE = "#dcdcd7",
+      R_MID = "#9a9a95", R_RED = "#e7620f", R_GOLD = "#b7791f", R_BLUE = "#2684ff";
 const SMALL_N = 300;      // series below this are greyed (tufte default)
 
 // ---- scales -----------------------------------------------------------------

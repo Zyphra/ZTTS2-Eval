@@ -21,6 +21,12 @@ echo "Using interpreter: $PY"
 
 echo "[build_results]     snapshot results/ → _cache/results_snapshot.json"
 $PY build_results.py
+echo "[build_speaking_rate] speaking-rate (char/s) payload (explorer view + prosody index items)"
+$PY build_speaking_rate.py
+echo "[build_capability_index] ECI-style capability + prosody indices (IRT fit + bootstrap CIs)"
+$PY build_capability_index.py
+echo "[plot_capability_time] capability index vs public release date"
+$PY plot_capability_time.py
 echo "[build_perbin]      voxblink MSR-UTMOS-bin reconstruction"
 $PY build_perbin.py
 echo "[build_perlen]      voxblink per-length-bucket WER (simple)"
@@ -45,8 +51,6 @@ echo "[run_reliability]   reliability plates + gallery from GT .wer.raw"
 PYTHON="$PY" bash "$REPO_ROOT/scripts/run_reliability.sh"
 echo "[build_reliability] interactive reliability payload for the explorer"
 $PY build_reliability.py
-echo "[build_speaking_rate] speaking-rate (char/s) payload for the explorer"
-$PY build_speaking_rate.py
 echo "[build_mpm_dist]    MPM GT-vs-system distribution overlap for the explorer"
 $PY build_mpm_dist.py
 echo "[publish_snapshot]  copy shareable aggregates → explorer/snapshot/ (committed)"

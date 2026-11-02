@@ -37,16 +37,15 @@ PUBLISH_DIR = os.path.join(REPO_ROOT, "explorer", "snapshot")
 # on purpose — they never ship.
 PUBLISHED = [
     "results_snapshot.json",     # board + grid + per-model/lang metrics
-    "voxblink_perbin.json",      # bins view: WER_CLIP per MSR-UTMOS bin
-    "voxblink_bin_counts.json",  # bins view: per-bin n
     "voxblink_perlen.json",      # optional: per-REF-length trend (if built)
     "reliability.json",          # reliability view: survival/p99/slopegraph (tufte plates)
     "speaking_rate.json",        # speaking-rate view: char/s d_ref + ECDF per system
     "mpm_dist.json",             # prosody-overlap view: GT-vs-system MPM distributions
     "panels.json",               # coreset panel provenance (captions the panel boards)
+    "capability_index.json",     # index view: ECI-style composite score + bootstrap CI
 ]
 OPTIONAL = {"voxblink_perlen.json", "reliability.json", "speaking_rate.json",
-            "mpm_dist.json", "panels.json"}  # absence is fine
+            "mpm_dist.json", "panels.json", "capability_index.json"}  # absence is fine
 
 
 def main():

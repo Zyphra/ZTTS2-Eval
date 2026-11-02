@@ -22,7 +22,13 @@ results/{rhythm_*,pitch_range_*,paired_itw_*}.csv  results/_mpm_*/*.tsv
         │   build_results.py refuses to build otherwise, unless the leaf is listed in
         │   excluded_leaves.txt (`<model> <task|-> <lang> <reason>`)
         ▼
-build_results.py   ──►  _cache/results_snapshot.json     (one record per leaf)
+build_results.py   ──►  _cache/results_snapshot.json     (one record per leaf, plus one ALL row per
+                                system and panel / full set: the macro over its language basket)
+build_capability_index.py ──►  _cache/capability_index.json  (ECI-style composites: capability and
+                                prosody indices, one IRT index per system + 90% bootstrap CI, over
+                                metric × set × language items; prosody also reads speaking_rate.json)
+plot_capability_time.py   ──►  assets/plots/capability_index_time.png  (index vs public release date
+                                + frontier, ECI's headline chart; dates in rd_common.RELEASES)
 
 data/zero_shot_voxblink/_stage_a/manifest.tsv + _msr_utmos_cache.tsv
         │
@@ -41,7 +47,7 @@ plot_perlen_mean.py        ──►  assets/plots/voxblink_perlen_crosslang.png
 plot_perlen_zeroshot.py    ──►  assets/plots/perlen_zeroshot_vs_voxblink.png
 plot_tradeoff.py           ──►  assets/plots/tradeoff_{zero_shot,zero_shot_voxblink}.png  (WER vs rhythm / pitch range)
 
-gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + voxblink_perbin.json + voxblink_bin_counts.json + emo_score.txt files)
+gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + voxblink_perbin.json + voxblink_bin_counts.json + emo_score.txt files)
 
 scripts/run_reliability.sh ──►  assets/plots/reliability_*.png + assets/reliability_gallery.html
                                 (tufte plates for the GT baselines, via scripts/build_reliability_gallery.py)
@@ -61,7 +67,7 @@ per-file copies.
 ## Editing
 
 - **Numbers wrong** → rebuild only what changed. e.g. after a new model run:
-  `build_results.py && gen_md.py`.
+  `build_results.py && build_capability_index.py && gen_md.py`.
 - **Voxblink bin/length analysis changed** → rerun the matching `build_*` and
   `plot_*` pair, then `gen_md.py`.
 - **Markdown layout only** → just `gen_md.py`.
@@ -75,3 +81,30 @@ per-file copies.
   **content-selection confound** in voxblink2 — see the memory note
   `voxblink-length-confound.md`. The real signal lives on `zero_shot` and is a
   U-shape, plotted by `plot_perlen_zeroshot.py`.
+- `build_capability_index.py` fits the Epoch Capabilities Index model
+  ([methodology](https://epoch.ai/data/eci-documentation/methodology)):
+  `performance = sigmoid(slope_item · (capability_system − difficulty_item))`, one item per
+  metric × set × language, ridge-penalised least squares. Every metric is mapped to a
+  performance in [0, 1] (`METRICS`); the four dimensions (intelligibility, voice, quality,
+  prosody) weigh equally whatever their item counts. The `gt_*` baselines enter as one system,
+  **real speech**, and the scale is anchored at real speech = 100, `zonos2_accurate` = 50
+  (`ANCHORS`). CIs: 500 refits resampling each system's own items (`--bootstrap`), ~40 s on
+  32 workers. Adding a system refits every item, so all indices can shift slightly.
+- The prosody index is the same fit over prosody items only (`PROSODY_METRICS`): rhythm
+  pace, char/s and paired duration (pace); rhythm pause and paired pause (pauses); pitch
+  range and paired pitch range (pitch); MPM span (contour). The four aspects weigh equally.
+  The char/s items come from `speaking_rate.json`, so build it first. A system's char/s
+  item counts only for a leaf that `results_snapshot.json` scored (`scored_leaves`): the
+  speaking-rate payload also keeps partial generations that the coverage gate drops. Real
+  speech's char/s items are the ground-truth split-half rows `build_speaking_rate.py`
+  computes for every panel.
+- Release dates for the over-time chart live in `rd_common.RELEASES`, one entry per results
+  dir with its source. They are taken from each project's announcement or dated news
+  log, not Hugging Face `createdAt` (repos are often created privately weeks before
+  launch). A new system needs an entry there to appear on the time axis; systems not
+  yet public are flagged and dated by their planned release.
+- Model sizes for the explorer's parameters chart live in `rd_common.PARAMS`: the published
+  size of each system's main generative model (LM / backbone), with its source, plus the
+  active count for mixture-of-experts models. It is the size a model is known by, not every
+  weight it loads: Hugging Face repo totals mix in tokenizers and codecs inconsistently
+  (VibeVoice-1.5B's repo holds 2.7B). ZONOS3 Mini's count comes from its release checkpoint.

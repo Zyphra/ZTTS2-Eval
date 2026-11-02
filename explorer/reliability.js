@@ -1,10 +1,10 @@
 /* ============================================================
    ZTTS2 · Eval — reliability views (the tufte_* plates, live)
    Interactive SVG twins of scripts/tufte_p99 / _survival_overlay /
-   _survival_smallmultiples / _slopegraph, in the "Our World in
-   Data" theme. Reads /api/reliability (build_reliability.py).
-   Depends on app.js globals ($, $$, el, svgEl, apiGet, foot,
-   BIN_PALETTE) and the chart kit + R_* palette from
+   _survival_smallmultiples / _slopegraph, in the Zyphra theme.
+   Reads /api/reliability (build_reliability.py).
+   Depends on app.js globals ($, $$, el, svgEl, apiGet)
+   and the chart kit + R_* palette from
    chart_common.js.  Loaded after both.
    ============================================================ */
 "use strict";
@@ -19,7 +19,7 @@ const REL = { data: null, ds: null, lang: null, type: "p99", hidden: new Set(),
 const relTipKit = makeTip("#rel-chart", "#rel-tip");
 
 function recSummary(r, col) {
-  return `<span class="sw" style="background:${col || R_NAVY}"></span><b>${r.name}</b><br>` +
+  return `<span class="sw" style="background:${col || R_PRIMARY}"></span><b>${r.name}</b><br>` +
     `p99 <b>${r.p99}</b> edits · 95% CI [${r.ci[0]}, ${r.ci[1]}]<br>` +
     `<span class="meta">worst ${r.worst} · n ${r.n.toLocaleString()}` +
     `${r.langs && r.langs.length > 1 ? " · " + r.langs.length + " langs" : ""}</span>`;
@@ -30,7 +30,7 @@ const _relFocus = makeFocus("#rel-chart", {
   dim: "0.1",
   emph: (e, on) => {
     if (on) {
-      e.style.stroke = R_NAVY; e.style.strokeWidth = "2.8";
+      e.style.stroke = R_PRIMARY; e.style.strokeWidth = "2.8";
       if (e.parentNode) e.parentNode.appendChild(e);   // raise to front
     } else { e.style.stroke = ""; e.style.strokeWidth = ""; }
   },
@@ -48,8 +48,9 @@ function ensureRel() {
   return ensureCache(REL, "/api/reliability",
     (d) => !!(d.datasets && d.datasets.length),
     (d) => {
+      // open on the first dataset: the payload lists the TTS systems first
       if (!REL.ds || !d.datasets.some((x) => x.key === REL.ds))
-        REL.ds = (d.datasets.find((x) => x.key === "clean") || d.datasets[0] || {}).key;
+        REL.ds = (d.datasets[0] || {}).key;
     });
 }
 
@@ -163,7 +164,7 @@ function updateRelHead(ds) {
     survival: [`How reliable is each ${unit}? — the tail is the whole story`,
       `P(edits ≥ k) on log–log axes; lower curve = more reliable. Best / least-reliable / most-catastrophic highlighted — click a legend chip to drop or restore a ${unit}. ${stat}.`],
     multiples: [`How reliable is each ${unit}?`,
-      `Each panel: one ${unit} (navy) against all others (faint), ordered most → least reliable. Red dot = a catastrophic worst case (≥ ${BLOWUP} edits). ${stat}.`],
+      `Each panel: one ${unit} (black) against all others (faint), ordered most → least reliable. Orange dot = a catastrophic worst case (≥ ${BLOWUP} edits). ${stat}.`],
     slope: ["The ranking, column by column",
       `% of utterances with at least k edits, at ${REL.data.ks.length} thresholds. Vertical order = ranking; crossings = rank changes. The ${Math.min(SLOPE_LIMIT, ds.n_series)} least-reliable ${unit}s shown.`],
   };
@@ -211,8 +212,7 @@ function drawP99(ds) {
   const rows = ds.series.slice().sort((a, b) => a.p99 - b.p99);
 
   const W = Math.max(360, chart.clientWidth);
-  const maxLabel = Math.max(...rows.map((r) => r.name.length), 3);
-  const ml = Math.min(190, Math.max(56, maxLabel * 7.6 + 20));
+  const ml = Math.min(190, Math.max(56, labelWidth(chart, "series-lab", rows.map((r) => r.name)) + 16));
   const mr = 66, mt = 14, mb = 44, rowH = 22;
   const plotW = W - ml - mr;
   const H = mt + rows.length * rowH + mb;
@@ -240,7 +240,7 @@ function drawP99(ds) {
   rows.forEach((r, idx) => {
     const yi = mt + idx * rowH + rowH / 2;
     const small = r.n < SMALL_N;
-    const c = small ? R_MUT : R_NAVY;
+    const c = small ? R_MUT : R_PRIMARY;
     const [lo, hi] = r.ci;
     if (lo < r.p99 - gap)
       mark(svg.appendChild(svgEl("line", { x1: x(lo), y1: yi, x2: x(r.p99 - gap), y2: yi, stroke: R_RULE, "stroke-width": 1.4 })), r.name);
@@ -394,7 +394,7 @@ function drawMultiples(ds) {
     xt.forEach((t) => svg.append(stext("axis-txt", X(t), mt + plotH + 11, "" + t, { "text-anchor": "middle", "font-size": "7" })));
     bundle.forEach((d) => svg.append(svgEl("path", { class: "trace", d, stroke: R_FAINT, "stroke-width": 1 })));
     const dm = pathFor(r);
-    if (dm) mark(svg.appendChild(svgEl("path", { class: "trace", d: dm, stroke: R_NAVY, "stroke-width": 1.9 })), r.name);
+    if (dm) mark(svg.appendChild(svgEl("path", { class: "trace", d: dm, stroke: R_PRIMARY, "stroke-width": 1.9 })), r.name);
     if (r.worst >= BLOWUP) {
       const lastJ = r.k.length - 1;
       mark(svg.appendChild(svgEl("circle", { cx: X(r.k[lastJ]), cy: Y(r.s[lastJ]), r: 2.6, fill: R_RED })), r.name);
@@ -446,7 +446,11 @@ function drawSlope(ds) {
 
   const W = Math.max(360, chart.clientWidth);
   const H = Math.max(460, models.length * 24 + 130);
-  const ml = 120, mr = 120, mt = 60, mb = 24;
+  const fmt = (v) => (v >= 1 ? v.toFixed(1) : v.toFixed(2));
+  // values sit centred on the end columns, so names go outside their half-width
+  const vh = labelWidth(chart, "axis-txt", models.flatMap((r) => r.slope.map(fmt))) / 2;
+  const lw = labelWidth(chart, "series-lab", models.map((r) => r.name)) + vh + 16;   // names both ends
+  const ml = Math.max(80, lw), mr = Math.max(80, lw), mt = 60, mb = 24;
   const plotW = W - ml - mr, plotH = H - mt - mb;
   const svg = newSvg(W, H);
 
@@ -462,7 +466,6 @@ function drawSlope(ds) {
   // column headers
   KS.forEach((k, j) => svg.append(stext("axis-lab", cx(j), mt - 18, `≥ ${k} edit${k > 1 ? "s" : ""}`, { "text-anchor": "middle", fill: R_INK })));
 
-  const fmt = (v) => (v >= 1 ? v.toFixed(1) : v.toFixed(2));
   models.forEach((r, i) => {
     const col = colFor(r);
     const acc = emph.has(r.name);
@@ -473,12 +476,12 @@ function drawSlope(ds) {
     KS.forEach((_, j) => {
       const s = fmt(r.slope[j]);
       const gx = cx(j), gy = cy(cols[j][i]);
-      mark(svg.appendChild(svgEl("rect", { x: gx - s.length * 3.1 - 1, y: gy - 6.5, width: s.length * 6.2 + 2, height: 13, fill: "#fff", opacity: 0.85 })), r.name);
+      mark(svg.appendChild(svgEl("rect", { x: gx - vh - 2, y: gy - 6.5, width: 2 * vh + 4, height: 13, fill: "#f4f4f2", opacity: 0.85 })), r.name);
       mark(svg.appendChild(stext("axis-txt", gx, gy + 3, s, { "text-anchor": "middle", fill: col })), r.name);
     });
     // series names both ends
-    mark(svg.appendChild(stext("series-lab", ml - 12, cy(cols[0][i]), r.name, { "text-anchor": "end", "dominant-baseline": "middle", fill: col })), r.name);
-    mark(svg.appendChild(stext("series-lab", ml + plotW + 12, cy(cols[KS.length - 1][i]), r.name, { "text-anchor": "start", "dominant-baseline": "middle", fill: col })), r.name);
+    mark(svg.appendChild(stext("series-lab", ml - vh - 8, cy(cols[0][i]), r.name, { "text-anchor": "end", "dominant-baseline": "middle", fill: col })), r.name);
+    mark(svg.appendChild(stext("series-lab", ml + plotW + vh + 8, cy(cols[KS.length - 1][i]), r.name, { "text-anchor": "start", "dominant-baseline": "middle", fill: col })), r.name);
     hitPath(svg, d, r.name, r, col);
   });
 

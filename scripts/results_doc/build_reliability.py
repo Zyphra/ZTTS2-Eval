@@ -235,7 +235,11 @@ def _model_dataset(key, label, rng, task="zero_shot"):
 def main():
     os.makedirs(CACHE_DIR, exist_ok=True)
     rng = np.random.default_rng(0)                        # seeded → reproducible CIs
+    # The TTS-system datasets are listed first (the explorer's chip order, and it opens
+    # on the first), but computed after the GT ones: they share one seeded rng, so the
+    # computation order fixes every bootstrap CI and must not move.
     out = {"ks": KS, "datasets": []}
+    models = []
     for ds in DATASETS:
         if not _has_inputs(ds["globs"]):
             print(f"[reliability] {ds['key']}: no .raw inputs — skipped", file=sys.stderr)
@@ -258,9 +262,11 @@ def main():
         if d is None:
             print(f"[reliability] {key}: no model inputs — skipped", file=sys.stderr)
             continue
-        out["datasets"].append(d)
+        models.append(d)
         nl = f" · per-lang {len(d['langs_list'])}" if d.get("langs_list") else ""
         print(f"[reliability] {key}: {d['n_series']} series · {d['n_utts']:,} utts{nl}")
+
+    out["datasets"] = models + out["datasets"]
 
     if not out["datasets"]:
         print("[reliability] no datasets had inputs — writing empty payload", file=sys.stderr)

@@ -11,8 +11,9 @@
    ============================================================ */
 "use strict";
 
-const M_INK = "#333333", M_GT = "#1d3d63", M_MUT = "#9a9a9a",
-      M_RULE = "#dadada", M_SCR = "#b13507", M_FAINT = "#f2ede9", M_DOT = "#b9c4d2";
+// zyphra palette: ground truth in ink, the scrambled side in the orange accent
+const M_INK = "#111111", M_GT = "#161616", M_MUT = "#9a9a95",
+      M_RULE = "#d4d4d0", M_SCR = "#e7620f", M_FAINT = "#efefec", M_DOT = "#c9c9c4";
 
 const MPM = { data: null, pin: null };
 
@@ -85,7 +86,8 @@ function drawMpm(d) {
   }));
   const rows = Object.values(bySys).sort((a, b) => a.mean - b.mean);
 
-  const rh = 40, mt = 34, mb = 40, ml = 132, mr = 46;
+  const rh = 40, mt = 34, mb = 40, mr = 46;
+  const ml = Math.max(80, labelWidth(chart, "series-lab", rows.map((r) => r.name)) + 24);
   const W = Math.max(440, chart.clientWidth);
   const plotW = W - ml - mr;
   const H = mt + rows.length * rh + mb;
@@ -154,7 +156,7 @@ function drawMpm(d) {
 
     // mean marker (diamond) + value
     const mx = x(row.mean), past = row.mean > 1;
-    const dia = svgEl("path", { d: `M${mx} ${yc - 6} L${mx + 6} ${yc} L${mx} ${yc + 6} L${mx - 6} ${yc} Z`, fill: past ? M_SCR : M_GT, stroke: "#fff", "stroke-width": 1 });
+    const dia = svgEl("path", { d: `M${mx} ${yc - 6} L${mx + 6} ${yc} L${mx} ${yc + 6} L${mx - 6} ${yc} Z`, fill: past ? M_SCR : M_GT, stroke: "#fafaf9", "stroke-width": 1 });
     dia.style.pointerEvents = "none";
     g.append(dia);
     g.append(stext("axis-txt", x(hi) + 10, yc, row.mean.toFixed(2), { "text-anchor": "start", "dominant-baseline": "middle", fill: past ? M_SCR : M_MUT }));

@@ -14,7 +14,7 @@ OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 sys.path.insert(0, REPO_ROOT)
 from utils.per_uid import CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, data_uids, leaf_problems  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, data_uids, langs_for, leaf_problems  # noqa: E402
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import write_json_atomic  # noqa: E402
 
@@ -661,6 +661,7 @@ def collect_all():
                  "scripts/results_doc/excluded_leaves.txt")
 
     records.extend(panel_aggregates(records))
+    records.extend(full_aggregates(records))
     for r in records:
         r.pop("_pieces", None)
     return records
@@ -744,6 +745,50 @@ def panel_aggregates(records):
     if partial:
         print(f"panel ALL rows skipped, system misses languages ({len(partial)}): "
               f"{', '.join(sorted(partial))}")
+    return out
+
+
+# The two full sets get an ALL row too: the unweighted macro-average over the set's
+# frozen language basket (utils.benchmark.langs_for), the number the headline tables of
+# RESULTS_CURRENT.md show (rd_common.macro) -- so the explorer and the document cannot
+# disagree. Same rule as the panels: a metric is defined only when the system has it in
+# EVERY basket language, because a mean over a different language subset is a different
+# quantity. Unlike a panel, a system missing languages still gets its ALL row, with every
+# metric None and its coverage in `macro`, so the board says why rather than dropping it.
+FULL_TASKS = ("zero_shot", "zero_shot_voxblink")
+_MACRO_KEYS = ("tail50", "spk", "spk_xutt", "msr_utmos", "mpm_span", "rhythm_x",
+               "rhythm_rate_x", "pitch_range_x", "paired_dur", "paired_pause", "paired_range")
+
+
+def full_aggregates(records):
+    """One macro row per (system, full task), set=ALL_SET; baselines (gt_<task>) keep
+    their flat task "" like their per-language rows."""
+    ok = lambda v: v is not None and v == v      # NaN counts as missing, as in rd_common
+    out = []
+    for task in FULL_TASKS:
+        basket = langs_for(task)
+        by_model = collections.defaultdict(dict)
+        for r in records:
+            if r["set"] == ALL_SET or r.get("panel"):
+                continue
+            if r["task"] == task or (r["task"] == "" and r["model"] == f"gt_{task}"):
+                by_model[r["model"]][r["set"]] = r
+        for model, rows in sorted(by_model.items()):
+            have = [l for l in basket if l in rows]
+            if not have:
+                continue
+            rec = new_rec(model, rows[have[0]]["task"], ALL_SET)
+            rec["n"] = sum(rows[l]["n"] or 0 for l in have)
+            rec["macro"] = {"langs": len(have), "of": len(basket)}
+            if len(have) == len(basket):
+                for key in _MACRO_KEYS:
+                    vals = [rows[l][key] for l in basket]
+                    if all(ok(v) for v in vals):
+                        rec[key] = round(sum(vals) / len(vals), 4)
+                wers = [rows[l]["wer"] for l in basket]
+                if all(w and all(ok(c) for c in w) for w in wers):
+                    rec["wer"] = [round(sum(w[i] for w in wers) / len(wers), 3) for i in range(3)]
+            out.append(rec)
     return out
 
 

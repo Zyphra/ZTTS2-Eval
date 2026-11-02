@@ -141,13 +141,12 @@ def _memo_put(key, sig, value):
 JSONP_TOKEN = secrets.token_urlsafe(16)
 
 SNAPSHOT = "results_snapshot.json"
-PERBIN = "voxblink_perbin.json"
 PERLEN = "voxblink_perlen.json"
-BINCOUNTS = "voxblink_bin_counts.json"
 RELIABILITY = "reliability.json"
 SPEAKING_RATE = "speaking_rate.json"
 MPM_DIST = "mpm_dist.json"
 PANELS = "panels.json"
+CAPABILITY_INDEX = "capability_index.json"
 
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
@@ -158,6 +157,7 @@ STATIC = {
     "/reliability.js": ("reliability.js", "application/javascript; charset=utf-8"),
     "/speaking_rate.js": ("speaking_rate.js", "application/javascript; charset=utf-8"),
     "/mpm.js": ("mpm.js", "application/javascript; charset=utf-8"),
+    "/capability.js": ("capability.js", "application/javascript; charset=utf-8"),
 }
 
 
@@ -280,8 +280,8 @@ def _snapshot_files_meta():
     since the views would then quietly describe different result sets."""
     out = {}
     sources = set()
-    for name in (SNAPSHOT, PERBIN, PERLEN, BINCOUNTS, RELIABILITY,
-                 SPEAKING_RATE, MPM_DIST, PANELS):
+    for name in (SNAPSHOT, PERLEN, RELIABILITY,
+                 SPEAKING_RATE, MPM_DIST, PANELS, CAPABILITY_INDEX):
         _, src, mtime = cache_info(name)
         if mtime is None:
             continue
@@ -623,11 +623,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_api(res, qs, code=res.pop("_code", 200))
         if route == "/api/audio":
             return self._serve_audio(qs)
-        if route in ("/api/voxblink/perbin", "/api/voxblink/perlen", "/api/voxblink/bincounts",
-                     "/api/reliability", "/api/speaking_rate", "/api/mpm_dist"):
-            fmap = {"/api/voxblink/perbin": PERBIN, "/api/voxblink/perlen": PERLEN,
-                    "/api/voxblink/bincounts": BINCOUNTS, "/api/reliability": RELIABILITY,
-                    "/api/speaking_rate": SPEAKING_RATE, "/api/mpm_dist": MPM_DIST}
+        if route in ("/api/voxblink/perlen", "/api/reliability", "/api/speaking_rate",
+                     "/api/mpm_dist", "/api/capability_index"):
+            fmap = {"/api/voxblink/perlen": PERLEN, "/api/reliability": RELIABILITY,
+                    "/api/speaking_rate": SPEAKING_RATE, "/api/mpm_dist": MPM_DIST,
+                    "/api/capability_index": CAPABILITY_INDEX}
             data, err = _load_cache_json(fmap[route])
             if err == "not found":   # 200 + error object: the ensure* helpers handle it
                 return self._send_api({"error": "not found"}, qs)
