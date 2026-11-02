@@ -240,7 +240,8 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   recording of the same speaker saying the target sentence, so prosody is also
   compared utterance by utterance against it (same 500-utterance sample): median
   |log2 duration ratio| (on the generations with WER ≤ 20%, as for speaking rate),
-  mean |pause-count difference| (a pause is an internal gap ≥ 0.2 s), and median
+  mean |pause-count difference| (a pause is a gap ≥ 0.2 s between Silero VAD speech
+  segments, which still finds pauses under background noise), and median
   |log2 pitch-range ratio|. 0 means the generation matches the real recording; lower
   is better.
 * **MPM span (Clean set only)** — Masked Prosody Model distance normalized per

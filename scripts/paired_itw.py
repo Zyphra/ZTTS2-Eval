@@ -8,8 +8,10 @@ can be compared utterance by utterance instead of only as distributions:
               generations the ASR heard (WER <= speaking_rate_dist.MAX_WER) only: the target
               text is fixed, so a truncated or runaway generation is a content error, not
               pace (docs/controls_2026-08.md C7)
-  pause_diff  #pauses(generation) - #pauses(real); a pause is an internal gap >= 0.2 s
-              between librosa.effects.split(top_db=35) intervals
+  pause_diff  #pauses(generation) - #pauses(real); a pause is a gap >= 0.2 s between two
+              Silero VAD speech segments (utils.benchmark.SILERO_VAD). Not an energy rule:
+              top_db=35 relative to the peak misses most pauses once background noise is
+              within 35 dB of it, as in most real VoxBlink2 recordings (docs/controls_2026-08.md C8)
   range_log2  log2(pitch range of the generation / of the real recording), utils/pitch_range
 
 Reported per system as medians (means for pause counts) of the signed and the absolute
@@ -37,7 +39,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from speaking_rate_dist import find_systems, heard_uids  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, sample_uids  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, SILERO_VAD, sample_uids  # noqa: E402
 from utils.pitch_range import ranges_cached  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
 
@@ -48,20 +50,41 @@ TOP_DB = 35.0
 PAUSE_S = 0.2
 DUR_MIN_N = 50
 
+_VAD = None
+
+
+def vad():
+    """(model, get_speech_timestamps) of the pinned Silero VAD, loaded once per process
+    (main() loads it before the worker pool forks, so workers inherit it)."""
+    global _VAD
+    if _VAD is None:
+        import torch
+        torch.set_num_threads(1)
+        model, utils = torch.hub.load(f"{SILERO_VAD[0]}:{SILERO_VAD[1]}", "silero_vad",
+                                      trust_repo=True, skip_validation=True, verbose=False)
+        _VAD = (model, utils[0])
+    return _VAD
+
 
 def audio_stats(path):
-    """(trimmed duration s, #internal pauses >= PAUSE_S), or None for an unusable wav."""
+    """(trimmed duration s, #pauses >= PAUSE_S between speech segments), or None for an
+    unusable wav. The VAD sees the peak-normalized file: Silero's speech probability
+    depends on level (a -20 dB gain alone moved its count 0.62 -> 0.86 pauses/utt)."""
     try:
         import librosa
+        import torch
         wav, _ = librosa.load(path, sr=SR)
-        if wav.size == 0:
+        if wav.size == 0 or not np.any(wav):
             return None
         trimmed, _ = librosa.effects.trim(wav, top_db=TOP_DB)
         if trimmed.size == 0:
             return None
-        iv = librosa.effects.split(trimmed, top_db=TOP_DB)
-        gaps = (iv[1:, 0] - iv[:-1, 1]) / SR if len(iv) > 1 else np.zeros(0)
-        return trimmed.size / SR, int(np.sum(gaps >= PAUSE_S))
+        model, speech_timestamps = vad()
+        ts = speech_timestamps(torch.from_numpy((wav / np.abs(wav).max()).astype(np.float32)), model,
+                               sampling_rate=SR, min_silence_duration_ms=int(PAUSE_S * 1000),
+                               speech_pad_ms=0)
+        gaps = [(b["start"] - a["end"]) / SR for a, b in zip(ts[:-1], ts[1:])]
+        return trimmed.size / SR, sum(g >= PAUSE_S for g in gaps)
     except Exception:
         return None
 
@@ -105,6 +128,7 @@ def main():
            for u, p in load_scp_items(scp) if u in wanted}
     tgt_range = ranges_cached(tgt, os.path.join(
         REPO, "results", "_pitch_range_ref", f"{TASK}_{args.lang}_target.tsv"), args.workers)
+    vad()                                    # load once, before the pools fork
     tgt_stats = stats_for(tgt, args.workers)
     print(f"{args.lang}: {len(tgt)} real target recordings in the sample")
 

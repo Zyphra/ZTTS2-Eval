@@ -78,7 +78,7 @@ sample:
 | per-utterance quantity | definition |
 |---|---|
 | `dur_log2` | log2(trimmed duration of the generation / of the real recording), over the generations the ASR heard with WER ≤ 20% (`n_dur` of them; empty below 50) |
-| `pause_diff` | #pauses(generation) − #pauses(real); a pause is an internal gap ≥ 0.2 s between `librosa.effects.split(top_db=35)` intervals of the trimmed audio |
+| `pause_diff` | #pauses(generation) − #pauses(real); a pause is a gap ≥ 0.2 s between two Silero VAD speech segments (an energy rule misses most pauses under the background noise of real in-the-wild recordings; [controls C8](controls_2026-08.md)) |
 | `range_log2` | log2(pitch range of the generation / of the real recording) |
 
 Per system the CSV reports `dur_log2_med`, `pause_diff_mean`, `range_log2_med` (signed:

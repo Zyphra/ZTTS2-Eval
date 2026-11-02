@@ -422,6 +422,69 @@ speaking-rate payload).
 
 ---
 
+## C8 — Silence detection under background noise · **ADOPTED for paired pauses**
+
+**Question.** Char/s, rhythm, pitch range and the paired ITW metrics find silence with
+`librosa.effects.trim` / `.split(top_db=35)`, relative to each file's loudest frame.
+Does that fail the way MPM's padding did (C6)?
+
+**Measurement.** Perturbation probes on clean real speech (FLEURS-R `en`, 200 vs 200
+utterances, shift as a multiple of the split-half null):
+
+- Edge padding is harmless: 1 s of digital silence, −45 dB hiss or a −20 dB gain all
+  probe at ≈1.0× for char/s, rhythm, pauses and pitch range, so C6 does not recur.
+- A noise floor within 35 dB of the peak defeats the rule. 1 s noise edges at −30 dB
+  are never trimmed: char/s 9.3×, rhythm pace 7.7×, rhythm pause factor 14.9×. Noise
+  under the speech alone leaves char/s and rhythm at ≈1× but removes every pause the
+  split finds (8.7×), and pitch range (pYIN) reads 0.4–0.6 st flatter even at −45 dB.
+
+How often that happens, against Silero VAD on 40 files of every leaf: the rule misses
+≥ 1 pause in 4.8% of Clean system files (concentrated in voxtral, which loses 3.2 of its
+7.4 pauses/utt, glm-tts, cosyvoice3, vibevoice-rt) and in 16.9% of In-The-Wild system
+files, and it finds only about a third of real VoxBlink2 speech's pauses: 67% of those
+recordings have no frame 35 dB below their peak. Edges matter less in practice — the
+speech detector finds only 0.07–0.12 s of edge silence in real VoxBlink2 recordings.
+Across systems, every In-The-Wild prosody metric correlated with output noise (paired
+pause error vs the share of files with no detectable silence: −0.56 median Spearman,
+negative in every language).
+
+**Design/adoption.** The paired pause count, where the misses land directly in the
+score, now comes from Silero VAD (`utils.benchmark.SILERO_VAD`, v6.2.3 pinned by commit)
+at its default thresholds, on the peak-normalized file: a pause is a gap ≥ 0.2 s between
+two speech segments, on the generation and the real recording alike
+(`scripts/paired_itw.py`). Char/s, rhythm and pitch range keep the energy rule; their
+In-The-Wild figures, and voxtral's everywhere, carry this caveat.
+
+**Validation** (same 120 FLEURS-R `en` utterances; pauses/utt):
+
+| | clean | +2 inserted 300 ms pauses | −30 dB noise floor | both |
+|---|--:|--:|--:|--:|
+| 35 dB rule (before) | 0.97 | 1.39 | 0.00 | 0.00 |
+| Silero, as adopted | 0.62 | 2.17 | 0.93 | 1.77 |
+
+The energy rule catches only a fifth of inserted pauses even on clean audio (its 128 ms
+frames shave each gap, so its effective minimum is ~0.33 s, not 0.2 s) and none under
+noise. Silero catches 78% clean and 42% under noise, and peak normalization makes it
+gain-invariant (a −20 dB gain moved the raw count 0.62 → 0.86, the normalized one not
+at all). It is not noise-invariant: a noise floor inflates its count on natural speech
+(0.62 → 0.84 at −45 dB, 0.97 at −25 dB). A stricter drop-out threshold (0.05) removes
+that inflation but finds only 0.09–0.17 pauses per real VoxBlink2 recording; on real
+data the two settings rank systems alike (Spearman 0.91–0.97 in `en de es ja`) and leave
+the same residual link to output noise (−0.25 to −0.39, vs −0.36 to −0.61 for the energy
+rule), so the defaults stay.
+
+**Result.** All 20 VoxBlink2 languages re-scored; the duration and pitch-range columns
+are byte-identical. Paired pause error keeps a moderate share of its ranking (median
+per-language Spearman +0.79, range +0.65…+0.89), and its link to output noise drops
+from −0.56 to −0.32 (median over languages). The largest correction is
+omni_voxtral-tts, whose output noise had hidden its pauses: rank 2 → 31 of 31 in `zh`,
+4 → 32 of 33 in `en`, 11 → 31 in `ja`, 21 → 30 in `ko`, 22 → 29 in `ru`. The previous
+CSVs are kept at `results/_prosody_pre_c8_20261101/`. The prosody index, refit on one
+snapshot with only the pause values swapped, barely moves (Spearman +0.999, at most 0.9
+points): paired pauses are one In-The-Wild item of the pauses aspect.
+
+---
+
 ## Open items that need humans
 
 Two review findings cannot be closed by compute:
