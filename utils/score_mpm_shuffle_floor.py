@@ -127,12 +127,24 @@ def _feature_worker_init(consts):
                             bins=torch.from_numpy(c.pop("bins")), **c)
 
 
+# Leading/trailing silence is trimmed before featurization, on the reference and the
+# systems alike, with the speaking-rate metric's own threshold. MPM's VAD and energy
+# channels otherwise count those frames, and the FLEURS-R recordings carry ~2.45 s of
+# them per utterance while most systems emit tightly trimmed audio: untrimmed, span
+# tracked |system padding - real padding| at Spearman +0.80 within language (8-language
+# probe) and ranked tightly trimmed systems near the scrambled floor. docs/controls_2026-08.md C6.
+TRIM_TOP_DB = 35.0
+
+
 def _load_wav(path):
     """ttsds DirectoryDataset.__getitem__ (22.05 kHz, pad to 16000 samples, peak-normalize)
-    without its on-disk audio cache. That cache keys on str.__hash__, which Python
-    randomizes per process, so it never hits: it only wrote every decoded wav to
-    ~/.cache/ttsds again on every run."""
+    without its on-disk audio cache, after trimming leading/trailing silence (TRIM_TOP_DB).
+    The ttsds cache keys on str.__hash__, which Python randomizes per process, so it
+    never hits: it only wrote every decoded wav to ~/.cache/ttsds again on every run."""
     audio, _ = librosa.load(path, sr=SR)
+    trimmed, _ = librosa.effects.trim(audio, top_db=TRIM_TOP_DB)
+    if trimmed.size:
+        audio = trimmed
     if audio.shape[0] < 16000:
         audio = np.pad(audio, (0, 16000 - audio.shape[0]))
     return audio / (np.max(np.abs(audio)) + 1e-6)
@@ -237,7 +249,8 @@ def _key(ref_dir, seed):
     # v3 = random (rather than sorted/interleaved) split-GT floor.
     # v4 = per-utterance p95 energy normalization (the featurization is part of the
     #      key by version tag, since the content hash cannot see code changes).
-    h = hashlib.md5((content + f"|seed={seed}|v4").encode()).hexdigest()[:16]
+    # v5 = leading/trailing silence trimmed before featurization (TRIM_TOP_DB).
+    h = hashlib.md5((content + f"|seed={seed}|v5").encode()).hexdigest()[:16]
     return h, len(wavs), sum(p.stat().st_size for p in wavs)
 
 

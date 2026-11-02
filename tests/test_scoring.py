@@ -139,6 +139,19 @@ class MpmSpanTest(unittest.TestCase):
         self.assertAlmostEqual(mpm_span(6.0, floor, noise), 0.5)
         self.assertGreater(mpm_span(14.0, floor, noise), 1.0)
 
+    def test_leading_and_trailing_silence_never_reach_the_features(self):
+        # The FLEURS-R references carry ~2.45 s of edge silence and most systems almost
+        # none; untrimmed, MPM span measured that padding instead of prosody.
+        from utils.score_mpm_shuffle_floor import SR, _load_wav
+        t = np.arange(int(1.5 * SR)) / SR
+        voice = (0.3 * np.sin(2 * np.pi * 180 * t) * (1 + 0.5 * np.sin(2 * np.pi * 3 * t))).astype(np.float32)
+        padded = np.concatenate([np.zeros(SR, np.float32), voice, np.zeros(int(0.8 * SR), np.float32)])
+        with tempfile.TemporaryDirectory() as d:
+            sf.write(f"{d}/plain.wav", voice, SR)
+            sf.write(f"{d}/padded.wav", padded, SR)
+            plain, pad = _load_wav(f"{d}/plain.wav"), _load_wav(f"{d}/padded.wav")
+        self.assertLess(abs(len(pad) - len(plain)), 2048)   # within librosa's trim framing
+
 
 class PitchRangeTest(unittest.TestCase):
     def test_octave_glide_range(self):

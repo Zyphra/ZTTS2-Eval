@@ -384,7 +384,9 @@ def render(recs, dedup=None):
     W("  distribution (explorer speaking-rate view).")
     W("- **MPM span: Clean set only — anchors collapse on in-the-wild audio "
       "(docs/mpm_itw_limits.md); values >1 are worse than contour-scrambled speech.** "
-      "0 = real-speech split-half floor, 1 = contour-scrambled floor.\n")
+      "0 = real-speech split-half floor, 1 = contour-scrambled floor. Leading/trailing "
+      "silence is trimmed before scoring (docs/controls_2026-08.md C6), so spans are not "
+      "comparable with releases before 2026-10-31.\n")
     W("On the ITW set the real target recording exists for every item, so prosody is also")
     W("measured *paired* per utterance (duration ratio, pause-count difference, pitch-range")
     W("ratio against the target): the **Dur**, **Pause Δ** and **Pitch-range |log2|**")
@@ -479,7 +481,8 @@ def render(recs, dedup=None):
     W("- **Characters/s distance** = 2-Wasserstein distance between generated and")
     W("  reference speaking-rate distributions (`scripts/speaking_rate_dist.py`); lower is better.")
     W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
-    W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`). Clean")
+    W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`), on audio")
+    W("  with leading/trailing silence trimmed (`docs/controls_2026-08.md` C6). Clean")
     W("  set only — anchors collapse on in-the-wild audio (`docs/mpm_itw_limits.md`);")
     W("  values >1 are worse than contour-scrambled speech.")
     W("- **Reliability gallery** — per-language edit-distance survival/tail plates for")

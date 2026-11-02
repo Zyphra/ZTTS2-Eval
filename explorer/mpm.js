@@ -39,7 +39,7 @@ window.renderMPM = async function () {
   const src = $("#mpm-source");
   if (src) src.innerHTML =
     `<span><b>Data:</b> ZTTS2-Eval · MPM (TTSDS masked prosody model) · span = distance from real speech, ` +
-    `normalized per language (0 = ground truth, 1 = contour-scrambled). Dot = one language; ◆ = mean. Point estimates.</span>` +
+    `normalized per language (0 = ground truth, 1 = contour-scrambled), on audio with leading/trailing silence trimmed. Dot = one language; ◆ = mean. Point estimates.</span>` +
     `<span class="lic">CC BY</span>`;
 };
 

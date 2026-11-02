@@ -186,6 +186,8 @@ stays above it on `fr`/`hi`/`it`/`ja`/`zh` — the languages it has no voice for
 residual anomaly is a real prosody failure the gain artifact had been sitting on top of.
 Pre-fix TSVs are archived at `results/_mpm_shuffle_floor/pre_p95_20260829/`; see
 `docs/controls_2026-08.md`. Published MPM numbers are not comparable across this change.
+Since 2026-10-31 leading/trailing silence is also trimmed before featurization (cache tag
+`v5`; [controls C6](controls_2026-08.md)), which changes every span again.
 
 ## A latent bug in the explorer payload, if MPM is ever enabled for VoxBlink
 

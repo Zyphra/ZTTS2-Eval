@@ -294,6 +294,80 @@ actually been scored.
 
 ---
 
+## C6 — MPM edge-silence confound · **ADOPTED (MPM re-scored)**
+
+**Question.** Building a prosody index over every prosody metric, MPM span disagreed
+with all the others: across the 17 full-coverage systems it was uncorrelated with
+rhythm pace, char/s, pitch range, MSR-UTMOS, SPK and WER on FLEURS-R, and *negatively*
+related to the rhythm pause factor (within-language median Spearman −0.25, positive in
+only 14% of languages). It was not noise — its system ranking agreed across languages
+(mean pairwise Spearman +0.71, above rhythm's +0.53–0.60) — so it was measuring
+something stable, just not what the other metrics measure.
+
+**Diagnosis.** MPM tokenizes pitch, energy and voice-activity contours from *untrimmed*
+audio (the first 1000 frames, ~11.6 s). The FLEURS-R recordings carry **2.45 s** of
+leading + trailing silence on average; most systems emit tightly trimmed audio (voxtral
+0.06 s, ZONOS2 0.09 s, moss-tts 0.10 s, fish-s2-pro 0.15 s). Within each language, span
+tracked `|system edge silence − real edge silence|` at Spearman **+0.70** median,
+positive in **35/35** languages (+0.78 across systems): tightly trimmed systems were
+scored as far from real speech for their missing silence.
+
+**Causal probe** (`en de es fr it ja ru zh`, 8 systems spanning the padding range):
+trimming leading/trailing silence from reference *and* system audio with the char/s
+metric's own `librosa.effects.trim(top_db=35)` and re-scoring with the unchanged scorer
+dropped the span–padding correlation from **+0.80 to +0.27** (median over languages) and
+reordered the systems (Spearman before vs after +0.54). Tightly trimmed systems moved
+to real-speech-like spans — moss-tts 0.63 → 0.04, higgs-audio-v3 0.37 → 0.06,
+fish-s2-pro 0.85 → 0.20, ZONOS2 accurate 0.48 → 0.17 — while voxtral, which speaks in
+preset voices rather than the prompt's, stayed near the scrambled floor (1.01 → 0.97).
+
+**Design/adoption.** `utils/score_mpm_shuffle_floor.py` trims leading/trailing silence
+(`TRIM_TOP_DB = 35`) in `_load_wav`, the single loader for reference, systems and the
+ground-truth split, and the anchor cache tag moves `v4` → `v5` (the content hash cannot
+see featurization changes). The full FLEURS-R MPM array (35 languages × all systems) and
+the 35 ground-truth split-half floors were recomputed.
+
+**Result.** 35/35 languages re-scored, system rows and ground-truth floors alike. The 64
+probe cells reproduce (Spearman +0.994, median |Δ| 0.002).
+
+- **Confound removed.** Over all systems, within-language span vs edge-silence gap falls
+  from median **+0.58 to +0.02** (positive in 100% → 57% of languages). The ground-truth
+  split-half floor stays at zero (mean span −0.009 → −0.015).
+- **MPM now agrees with the other prosody metrics.** Within language, median Spearman
+  against char/s distance is **+0.49** (same sign in 100% of languages), rhythm pace
+  +0.40 (97%), pitch range +0.30 (91%), rhythm pause +0.24 (83%). Across the 17
+  full-coverage systems it correlates **+0.30 to +0.53** with every prosody metric, up
+  from −0.36 to +0.17.
+- **Rankings move a lot.** Kendall τ between old and new spans averages **+0.13** across
+  languages (range −0.25…+1.00; lowest `pl` −0.25, `el` −0.24, `sk` −0.19, `ro` −0.17),
+  against +0.86 for the C4 loudness fix. Mean span falls 0.418 → 0.295.
+- **Out-of-language failures were being masked.** Cells above 1.0 rise 31 → 47, and they
+  fall where the vendor does not support the language. omni_glm-tts (zh/en) holds 0.18 →
+  0.17 on its own languages but goes 0.21 → 1.44 on the other 21 (19 above 1).
+  cosyvoice3 improves 0.25 → 0.03 on its 9 languages and worsens 0.50 → 1.29 elsewhere.
+  Untrimmed, a system whose silence total matched the reference's could pass with any
+  contour.
+- **Pausing is now judged where it happens.** audio8-tts-realistic-0.6b leaves almost no
+  edge silence (0.05 s) but pauses for 20.7% of its trimmed utterances, against 8.8% for
+  real speech (`en`, 40 utterances). Untrimmed, its 21.5% total silence matched the
+  reference's mostly edge silence (26%), scoring 0.16 on its supported languages. Trimmed
+  it scores 0.42.
+- **Indices**, refit on one snapshot with only the spans swapped (72 leaves with no
+  pre-trim score left out of both fits). The capability index keeps its ranking
+  (Spearman +0.96 untrimmed vs trimmed): MPM is one of four metrics in one of its four
+  dimensions. Its scale stretches, though. ZONOS2 accurate, the 50 anchor, moves toward
+  real speech (span 0.555 → 0.162), so every system's distance from 50 grows; partial-
+  coverage systems far from 50 move most. The prosody index changes character: TTS
+  systems spread from 47.7–51.3 to 27.9–59.4, and the ranking is new (Spearman +0.26).
+  Before the fix, MPM pulled against the other three aspects and the fit cancelled to a
+  near tie; trimmed, it agrees with them.
+
+Published MPM spans are **not comparable across this change**. The previous TSVs are kept
+at `results/_mpm_shuffle_floor/pre_trim_20261031/` and
+`results/_mpm_ground_truth/pre_trim_20261031/`.
+
+---
+
 ## Open items that need humans
 
 Two review findings cannot be closed by compute:

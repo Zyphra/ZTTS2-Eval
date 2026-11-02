@@ -243,8 +243,10 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
 * **MPM span (Clean set only)** — Masked Prosody Model distance normalized per
   language between the real-speech split-half floor (0) and a contour-scrambled
   floor (1). Lower is better, and **values above 1 are worse than the same speech
-  with its contour scrambled**. It is not computed on the In-The-Wild set: the
-  anchors collapse on in-the-wild audio
+  with its contour scrambled**. Leading/trailing silence is trimmed from every
+  utterance first, since the FLEURS-R recordings carry ~2.45 s of it and most
+  systems almost none ([controls C6](docs/controls_2026-08.md)). It is not computed
+  on the In-The-Wild set: the anchors collapse on in-the-wild audio
   ([docs/mpm_itw_limits.md](docs/mpm_itw_limits.md)).
 
 The `gt_zero_shot*` rows use a reproducible, disjoint random 50/50 split of each
