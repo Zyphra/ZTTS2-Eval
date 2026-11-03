@@ -205,8 +205,9 @@ populated `results/` tree; the `_cache/` snapshot is gitignored.
 `score_job.sh` (one-GPU wrapper for any scoring driver), `submit_metrics.sh` /
 `submit_ground_truth_metrics.sh` (distributional-metric arrays; composable through
 `METRICS_*` env; `METRICS_NODES=N` runs them as whole-node tasks via
-`metrics_node_job.sh`), `zonos3_gen_job.sh` / `moss_gen_job.sh` / `omni_gen_job.sh`
-(ZONOS3 Mini, MOSS-TTS family and vLLM-Omni generation on 8-GPU nodes), and
+`metrics_node_job.sh`), `zonos3_gen_job.sh` / `native_gen_job.sh` / `omni_gen_job.sh`
+(ZONOS3 Mini, in-process drivers such as MOSS-TTS and Ming-3.0-tts, and vLLM-Omni
+generation on 8-GPU nodes), and
 `submit_release_run.sh` (the whole release DAG: targets, HF
 upload, full rescore, GT, metrics, final build). See `slurm/README.md`.
 

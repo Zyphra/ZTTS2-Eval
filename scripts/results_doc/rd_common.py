@@ -135,6 +135,23 @@ CONDITIONS = {
                                   "transcript; T 0.8 top-p 0.95 top-k 50, ≤1024 frames; unseeded server sampling"),
     "cosyvoice3": ("with-transcript",
                    "native upstream; prompt wav + transcript (endofprompt-terminated system prompt; ja→katakana)"),
+    "ming-3.0-tts-0.5b": ("with-transcript",
+                          "native upstream (Ming-3.0-tts@a39b806, generate_ming3.py); prompt wav + transcript + "
+                          "CAM++ speaker embedding, raw text; greedy text decoding, CFG 2.0, sigma 0.25, seed "
+                          "1895 per utt; zh en de es fr ja ko only"),
+    "ming-3.0-tts-tiny": ("with-transcript",
+                          "native upstream (Ming-3.0-tts@a39b806, generate_ming3.py; seed / multilingual "
+                          "tasks); prompt wav + transcript, raw text; formal settings CFG 2.0, temp 0, 10 flow "
+                          "steps, sigma 0.25, seed 1234 per utt; zh en de es fr ja ko only"),
+    # Same runs on prompts with edge silence trimmed (librosa top_db 35, generate_ming3.py
+    # --trim-prompt): Ming continues from the prompt's tail and mostly emits ~0.3 s of
+    # silence on the FLEURS-R prompts' trailing silence. Harness change for Ming only.
+    "ming-3.0-tts-0.5b-trim": ("with-transcript",
+                               "as ming-3.0-tts-0.5b, prompt wav edge silence trimmed (top_db 35) before "
+                               "encoding"),
+    "ming-3.0-tts-tiny-trim": ("with-transcript",
+                               "as ming-3.0-tts-tiny, prompt wav edge silence trimmed (top_db 35) before "
+                               "encoding"),
     "moss-tts": ("no-transcript",
                  "audio-only clone (generate_moss_tts.py, no transcript); temp 0.9 reference-app sampling"),
     "moss-tts-v1.5": ("no-transcript",
