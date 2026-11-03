@@ -34,8 +34,8 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   MSR-UTMOS, **MPM (Clean only)**, the rhythm **pace** and **pause** factors and the
   **pitch range** factor (each as a multiple of the real-speech split-half ceiling,
   from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`), and, on the
-  In-The-Wild sets, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
-  `Range |log2|`, from `paired_itw_<set>_<lang>.csv`).
+  In-The-Wild set, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
+  `Range |log2|`, from `paired_itw_<lang>.csv`).
 - **Reliability views** are the interactive twins of the `scripts/tufte_*` plates
   (p99 + bootstrap CI, survival overlay, small multiples, slopegraph), rendered as
   native SVG from `reliability.json` — built by
