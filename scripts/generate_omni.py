@@ -142,7 +142,7 @@ def audio_to_data_uri(path):
 def build_request(mode, target_text, lang, prompt_path, prompt_text, voice,
                   model, max_new_tokens, ref_audio_mode="url",
                   seed=None, temperature=None, no_ref_text=False,
-                  x_vector_only=False):
+                  x_vector_only=False, send_language=True):
     """Assemble the /v1/audio/speech JSON body for one utterance."""
     body = {
         "input": target_text,
@@ -186,6 +186,8 @@ def build_request(mode, target_text, lang, prompt_path, prompt_text, voice,
         body["instructions"] = DESIGN_INSTRUCTION
     else:
         raise ValueError(f"unknown mode: {mode}")
+    if not send_language:
+        del body["language"]
     return body
 
 
@@ -232,6 +234,9 @@ def main():
     ap.add_argument("--x-vector-only", action="store_true",
                     help="clone-mode: set x_vector_only_mode=True (Qwen3 needs this "
                          "to clone without ref_text).")
+    ap.add_argument("--no-language", action="store_true",
+                    help="omit the request 'language' field (Breeze-TTS-2 infers the "
+                         "language from the text and rejects the field).")
     args = ap.parse_args()
 
     if not server_alive(args.server):
@@ -288,7 +293,8 @@ def main():
                                  args.max_new_tokens, args.ref_audio_mode,
                                  seed=args.seed, temperature=args.temperature,
                                  no_ref_text=args.no_ref_text,
-                                 x_vector_only=args.x_vector_only)
+                                 x_vector_only=args.x_vector_only,
+                                 send_language=not args.no_language)
             try:
                 raw = with_retry(lambda: http_post(speech_url, body, args.timeout),
                                  args.retries, args.retry_base_delay)

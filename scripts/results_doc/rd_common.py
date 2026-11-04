@@ -127,6 +127,10 @@ CONDITIONS = {
     "omni_drama-3": ("with-transcript",
                      "ref_text kept (server requires ref_audio + ref_text); vllm-omni 0.32.0 on vllm "
                      "0.32.0; unseeded server defaults (T 1.0 top-k 30 top-p 0.9)"),
+    "omni_breeze-tts-2": ("with-transcript",
+                          "ref_text kept (server requires it); vllm-omni 0.32.0 breeze_tts_2_throughput "
+                          "profile (32 concurrent); server sampling T 0.9 top-k 50 rep 1.1, CFG 1, seed 42 "
+                          "per request; en zh only"),
     "omni_voxtral-tts": ("preset", "preset mode (task_type=CustomVoice); unseeded server defaults"),
     # Native in-process recipes.
     # Upstream SGLang-Omni adapter server (scripts/generate_audio8.py -> /v1/audio/speech).
@@ -164,7 +168,15 @@ CONDITIONS = {
                        "voice-prompt clone (voice_samples=[ref wav], no transcript); cfg 1.3, 10 DDPM steps"),
     "vibevoice-7b": ("no-transcript",
                      "voice-prompt clone (voice_samples=[ref wav], no transcript); cfg 1.3, 10 DDPM steps"),
+    "pocket-tts": ("no-transcript",
+                   "official pocket-tts 4.0.1 on CPU, kyutai/pocket-tts@db04f0e6 default model per language "
+                   "(6-layer); audio-only clone of the prompt wav; temp 0.3, EOS -4, torch seed 42 per utt; "
+                   "en fr de pt it es only"),
     "kokoro": ("preset", "built-in voice per language; prompt wav ignored"),
+    "phonon-40m-multilingual": ("preset",
+                                "ptts 0.6.0 Rust runtime, q8 GGUF, CPU; gradium/phonon-voices catalog voice of "
+                                "the utterance's language, deterministic per-utt rotation (no local cloning); "
+                                "runtime text normalization; temp 0.3, default seed; en fr de es pt only"),
     "neutts-2e": ("preset", "4 fixed speakers, deterministic per-utt rotation; prompt wav ignored"),
     "vibevoice-rt-0.5b": ("preset", "preset speaker embeddings, per-utt rotation; prompt wav ignored"),
 }
@@ -235,10 +247,18 @@ RELEASES = {
     "zonos2_expressive": ("2026-06-12", "Zyphra blog, 'ZONOS2'", False),
     "moss-tts-local-v1.5": ("2026-06-18", "OpenMOSS/MOSS-TTS README news", False),
     "neutts-2e": ("2026-07-30", "Neuphonic blog, 'Introducing NeuTTS-2E'", False),
+    "omni_breeze-tts-2": ("2026-08-25", "BreezeBlue/Breeze-TTS-2 card news (weights + PyTorch inference code)", False),
     "cartesia_sonic-3.6_clone": ("2026-08-27", "Cartesia docs, Sonic 3.6 dated snapshot sonic-3.6-2026-08-27 (Stable)", False),
     "gemini_3.8-flash": ("2026-09-23", "Google blog, 'Gemini 3.8 text-to-speech says hello'", False),
     "elevenlabs_v4_clone": ("2026-09-28", "ElevenLabs blog, 'Eleven v4'", False),
+    "pocket-tts": ("2026-10-11", "HF kyutai/pocket-tts commit c54c3637 (default english refreshed; other "
+                   "languages 2026-10-01)", False),
     "omni_drama-3": ("2026-10-13", "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)", False),
+    "ming-3.0-tts-0.5b": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
+    "ming-3.0-tts-tiny": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
+    "ming-3.0-tts-0.5b-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
+    "ming-3.0-tts-tiny-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
+    "phonon-40m-multilingual": ("2026-10-20", "Gradium blog, 'Open-Sourcing Phonon'", False),
     "audio8-tts-realistic-0.6b": ("2026-10-29", "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)", False),
     # not public yet: dated by the planned public release
     "zonos3-mini_reference": ("2026-11-13", "Zyphra release plan", True),
@@ -258,6 +278,8 @@ RELEASES = {
 _Z3M = (0.886, 0.155, "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)")
 PARAMS = {
     "kokoro": (0.082, None, "model name (Kokoro-82M)"),
+    "phonon-40m-multilingual": (0.04, None, "gradium/phonon-40m-multilingual card: 40M excluding the audio tokenizer"),
+    "pocket-tts": (0.1, None, "kyutai/pocket-tts card: '100M parameters'"),
     "neutts-2e": (0.125, None, "Neuphonic blog, '125M-parameter'"),
     "cosyvoice3": (0.5, None, "model name (Fun-CosyVoice3-0.5B)"),
     "vibevoice-rt-0.5b": (0.5, None, "model name (VibeVoice-Realtime-0.5B)"),
@@ -280,6 +302,11 @@ PARAMS = {
     "omni_voxcpm2-reftext": (2.0, None, "openbmb/VoxCPM2 card: '2B parameters'"),
     "omni_higgs-audio-v3": (4.0, None, "model name (higgs-audio-v3-tts-4b)"),
     "omni_drama-3": (35.0, 3.0, "fishaudio/drama-3 card: 35B MoE, 3B active per token"),
+    "omni_breeze-tts-2": (3.48, None, "BreezeBlue/Breeze-TTS-2 checkpoint: 6.97 GB bf16 (Qwen3 backbone, T5Gemma2 text encoder, depth decoder); no published size"),
+    "ming-3.0-tts-0.5b": (0.5, None, "inclusionAI/Ming-3.0-tts README: 0.5b dense"),
+    "ming-3.0-tts-tiny": (7.9, 1.3, "inclusionAI/Ming-3.0-tts README: tiny MoE, 7.9B total, 1.3B active"),
+    "ming-3.0-tts-0.5b-trim": (0.5, None, "inclusionAI/Ming-3.0-tts README: 0.5b dense"),
+    "ming-3.0-tts-tiny-trim": (7.9, 1.3, "inclusionAI/Ming-3.0-tts README: tiny MoE, 7.9B total, 1.3B active"),
     "audio8-tts-realistic-0.6b": (0.601, None, "Edge0/Audio8-TTS-Realistic-0.6b card: 601,159,424 main-model params, codec excluded"),
     "zonos2_accurate": (8.0, 0.9, "Zyphra blog, 'ZONOS2'"),
     "zonos2_expressive": (8.0, 0.9, "Zyphra blog, 'ZONOS2'"),

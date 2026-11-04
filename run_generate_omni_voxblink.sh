@@ -45,7 +45,8 @@ if [ -z "${DEPLOY_DIR}" ] || [ ! -d "${DEPLOY_DIR}" ]; then
 fi
 
 # Shared model registry (same file as run_generate_omni.sh) -- ALL_MODELS,
-# model_spec, reftext_policy, refaudio_mode, extra_pythonpath, extra_serve_args.
+# model_spec, reftext_policy, refaudio_mode, extra_pythonpath, extra_serve_args,
+# extra_env, extra_client_args.
 . scripts/omni_models.sh
 
 if [ "${model}" = "all" ]; then models="${ALL_MODELS}"; else models="${model}"; fi
@@ -144,7 +145,7 @@ for m in ${models}; do
             --out-dir "${out_dir}" \
             --workers "${workers}" \
             --limit "${limit}" \
-            ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt}
+            ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
     done
 
     stop_omni_server

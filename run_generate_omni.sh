@@ -79,7 +79,8 @@ fi
 # --- model registry --------------------------------------------------------
 # Shared with run_generate_omni_voxblink.sh via scripts/omni_models.sh: ALL_MODELS,
 # NEW_MODELS, model_spec, reftext_policy, refaudio_mode, extra_pythonpath,
-# extra_serve_args. Add or edit models THERE so both tasks stay in sync.
+# extra_serve_args, extra_env, extra_client_args. Add or edit models THERE so both
+# tasks stay in sync.
 . scripts/omni_models.sh
 
 if [ "${model}" = "all" ]; then models="${ALL_MODELS}"; else models="${model}"; fi
@@ -222,7 +223,7 @@ for m in ${models}; do
                 --out-dir "${out_dir}" \
                 --workers "${workers}" \
                 --limit "${limit}" \
-                ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt}
+                ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
         done
     done
 

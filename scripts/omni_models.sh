@@ -16,7 +16,7 @@ ALL_MODELS="qwen3-tts-1.7b qwen3-tts-0.6b cosyvoice3 voxcpm2 voxtral-tts fish-s2
 # Newer TTS models shipped by a LATER vllm-omni. Wired in model_spec() and runnable by
 # explicit --model, but kept OUT of ALL_MODELS (the `--model all` sweep) until
 # validated. To enable: bump the runtime, smoke one, then promote.
-NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3 drama-3"
+NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3 drama-3 breeze-tts-2"
 
 # RETIRED -- kept in model_spec() so an explicit --model still works, but out of both
 # sweep lists so `--model all` can never resurrect them, and their results/ trees were
@@ -69,6 +69,13 @@ model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
         # Cloning requires ref_audio + ref_text, so reftext_policy's default (ref_text
         # kept) applies.
         drama-3)             echo "fishaudio/drama-3|clone|fish_omni.yaml" ;;
+        # Breeze TTS 2 (BreezeBlue). vllm-omni >= 0.32 (same venv as drama-3) serves it with
+        # continuous batching: the non-streaming throughput profile batches 32 requests per
+        # GPU with CUDA graphs, where the upstream PyTorch runtime (github.com/breezeblue-ai/
+        # breeze-tts) clones one request at a time (its batch API shares one reference across
+        # all texts). Sampling is the checkpoint's: T 0.9, top-k 50, repetition penalty 1.1,
+        # seed 42, CFG 1. Cloning requires the reference transcript; English and Chinese only.
+        breeze-tts-2)        echo "BreezeBlue/Breeze-TTS-2|clone|breeze_tts_2_throughput.yaml" ;;
         *)                   echo "" ;;
     esac
 }
@@ -142,5 +149,14 @@ extra_env() {  # key -> "NAME=VALUE NAME=VALUE ..." (or empty)
         higgs-audio-v3) echo "VLLM_USE_DEEP_GEMM=0 VLLM_MOE_USE_DEEP_GEMM=0" ;;
         drama-3)        echo "CUDA_MPS_PIPE_DIRECTORY=" ;;
         *)              echo "" ;;
+    esac
+}
+
+# Extra generate_omni.py arguments a model's server needs. Breeze TTS 2 infers the
+# language from the text and rejects requests that carry a 'language' field.
+extra_client_args() {  # key -> extra generate_omni.py args (or empty)
+    case "$1" in
+        breeze-tts-2) echo "--no-language" ;;
+        *)            echo "" ;;
     esac
 }
