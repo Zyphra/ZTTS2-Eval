@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Submit the whole benchmark-v2 release compute DAG. Run from the repo root on the login
+# Submit the whole benchmark release compute DAG. Run from the repo root on the login
 # node (the pinned scorer revisions must already be in the shared HF/torch caches).
 #
 #   J_tg  build_voxblink_targets.py --import-from results/gt_in-the-wild

@@ -56,6 +56,7 @@ import librosa  # noqa: E402
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.prosody.common import content_hash  # noqa: E402
+from utils import vad  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ttsds/mpm_shuffle_floor"))
@@ -128,24 +129,27 @@ def _feature_worker_init(consts):
                             bins=torch.from_numpy(c.pop("bins")), **c)
 
 
-# Leading/trailing silence is trimmed before featurization, on the reference and the
-# systems alike, with the speaking-rate metric's own threshold. MPM's VAD and energy
-# channels otherwise count those frames, and the FLEURS-R recordings carry ~2.45 s of
-# them per utterance while most systems emit tightly trimmed audio: untrimmed, span
-# tracked |system padding - real padding| at Spearman +0.80 within language (8-language
-# probe) and ranked tightly trimmed systems near the scrambled floor. docs/controls_2026-08.md C6.
-TRIM_TOP_DB = 35.0
+# Leading/trailing non-speech is trimmed before featurization, on the reference and the
+# systems alike, with the Silero VAD speech span shared by every prosody metric
+# (utils.vad). MPM's VAD and energy channels otherwise count those frames, and the
+# FLEURS-R recordings carry ~2.45 s of them per utterance while most systems emit tightly
+# trimmed audio: untrimmed, span tracked |system padding - real padding| at Spearman +0.80
+# within language (8-language probe) and ranked tightly trimmed systems near the
+# scrambled floor. docs/controls_2026-08.md C6.
 
 
 def _load_wav(path):
     """ttsds DirectoryDataset.__getitem__ (22.05 kHz, pad to 16000 samples, peak-normalize)
-    without its on-disk audio cache, after trimming leading/trailing silence (TRIM_TOP_DB).
-    The ttsds cache keys on str.__hash__, which Python randomizes per process, so it
-    never hits: it only wrote every decoded wav to ~/.cache/ttsds again on every run."""
+    without its on-disk audio cache, cut to the Silero VAD speech span (found at 16 kHz,
+    mapped onto the 22.05 kHz samples); None when the VAD finds no speech (the file is
+    dropped). The ttsds cache keys on str.__hash__, which Python randomizes per process,
+    so it never hits: it only wrote every decoded wav to ~/.cache/ttsds again on every run."""
+    wav16, _ = librosa.load(path, sr=vad.SR)
+    span = vad.speech_span(wav16)
+    if span is None:
+        return None
     audio, _ = librosa.load(path, sr=SR)
-    trimmed, _ = librosa.effects.trim(audio, top_db=TRIM_TOP_DB)
-    if trimmed.size:
-        audio = trimmed
+    audio = audio[round(span[0] * SR / vad.SR):round(span[1] * SR / vad.SR)]
     if audio.shape[0] < 16000:
         audio = np.pad(audio, (0, 16000 - audio.shape[0]))
     return audio / (np.max(np.abs(audio)) + 1e-6)
@@ -163,9 +167,12 @@ def _f0_pyworld(wav):
 
 
 def _tokens_for_path(path):
+    """Token array of one wav, or None when _load_wav drops it (no speech)."""
     wav = _load_wav(path)
-    pitch, vad = _pitch_and_vad(_f0_pyworld(wav))
-    return _tokens(_FEAT, pitch, _energy(wav), vad).numpy()
+    if wav is None:
+        return None
+    pitch, voiced = _pitch_and_vad(_f0_pyworld(wav))
+    return _tokens(_FEAT, pitch, _energy(wav), voiced).numpy()
 
 
 def _wav_files(wav_dir):
@@ -178,6 +185,7 @@ def _feature_pool(bench):
     workers = int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
     consts = dict(pitch_min=bench.pitch_min, pitch_max=bench.pitch_max,
                   vad_min=bench.vad_min, vad_max=bench.vad_max, bins=bench.bins.numpy())
+    vad.load()                       # fetch the pinned Silero once before the workers start
     # spawn: the parent holds a CUDA context, which forked children must not inherit.
     return ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn"),
                                initializer=_feature_worker_init, initargs=(consts,))
@@ -185,14 +193,16 @@ def _feature_pool(bench):
 
 def _collect_tokens(pool, wav_dir):
     return [torch.from_numpy(t)
-            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)]
+            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)
+            if t is not None]
 
 
 def _embed_dir(bench, pool, wav_dir):
     """Per-utterance embeddings of a dir, embedding each utterance as soon as its tokens
     arrive so the GPU works while the pool tokenizes the rest."""
     return [_embed(bench, torch.from_numpy(t))
-            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)]
+            for t in pool.map(_tokens_for_path, _wav_files(wav_dir), chunksize=4)
+            if t is not None]
 
 
 def _stack_embed(bench, toks_list):
@@ -247,8 +257,9 @@ def _key(ref_dir, seed):
     # v3 = random (rather than sorted/interleaved) split-GT floor.
     # v4 = per-utterance p95 energy normalization (the featurization is part of the
     #      key by version tag, since the content hash cannot see code changes).
-    # v5 = leading/trailing silence trimmed before featurization (TRIM_TOP_DB).
-    h, wavs = content_hash(ref_dir, f"|seed={seed}|v5")
+    # v5 = leading/trailing silence trimmed before featurization (librosa top_db 35).
+    # v6 = the trim is the Silero VAD speech span (utils.vad), files without speech dropped.
+    h, wavs = content_hash(ref_dir, f"|seed={seed}|v6")
     return h, len(wavs), sum(p.stat().st_size for p in wavs)
 
 

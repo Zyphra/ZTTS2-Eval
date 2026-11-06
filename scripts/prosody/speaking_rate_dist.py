@@ -98,19 +98,19 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, boot_ci,  # noqa: E402
                                     ceiling, find_systems, heard_files, utt_of, w2_fair)
+from utils import vad  # noqa: E402
 from utils.atomic import write_text_atomic  # noqa: E402
 from utils.scp import load_text  # noqa: E402
 
 
-def _probe(args):
-    path, top_db = args
+def _probe(path):
     try:
-        audio, sr = librosa.load(path, sr=22050)
+        audio, _ = librosa.load(path, sr=vad.SR)
         if audio.size == 0:
             return path, None, None
-        trimmed, _ = librosa.effects.trim(audio, top_db=top_db)
-        d_trim = len(trimmed) / sr if len(trimmed) > 0 else None
-        return path, d_trim, len(audio) / sr
+        trimmed = vad.trim_speech(audio)
+        d_trim = len(trimmed) / vad.SR if trimmed is not None and len(trimmed) > 0 else None
+        return path, d_trim, len(audio) / vad.SR
     except Exception:
         return path, None, None
 
@@ -128,13 +128,14 @@ def duration_cache_path(wav_dir):
 
 
 def _read_cache(path):
+    """Cached rows trimmed with the current vad.TRIM_TAG; rows from another trim are ignored."""
     out = {}
     if os.path.isfile(path):
         with open(path, encoding="utf-8") as fh:
             for line in fh:
                 p = line.rstrip("\n").split("\t")
-                if len(p) == 6 and p[0] != "name":
-                    out[p[0]] = (int(p[1]), int(p[2]), float(p[3]), _num(p[4]), _num(p[5]))
+                if len(p) == 6 and p[0] != "name" and p[3] == vad.TRIM_TAG:
+                    out[p[0]] = (int(p[1]), int(p[2]), p[3], _num(p[4]), _num(p[5]))
     return out
 
 
@@ -143,18 +144,19 @@ def _num(s):
 
 
 def _write_cache(path, rows):
-    lines = ["name\tsize\tmtime_ns\ttop_db\td_trim\td_raw\n"]
+    lines = ["name\tsize\tmtime_ns\ttrim\td_trim\td_raw\n"]
     for name in sorted(rows):
-        size, mtime, top_db, d_trim, d_raw = rows[name]
-        lines.append(f"{name}\t{size}\t{mtime}\t{top_db}\t{'' if d_trim is None else d_trim}\t"
+        size, mtime, trim, d_trim, d_raw = rows[name]
+        lines.append(f"{name}\t{size}\t{mtime}\t{trim}\t{'' if d_trim is None else d_trim}\t"
                      f"{'' if d_raw is None else d_raw}\n")
     write_text_atomic(path, "".join(lines))
 
 
-def durations(files, top_db, workers):
-    """{path: (trimmed s, raw s)} (None where unreadable), from the per-dir cache when the
-    file's size, mtime and the trim threshold all match, else probed and cached. Decoding
-    and trimming every wav is the whole cost of char/s, so a rebuild only probes what changed."""
+def durations(files, workers):
+    """{path: (trimmed s, raw s)} (None where unreadable / no speech), from the per-dir cache
+    when the file's size, mtime and the trim (vad.TRIM_TAG) all match, else probed and cached.
+    Decoding and trimming every wav is the whole cost of char/s, so a rebuild only probes
+    what changed."""
     by_dir = {}
     for f in files:
         by_dir.setdefault(os.path.dirname(f), []).append(f)
@@ -167,17 +169,18 @@ def durations(files, top_db, workers):
             st = os.stat(f)
             stat[f] = (st.st_size, st.st_mtime_ns)
             c = cache.get(os.path.basename(f))
-            if c and c[:2] == stat[f] and c[2] == float(top_db):
+            if c and c[:2] == stat[f]:
                 out[f] = (c[3], c[4])
             else:
                 todo.append(f)
         if not todo:
             continue
+        vad.load()                                 # once, before the pool forks
         with ProcessPoolExecutor(workers) as ex:
-            res = list(ex.map(_probe, [(f, top_db) for f in todo], chunksize=4))
+            res = list(ex.map(_probe, todo, chunksize=4))
         for path, d_trim, d_raw in res:
             out[path] = (d_trim, d_raw)
-            cache[os.path.basename(path)] = (*stat[path], float(top_db), d_trim, d_raw)
+            cache[os.path.basename(path)] = (*stat[path], vad.TRIM_TAG, d_trim, d_raw)
         try:
             _write_cache(cpath, cache)
         except OSError as e:                       # read-only tree: still correct, just uncached
@@ -185,9 +188,9 @@ def durations(files, top_db, workers):
     return out
 
 
-def char_rates(files, textmap, top_db, workers):
+def char_rates(files, textmap, workers):
     """-> (char/s array, mean lead+trail silence seconds)."""
-    dur = durations(files, top_db, workers)
+    dur = durations(files, workers)
     rates, pads = [], []
     for path in files:
         d_trim, d_raw = dur[path]
@@ -207,7 +210,6 @@ def main():
     ap.add_argument("--cap", type=float, default=40.0,
                     help="char/s above this = truncated generation, excluded from d_ref (default 40; "
                          "reference median is ~16)")
-    ap.add_argument("--top-db", type=float, default=35.0, help="librosa.effects.trim threshold (default 35)")
     ap.add_argument("--min-utts", type=int, default=100)
     ap.add_argument("--n-boot", type=int, default=400)
     args = ap.parse_args()
@@ -220,7 +222,7 @@ def main():
     prompt_text = load_text(os.path.join(base, "prompt_text"))
     target_text = load_text(os.path.join(base, "text"))
 
-    ref_all, ref_pad = char_rates(sorted(glob.glob(ref_dir + "/*.wav")), prompt_text, args.top_db, args.workers)
+    ref_all, ref_pad = char_rates(sorted(glob.glob(ref_dir + "/*.wav")), prompt_text, args.workers)
     ref = ref_all[ref_all <= args.cap]
     ceil = ceiling(ref)
     print(f"reference: {ref_dir}")
@@ -234,7 +236,7 @@ def main():
         files, heard_pct = heard_files(d)
         if len(files) < args.min_utts:
             continue
-        rates, pad = char_rates(files, target_text, args.top_db, args.workers)
+        rates, pad = char_rates(files, target_text, args.workers)
         if rates.size < args.min_utts:
             continue
         keep = rates[rates <= args.cap]

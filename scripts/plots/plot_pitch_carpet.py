@@ -40,6 +40,7 @@ from scripts.plots.plot_rhythm_carpet import PANELS, AMBER  # noqa: E402
 from scripts.prosody.common import find_systems  # noqa: E402
 from utils.pitch_range import (SR, HOP, METHOD, f0_track, semitone_dev,  # noqa: E402
                                utt_range_st)
+from utils import vad  # noqa: E402
 
 ST_CLIP = 6.0      # semitone display band: ±6 st around the utterance median
 ST_BIG = 4.0       # |dev| beyond this is a big melodic move -> amber ink
@@ -55,6 +56,7 @@ def load_tracks(cache_dir, raw, wav_dir, uids, workers):
         if "__method__" in z and str(z["__method__"]) == METHOD and all(u in z for u in uids):
             return {u: z[u] for u in uids if z[u].size}
     paths = [os.path.join(wav_dir, u + ".wav") for u in uids]
+    vad.load()                                     # once, before the pool forks
     with ProcessPoolExecutor(workers) as ex:
         res = list(ex.map(f0_track, paths, chunksize=1))
     tracks = {u: (f0 if f0 is not None else np.zeros(0, dtype=np.float32))

@@ -25,17 +25,17 @@ from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
+from utils import vad
 from utils.atomic import write_text_atomic
 
 SR = 16000
 HOP = 320          # 20 ms, same grid as the rhythm views
 FMIN, FMAX = 60.0, 400.0
 MIN_SAMPLES = 8000  # trimmed audio shorter than 0.5 s is not scored
-TRIM_DB = 35.0
 GATE_DB = -50.0     # voiced frames this far below the loudest frame are not voice
 RUN_MAX_ST = 9.0    # voiced runs whose median is this far from the utterance median are not voice
 # Stamped into every range cache: entries computed by another method are recomputed.
-METHOD = f"pyin {FMIN:g}-{FMAX:g} trim{TRIM_DB:g} gate{GATE_DB:g} run{RUN_MAX_ST:g}"
+METHOD = f"pyin {FMIN:g}-{FMAX:g} {vad.TRIM_TAG} gate{GATE_DB:g} run{RUN_MAX_ST:g}"
 
 
 def drop_outlier_runs(f0, max_st=RUN_MAX_ST):
@@ -55,11 +55,12 @@ def drop_outlier_runs(f0, max_st=RUN_MAX_ST):
 
 
 def f0_of(wav):
-    """float32 F0 array (NaN = unvoiced) of a 16 kHz utterance after edge trimming, or None."""
+    """float32 F0 array (NaN = unvoiced) of a 16 kHz utterance after the Silero VAD edge
+    trim (utils.vad.trim_speech), or None."""
     import librosa
     from scipy.signal import medfilt
-    wav, _ = librosa.effects.trim(wav, top_db=TRIM_DB)
-    if len(wav) < MIN_SAMPLES:
+    wav = vad.trim_speech(wav)
+    if wav is None or len(wav) < MIN_SAMPLES:
         return None
     f0, _, _ = librosa.pyin(wav, fmin=FMIN, fmax=FMAX, sr=SR,
                             frame_length=1024, hop_length=HOP)
@@ -141,6 +142,7 @@ def ranges_cached(wavs, cache_tsv, workers):
     cache = _read_tsv(cache_tsv)
     todo = [u for u in wavs if u not in cache]
     if todo:
+        vad.load()                                 # once, before the pool forks
         with ProcessPoolExecutor(workers) as ex:
             res = list(ex.map(range_st, [wavs[u] for u in todo], chunksize=1))
         cache.update(dict(zip(todo, res)))

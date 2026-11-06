@@ -43,8 +43,7 @@ NO_SPACE_JOIN = {"zh", "ja"}
 SAMPLING = {k: gz.POLICY[k] for k in ("temperature", "topk", "top_p", "min_p", "repetition_window",
                                       "repetition_penalty", "repetition_codebooks", "speaker_cfg_scale")}
 SILENCE_FRAMES = gz.POLICY["silence_prefill_frames"]
-#: --trim-prompt threshold: librosa.effects.trim's top_db as generate_ming3.py --trim-prompt / the MPM and speaking-rate
-#: metrics use it.
+#: --trim-prompt threshold: librosa.effects.trim's top_db, as generate_ming3.py --trim-prompt uses it.
 TRIM_TOP_DB = 35.0
 
 

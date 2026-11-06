@@ -326,7 +326,7 @@ def write_outputs(built):
 # ---------------------------------------------------------------------------
 # reproduction gate: the matrix must regenerate the published tables
 # ---------------------------------------------------------------------------
-# Expected macro-averages: the published v2 macro-averages recorded below (the clean
+# Expected macro-averages: the published macro-averages recorded below (the clean
 # 26-language tail after its 2026-07-30 correction; itw as updated 2026-08-29: the
 # `yo` set was removed outright -- its transcripts are Nigerian ENGLISH mislabeled
 # by Whisper LID at the enrichment stage -- so every itw basket is now 20 langs).
@@ -384,7 +384,7 @@ def verify(built):
     """Recompute the published macro-averages straight from the matrix and GATE on them.
 
     This is the correctness gate for everything downstream: if the matrix cannot
-    reproduce the published v2 macro-averages recorded below, no panel selected from it can
+    reproduce the published macro-averages recorded below, no panel selected from it can
     be trusted. Aggregation mirrors scripts/results_doc/gen_md.py -- per-language means,
     then an unweighted macro-average over languages (no utterance weighting). Every
     system is checked against VERIFY_EXPECTED within VERIFY_TOL; returns True when all

@@ -86,7 +86,7 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, ceiling,  # noqa: E402
-                                    content_hash, find_systems, utt_of, w2_fair)
+                                    content_hash, find_systems, heard_uids, utt_of, w2_fair)
 from utils import vad  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION, MHUBERT, SILERO_VAD, data_uids  # noqa: E402
 
@@ -104,10 +104,8 @@ def _load_trim(path):
     when unreadable or the VAD finds no speech."""
     try:
         wav, _ = librosa.load(path, sr=SR)
-        span = vad.speech_span(wav)
-        if span is None:
-            return path, None
-        return path, wav[span[0]:span[1]].astype(np.float32)
+        trimmed = vad.trim_speech(wav)
+        return path, None if trimmed is None else trimmed.astype(np.float32)
     except Exception:
         return path, None
 
@@ -313,7 +311,15 @@ def main():
     systems = find_systems(args.test_set, args.lang, args.models)
     rows = []
     for name, wav_dir in sorted(systems.items()):
-        wavs = load_dir(wav_dir, args.workers, uids=bench_uids)
+        heard = heard_uids(wav_dir)
+        if heard is None:                          # untranscribed leaf: no content filter possible
+            continue
+        candidates = {u for u in bench_uids if os.path.isfile(os.path.join(wav_dir, u + ".wav"))}
+        if not candidates:
+            continue
+        sys_uids = candidates & heard
+        heard_pct = 100.0 * len(sys_uids) / len(candidates)
+        wavs = load_dir(wav_dir, args.workers, uids=sys_uids)
         if len(wavs) < args.min_utts:
             continue
         sysd, uids, runlen_hist = dims_for_wavs(tok, wavs, long_frames,
@@ -324,7 +330,7 @@ def main():
             os.makedirs(args.dump_dir, exist_ok=True)
             np.savez(os.path.join(args.dump_dir, name.replace("/", "__") + ".npz"),
                      uids=np.array(uids), runlen_hist=runlen_hist, **sysd)
-        row = dict(system=name, n=len(sysd["rate"]),
+        row = dict(system=name, n=len(sysd["rate"]), heard_pct=heard_pct,
                    long_pct=float(100 * np.mean(sysd["long_frac"] > 0)),
                    benchmark_version=BENCHMARK_VERSION)
         msg = f"  {name:34s} n={row['n']:4d}"
@@ -342,12 +348,12 @@ def main():
     out = args.out or os.path.join(REPO, "results",
                                    f"rhythm_{args.test_set}_{args.lang}.csv")
     import csv
-    fields = ["rank", "system", "n", "long_pct", "benchmark_version"] + \
+    fields = ["rank", "system", "n", "heard_pct", "long_pct", "benchmark_version"] + \
         [f"{d}_{s}" for d in DIMS for s in ("median", "d_ref", "x_ceiling", "std_ratio")]
     with open(out, "w", newline="") as fh:
         wtr = csv.DictWriter(fh, fieldnames=fields)
         wtr.writeheader()
-        ceil_row = dict(rank=0, system=CEILING_ROW, n=len(ref["rate"]),
+        ceil_row = dict(rank=0, system=CEILING_ROW, n=len(ref["rate"]), heard_pct=100.0,
                         long_pct=float(100 * np.mean(ref["long_frac"] > 0)),
                         benchmark_version=BENCHMARK_VERSION)
         for d in DIMS:

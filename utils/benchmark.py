@@ -19,7 +19,7 @@ import random
 import re
 import sys
 
-BENCHMARK_VERSION = "2"
+BENCHMARK_VERSION = "1"
 
 CLEAN_LANGS = ("en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru", "pt", "ar", "hi",
                "tr", "pl", "id", "th", "fil", "nl", "vi", "cs", "sv", "da", "fi", "el",

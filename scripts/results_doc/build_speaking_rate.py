@@ -84,7 +84,7 @@ def build_panel(test_set, lang, args):
     target_text = load_text(os.path.join(base, "text"))
 
     ref_files = sorted(glob.glob(os.path.join(base, "waveform", "*.wav")))
-    ref_all, ref_pad = sr.char_rates(ref_files, prompt_text, args.top_db, args.workers)
+    ref_all, ref_pad = sr.char_rates(ref_files, prompt_text, args.workers)
     ref = ref_all[ref_all <= args.cap]
     if ref.size < (2 if args.ground_truth_only else args.min_utts):
         return None
@@ -113,7 +113,7 @@ def build_panel(test_set, lang, args):
         files, heard_pct = heard_files(d)             # content filter: WER <= common.MAX_WER only
         if len(files) < args.min_utts:
             continue
-        rates, pad = sr.char_rates(files, target_text, args.top_db, args.workers)
+        rates, pad = sr.char_rates(files, target_text, args.workers)
         if rates.size < args.min_utts:
             continue
         keep = rates[rates <= args.cap]
@@ -201,7 +201,6 @@ def main():
     ap.add_argument("--sets", nargs="*", default=["clean", "in-the-wild"])
     ap.add_argument("--langs", nargs="*", default=None, help="subset of langs; default = all present")
     ap.add_argument("--cap", type=float, default=40.0)
-    ap.add_argument("--top-db", type=float, default=35.0)
     ap.add_argument("--min-utts", type=int, default=100)
     ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--n-boot", type=int, default=400)

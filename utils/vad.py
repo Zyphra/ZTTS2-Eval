@@ -10,6 +10,8 @@ from utils.benchmark import SILERO_VAD
 SR = 16000
 # Silero's own default speech pad: its segment onsets sit slightly after the acoustic onset.
 EDGE_PAD_S = 0.03
+# Identifies the edge trim in caches/keys: pinned Silero revision + pad.
+TRIM_TAG = f"silero:{SILERO_VAD[1][:7]}:pad{EDGE_PAD_S:g}"
 
 _VAD = None
 
@@ -50,3 +52,9 @@ def speech_span(wav, pad_s=EDGE_PAD_S):
         return None
     pad = int(pad_s * SR)
     return max(0, segs[0][0] - pad), min(len(wav), segs[-1][1] + pad)
+
+
+def trim_speech(wav16, pad_s=EDGE_PAD_S):
+    """wav16 cut to speech_span (16 kHz), or None when the VAD finds no speech."""
+    span = speech_span(wav16, pad_s)
+    return None if span is None else wav16[span[0]:span[1]]

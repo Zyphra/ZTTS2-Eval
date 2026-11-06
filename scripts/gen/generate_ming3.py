@@ -15,7 +15,7 @@ tiny: its formal seed 1234, which generate() applies per call), so a resumed or 
 leaf reproduces the same audio.
 
 --trim-prompt (the *-trim systems) trims leading/trailing silence off the prompt wav
-(librosa.effects.trim, top_db 35 -- the threshold the MPM and speaking-rate metrics use)
+(librosa.effects.trim, top_db 35, the edge trim the prosody metrics used before their Silero VAD span)
 before Ming encodes it. Ming continues from the tail of the prompt ("trailing silence
 would be what the model continues from", ming_tts.py), and the FLEURS-R prompts end in
 ~1-2 s of silence, on which it mostly emits ~0.3 s of near-silence. The untrimmed
@@ -44,7 +44,7 @@ LANGS = {"zh", "en", "de", "es", "fr", "ja", "ko"}
 TINY_TASK = {"zh": "seed", "en": "seed"}  # every other supported language: multilingual
 DEFAULT_SEED_05B = 1895  # infer.py --seed default
 TINY_SEED = 1234  # the tiny model's formal seed, applied by generate() itself
-TRIM_TOP_DB = 35.0  # scripts/prosody/score_mpm_shuffle_floor.py and the speaking-rate metric
+TRIM_TOP_DB = 35.0  # --trim-prompt threshold of the published *-trim runs
 
 
 def trimmed_copy(path, out_dir):

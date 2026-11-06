@@ -48,7 +48,6 @@ from utils.scp import load_scp_items  # noqa: E402
 TASK = "in-the-wild"
 GT_NAME = f"gt_{TASK}"
 SR = 16000
-TOP_DB = 35.0
 PAUSE_S = 0.2
 DUR_MIN_N = 50
 
@@ -61,8 +60,8 @@ def audio_stats(path):
         wav, _ = librosa.load(path, sr=SR)
         if wav.size == 0 or not np.any(wav):
             return None
-        trimmed, _ = librosa.effects.trim(wav, top_db=TOP_DB)
-        if trimmed.size == 0:
+        trimmed = vad.trim_speech(wav)
+        if trimmed is None or trimmed.size == 0:
             return None
         ts = vad.speech_segments(wav, min_silence_s=PAUSE_S)
         gaps = [(b[0] - a[1]) / SR for a, b in zip(ts[:-1], ts[1:])]
@@ -115,6 +114,7 @@ def main():
     systems = find_systems(TASK, args.lang, args.models)
     systems.pop(GT_NAME, None)
     for name, wav_dir in sorted(systems.items()):
+        heard = heard_uids(wav_dir) or set()
         wavs = {u: os.path.join(wav_dir, u + ".wav") for u in tgt
                 if os.path.isfile(os.path.join(wav_dir, u + ".wav"))}
         if len(wavs) < need:
@@ -122,7 +122,6 @@ def main():
         st = stats_for(wavs, args.workers)
         rng = ranges_cached(wavs, os.path.join(os.path.dirname(wav_dir), "pitch_range.tsv"),
                             args.workers)
-        heard = heard_uids(wav_dir) or set()
         dur, pause, prange = [], [], []
         for u in wavs:
             s, t = st[u], tgt_stats.get(u)

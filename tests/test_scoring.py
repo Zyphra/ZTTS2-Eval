@@ -1,4 +1,4 @@
-"""Unit tests for the benchmark-v2 scoring changes.
+"""Unit tests for the benchmark scoring changes.
 
 No GPU, no network. Run from anywhere:
     .venv/bin/python -m unittest discover -s tests -t . -p 'test_*.py' -v
@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import numpy as np
@@ -93,7 +94,7 @@ class RoutingTest(unittest.TestCase):
                            capture_output=True, text=True)
             foot = Path(wer).read_text(encoding="utf-8")
         for line in ("WER_CLIP: 100.0", "N_IMPUTED: 1", "WER_TAIL50: 100.000",
-                     "BENCHMARK_VERSION: 2",
+                     "BENCHMARK_VERSION: 1",
                      "ASR: qwen Qwen/Qwen3-ASR-1.7B@7278e1e70fe206f11671096ffdd38061171dd6e5"):
             self.assertIn(line, foot)
 
@@ -160,17 +161,19 @@ class CharSecContentFilterTest(unittest.TestCase):
         # The per-leaf cache must not serve a stale duration after a wav is regenerated
         # in place (same name, new audio): rebuilds would silently keep the old char/s.
         from scripts.prosody import speaking_rate_dist as sr
+        full = lambda w, pad_s=None: (0, len(w))               # the VAD sees speech end to end
         tone = lambda s: (0.3 * np.sin(2 * np.pi * 200 * np.arange(int(s * 16000)) / 16000)).astype(np.float32)
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch("utils.vad.load"), mock.patch("utils.vad.speech_span", full):
             wavs = Path(d) / "leaf" / "wavs"
             wavs.mkdir(parents=True)
             p = str(wavs / "uttid_1.wav")
             sf.write(p, tone(1.0), 16000)
-            first = sr.durations([p], 35.0, 1)[p][0]
+            first = sr.durations([p], 1)[p][0]
             self.assertTrue((Path(d) / "leaf" / "speaking_rate_durations.tsv").is_file())
-            self.assertEqual(sr.durations([p], 35.0, 1)[p][0], first)        # served from the cache
+            self.assertEqual(sr.durations([p], 1)[p][0], first)        # served from the cache
             sf.write(p, tone(2.0), 16000)
-            second = sr.durations([p], 35.0, 1)[p][0]
+            second = sr.durations([p], 1)[p][0]
         self.assertAlmostEqual(first, 1.0, delta=0.05)
         self.assertAlmostEqual(second, 2.0, delta=0.05)
 
@@ -186,18 +189,52 @@ class MpmSpanTest(unittest.TestCase):
 
     def test_leading_and_trailing_silence_never_reach_the_features(self):
         # The FLEURS-R references carry ~2.45 s of edge silence and most systems almost
-        # none; untrimmed, MPM span measured that padding instead of prosody.
+        # none; untrimmed, MPM span measured that padding instead of prosody. The VAD
+        # span (fixed here) is what gets cut, so both files reduce to the same voice.
         from scripts.prosody.score_mpm_shuffle_floor import SR, _load_wav
         t = np.arange(int(1.5 * SR)) / SR
         voice = (0.3 * np.sin(2 * np.pi * 180 * t) * (1 + 0.5 * np.sin(2 * np.pi * 3 * t))).astype(np.float32)
         padded = np.concatenate([np.zeros(SR, np.float32), voice, np.zeros(int(0.8 * SR), np.float32)])
-        with tempfile.TemporaryDirectory() as d:
+        spans = {24000: (0, 24000), 52800: (16000, 40000)}     # 16 kHz lengths of plain / padded
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch("utils.vad.speech_span", lambda w, pad_s=None: spans[len(w)]):
             sf.write(f"{d}/plain.wav", voice, SR)
             sf.write(f"{d}/padded.wav", padded, SR)
             plain, pad = _load_wav(f"{d}/plain.wav"), _load_wav(f"{d}/padded.wav")
-        self.assertLess(abs(len(pad) - len(plain)), 2048)   # within librosa's trim framing
+        self.assertEqual(len(pad), len(plain))
+        np.testing.assert_allclose(pad, plain, atol=1e-3)
+
+    def test_load_wav_maps_the_16k_span_onto_22k_samples(self):
+        from scripts.prosody import score_mpm_shuffle_floor as mpm
+        src = np.random.default_rng(0).uniform(-0.5, 0.5, 3 * mpm.SR).astype(np.float32)
+        with tempfile.TemporaryDirectory() as d:
+            p = f"{d}/x.wav"
+            sf.write(p, src, mpm.SR)
+            with mock.patch("utils.vad.speech_span", return_value=(16000, 40000)):
+                got = mpm._load_wav(p)
+            with mock.patch("utils.vad.speech_span", return_value=None):
+                dropped = mpm._load_wav(p)
+            import librosa
+            full, _ = librosa.load(p, sr=mpm.SR)
+        want = full[22050:55125]                         # round(16000*22050/16000), round(40000*...)
+        np.testing.assert_allclose(got, want / (np.max(np.abs(want)) + 1e-6), rtol=1e-6)
+        self.assertIsNone(dropped)
 
 
+class TrimSpeechTest(unittest.TestCase):
+    def test_slices_to_the_span_or_none(self):
+        from utils import vad
+        w = np.arange(10, dtype=np.float32)
+        with mock.patch("utils.vad.speech_span", return_value=(2, 5)):
+            np.testing.assert_array_equal(vad.trim_speech(w), w[2:5])
+        with mock.patch("utils.vad.speech_span", return_value=None):
+            self.assertIsNone(vad.trim_speech(w))
+
+
+_FULL_SPAN = mock.patch("utils.vad.speech_span", lambda w, pad_s=None: (0, len(w)))
+
+
+@_FULL_SPAN
 class PitchRangeTest(unittest.TestCase):
     def test_octave_glide_range(self):
         from utils.pitch_range import range_st

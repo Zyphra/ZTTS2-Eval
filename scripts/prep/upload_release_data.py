@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the benchmark-v2 audio changes to the HF dataset utils.benchmark.HF_REPO_ID.
+"""Publish the benchmark release audio changes to the HF dataset utils.benchmark.HF_REPO_ID.
 
   1. Upload the held-out ITW target recordings
      (data/in-the-wild/<lang>/target_wav/*.wav).

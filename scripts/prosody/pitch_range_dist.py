@@ -11,14 +11,16 @@ each other".
 pYIN is slow, so every system is scored on a FIXED sample of at most --n-utts uids per
 (set, lang): utils.benchmark.sample_uids (seeded, shared with scripts/prosody/paired_itw.py).
 The reference is the PROMPT recordings of those uids (data/<set>/<lang>/prompt_wav.scp).
+Systems are scored only on the sampled uids the ASR heard (WER <= common.MAX_WER);
+heard_pct is the share kept, and a leaf with no transcription is skipped.
 
     python scripts/prosody/pitch_range_dist.py --test-set in-the-wild --lang en
     python scripts/prosody/pitch_range_dist.py --test-set clean --lang de --models omni_voxcpm2
 
 Caches (uid<TAB>range, empty = unusable wav): results/_pitch_range_ref/<set>_<lang>.tsv
 for the reference and <leaf>/pitch_range.tsv per system leaf. Output CSV columns:
-rank, system, n, median_st, median_ratio, d_ref, x_ceiling, benchmark_version, with a
-`__CEILING_split_half__` row (rank 0, x_ceiling 1.0). Systems that ARE the reference
+rank, system, n, heard_pct, median_st, median_ratio, d_ref, x_ceiling, benchmark_version,
+with a `__CEILING_split_half__` row (rank 0, heard_pct 100, x_ceiling 1.0). Systems that ARE the reference
 audio (the Clean GT) are skipped by find_systems, as for char/s.
 """
 import argparse
@@ -32,7 +34,7 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, ceiling,  # noqa: E402
-                                    find_systems, sample_and_need, w2_fair)
+                                    find_systems, heard_uids, sample_and_need, w2_fair)
 from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 from utils.pitch_range import ranges_cached  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
@@ -77,8 +79,14 @@ def main():
 
     rows = []
     for name, wav_dir in sorted(find_systems(args.test_set, args.lang, args.models).items()):
-        wavs = {u: os.path.join(wav_dir, u + ".wav") for u in uids
-                if os.path.isfile(os.path.join(wav_dir, u + ".wav"))}
+        heard = heard_uids(wav_dir)
+        if heard is None:                          # untranscribed leaf: no content filter possible
+            continue
+        candidates = [u for u in uids if os.path.isfile(os.path.join(wav_dir, u + ".wav"))]
+        if not candidates:
+            continue
+        wavs = {u: os.path.join(wav_dir, u + ".wav") for u in candidates if u in heard}
+        heard_pct = 100.0 * len(wavs) / len(candidates)
         if len(wavs) < need:
             continue
         leaf = os.path.dirname(wav_dir)
@@ -86,7 +94,8 @@ def main():
         if sysv.size < need:
             continue
         d_ref = w2_fair(sysv, ref)
-        rows.append(dict(system=name, n=int(sysv.size), median_st=float(np.median(sysv)),
+        rows.append(dict(system=name, n=int(sysv.size), heard_pct=heard_pct,
+                         median_st=float(np.median(sysv)),
                          median_ratio=float(np.median(sysv) / np.median(ref)),
                          d_ref=d_ref, x_ceiling=d_ref / ceil if ceil > 0 else float("nan"),
                          benchmark_version=BENCHMARK_VERSION))
@@ -96,12 +105,12 @@ def main():
     rows.sort(key=lambda r: r["d_ref"])
     out = args.out or os.path.join(REPO, "results",
                                    f"pitch_range_{args.test_set}_{args.lang}.csv")
-    fields = ["rank", "system", "n", "median_st", "median_ratio", "d_ref", "x_ceiling",
+    fields = ["rank", "system", "n", "heard_pct", "median_st", "median_ratio", "d_ref", "x_ceiling",
               "benchmark_version"]
     with open(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
-        w.writerow(dict(rank=0, system=CEILING_ROW, n=int(ref.size),
+        w.writerow(dict(rank=0, system=CEILING_ROW, n=int(ref.size), heard_pct=100.0,
                         median_st=float(np.median(ref)), median_ratio=1.0, d_ref=ceil,
                         x_ceiling=1.0, benchmark_version=BENCHMARK_VERSION))
         for i, r in enumerate(rows):
