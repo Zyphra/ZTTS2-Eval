@@ -41,7 +41,8 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file_
 sys.path.insert(0, REPO_ROOT)
 
 from scripts.tufte_common import ref_token_count  # noqa: E402  exact run_wer.py tokenization
-from utils.per_uid import load_leaf, parse_scp, parse_text  # noqa: E402
+from utils.per_uid import load_leaf  # noqa: E402
+from utils.scp import load_msr_utmos_cache, load_scp, load_text  # noqa: E402
 
 OUT_DIR = os.path.join(REPO_ROOT, "assets", "coreset")
 
@@ -139,13 +140,7 @@ def itw_prompt_msr():
     if not (os.path.isfile(cache_path) and os.path.isfile(man_path)):
         return {}
 
-    clip_score = {}
-    with open(cache_path) as fh:
-        for line in fh:
-            p = line.rstrip("\n").split("\t")
-            if len(p) != 6:
-                continue
-            clip_score[(p[0], p[1], p[2], float(p[3]), float(p[4]))] = float(p[5])
+    clip_score = load_msr_utmos_cache(cache_path)
 
     # Normalized prompt text is not a unique key: distinct clips can share a short
     # transcript. Keep EVERY clip per key so a collision can be detected instead of
@@ -163,7 +158,7 @@ def itw_prompt_msr():
         ptext = os.path.join(data, lang, "prompt_text")
         if not os.path.isfile(ptext):
             continue
-        for uid, txt in parse_text(ptext).items():
+        for uid, txt in load_text(ptext, missing_ok=True).items():
             cids = man_by_key.get((lang, " ".join(txt.split())), ())
             scores = {clip_score[c] for c in cids if c in clip_score}
             if not scores:
@@ -187,9 +182,9 @@ def build_items(task, langs, prompt_msr):
     rows = []
     for lang in langs:
         ldir = os.path.join(REPO_ROOT, "data", task, lang)
-        texts = parse_text(os.path.join(ldir, "text"))
-        prompts = parse_scp(os.path.join(ldir, "prompt_wav.scp"))
-        # Preserve file order (parse_text keeps insertion order) for a deterministic axis.
+        texts = load_text(os.path.join(ldir, "text"), missing_ok=True)
+        prompts = load_scp(os.path.join(ldir, "prompt_wav.scp"), resolve=False, missing_ok=True)
+        # Preserve file order (load_text keeps insertion order) for a deterministic axis.
         for uid, text in texts.items():
             pw = prompts.get(uid, "")
             pw_abs = pw if os.path.isabs(pw) else os.path.join(REPO_ROOT, pw)

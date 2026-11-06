@@ -52,22 +52,15 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from rhythm_dist import w2_fair  # noqa: E402
 from speaking_rate_dist import boot_ci, ceiling, w2  # noqa: E402
+sys.path.insert(0, REPO)
+from utils.per_uid import parse_score_path  # noqa: E402
 
 SCORE_FILE = "msr_utmos_scores.txt"
 
 
 def read_scores(path):
     """`<uttid>\\t<wav>\\t<score>` rows -> float array (footer / malformed rows skipped)."""
-    out = []
-    with open(path) as fh:
-        for line in fh:
-            parts = line.rstrip("\n").split("\t")
-            if len(parts) == 3:
-                try:
-                    out.append(float(parts[2]))
-                except ValueError:
-                    continue
-    return np.asarray(out, dtype=np.float64)
+    return np.asarray(list(parse_score_path(path).values()), dtype=np.float64)
 
 
 def find_score_files(test_set, lang, only=None):

@@ -43,12 +43,11 @@ def _confined(path):
 sys.path.insert(0, ROOT)
 from utils.per_uid import (  # noqa: E402
     parse_score_path,
-    parse_scp,
     parse_spk,
-    parse_text,
+    parse_tsv,
     parse_wer,
-    read_lines as _read_lines,
 )
+from utils.scp import load_scp, load_text  # noqa: E402
 
 # The explorer's data snapshot resolves live-cache-first, published-fallback:
 #   scripts/results_doc/_cache/  — gitignored build scratch; freshest, present on
@@ -161,32 +160,11 @@ STATIC = {
 
 
 # ---------------------------------------------------------------------------
-# path helper + the explorer-only TSV parser (the per-uid score-file parsers now
-# live in utils/per_uid.py and are imported above)
+# path helper (the per-uid score-file and uid-file parsers live in utils/per_uid.py
+# and utils/scp.py and are imported above)
 # ---------------------------------------------------------------------------
 def _abs(rel):
     return os.path.join(ROOT, rel)
-
-
-def parse_tsv(path):
-    """generic header+rows tsv -> {first_col: {header: value}}."""
-    lines = _read_lines(path)
-    if not lines:
-        return {}
-    header = lines[0].split("\t")
-    out = {}
-    for line in lines[1:]:
-        c = line.split("\t")
-        if len(c) != len(header):
-            continue
-        row = {}
-        for k, v in zip(header[1:], c[1:]):
-            try:
-                row[k] = float(v)
-            except ValueError:
-                row[k] = v
-        out[c[0]] = row
-    return out
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +373,7 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
     if not os.path.isdir(rabs):
         return {"error": f"no result dir: {rdir}", "rows": []}
 
-    gen = parse_scp(os.path.join(rabs, "wav.scp"))
+    gen = load_scp(os.path.join(rabs, "wav.scp"), resolve=False, missing_ok=True)
     wer = parse_wer(os.path.join(rabs, "wav_res_ref_text.wer"))
     msr = parse_score_path(os.path.join(rabs, "msr_utmos_scores.txt"))
     spk = parse_spk(os.path.join(rabs, "spk_simi_scores.txt"))
@@ -404,9 +382,9 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
     pman = _panel_manifest(panel) if panel else None
     weights = dict((pman.get("langs") or {}).get(lang) or []) if pman else None
     ddir = os.path.join("data", panel if pman else _data_task(model, task), lang)
-    target = parse_text(_abs(os.path.join(ddir, "text")))
-    prompt_text = parse_text(_abs(os.path.join(ddir, "prompt_text")))
-    prompt_scp = parse_scp(_abs(os.path.join(ddir, "prompt_wav.scp")))
+    target = load_text(_abs(os.path.join(ddir, "text")), missing_ok=True)
+    prompt_text = load_text(_abs(os.path.join(ddir, "prompt_text")), missing_ok=True)
+    prompt_scp = load_scp(_abs(os.path.join(ddir, "prompt_wav.scp")), resolve=False, missing_ok=True)
 
     # union of every uid we saw anywhere
     uids = set(gen) | set(wer) | set(msr) | set(spk) | set(target)

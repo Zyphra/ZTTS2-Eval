@@ -29,27 +29,16 @@ OUT = os.path.join(CACHE, "mpm_dist.json")
 
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import label as _clean, write_json_atomic  # noqa: E402
+sys.path.insert(0, REPO_ROOT)
+from utils.per_uid import parse_tsv  # noqa: E402
 
 ORDER = ["en", "de", "es", "fr", "it", "ja", "ko", "ru", "zh"]
 
 
 def _rows(path):
     """(system, span) rows from a shuffle-floor tsv."""
-    out = {}
-    with open(path) as f:
-        hdr = f.readline().rstrip("\n").split("\t")
-        ix = {k: i for i, k in enumerate(hdr)}
-        if "system" not in ix or "span" not in ix:
-            return out
-        for line in f:
-            p = line.rstrip("\n").split("\t")
-            if len(p) <= max(ix["system"], ix["span"]):
-                continue
-            try:
-                out[_clean(p[ix["system"]])] = float(p[ix["span"]])
-            except ValueError:
-                pass
-    return out
+    return {_clean(s): r["span"] for s, r in parse_tsv(path).items()
+            if isinstance(r.get("span"), float)}
 
 
 def main():

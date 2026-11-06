@@ -28,6 +28,9 @@ import sys
 
 import soundfile as sf
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.scp import load_text  # noqa: E402
+
 # Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
 # point at your copy of the dataset.
 AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
@@ -37,19 +40,6 @@ SR = 16000  # stage_b writes 16 kHz PCM16; keep consistent.
 
 def wav_path(spk, vid, seg):
     return f"{AUDIO_ROOT}/{spk}/{vid}/{seg}.wav"
-
-
-def load_text_file(path):
-    """Parse '<uid> <value>' file -> ordered list of (uid, value) and dict."""
-    items = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.rstrip("\n")
-            if not line:
-                continue
-            uid, val = line.split(" ", 1)
-            items.append((uid, val))
-    return items
 
 
 def read_slice(path, start, end):
@@ -93,7 +83,7 @@ def main():
         out_dir = os.path.join(args.data_root, lang, "target_wav")
         os.makedirs(out_dir, exist_ok=True)
 
-        items = load_text_file(prompt_text_path)
+        items = list(load_text(prompt_text_path).items())
         ok = fail = skip = dup = 0
         for uid, ptxt in items:
             out_wav = os.path.join(out_dir, f"{uid}.wav")

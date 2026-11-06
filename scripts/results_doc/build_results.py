@@ -13,7 +13,8 @@ DATA = os.path.join(REPO_ROOT, "data")
 OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 sys.path.insert(0, REPO_ROOT)
-from utils.per_uid import CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf  # noqa: E402
+from utils.per_uid import (CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf,  # noqa: E402
+                           parse_tsv, parse_wer as parse_wer_rows)
 from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_panel_alias,  # noqa: E402
                              langs_for, leaf_problems)
 sys.path.insert(0, SCRIPT_DIR)
@@ -113,27 +114,20 @@ def load_mpm():
         return out
 
     def add(path, lang):
-        with open(path) as f:
-            hdr = f.readline().rstrip("\n").split("\t")
-            ix = {k: i for i, k in enumerate(hdr)}
-            if not {"system", "span", "score"} <= ix.keys():
-                return
-            vcol = ix.get("benchmark_version")
-            for line in f:
-                p = line.rstrip("\n").split("\t")
-                if len(p) <= max(ix["system"], ix["span"], ix["score"]):
-                    continue
-                system = p[ix["system"]]
-                if leaf_key(system, "clean", lang) in EXCLUDED:
-                    continue
-                ver = p[vcol] if vcol is not None and vcol < len(p) else None
-                if not stamp_current(path, system, ver):
-                    continue
-                try:
-                    out[(system, lang)] = {
-                        "span": float(p[ix["span"]]), "score": float(p[ix["score"]])}
-                except ValueError:
-                    pass
+        rows = parse_tsv(path, numeric=False)
+        if rows and not {"span", "score"} <= next(iter(rows.values())).keys():
+            return
+        for system, row in rows.items():
+            if leaf_key(system, "clean", lang) in EXCLUDED:
+                continue
+            ver = row.get("benchmark_version")
+            if not stamp_current(path, system, ver):
+                continue
+            try:
+                out[(system, lang)] = {
+                    "span": float(row["span"]), "score": float(row["score"])}
+            except ValueError:
+                pass
 
     files = sorted(f for f in os.listdir(MPM_DIR) if f.endswith(".tsv"))
     for fn in files:
@@ -477,13 +471,7 @@ def parse_msr_utmos(path):
     return v if v > 0.0 else None
 
 def count_n(wer_raw_path):
-    try:
-        n = 0
-        with open(wer_raw_path) as f:
-            for _ in f: n += 1
-        return n
-    except Exception:
-        return None
+    return len(parse_wer_rows(wer_raw_path))
 
 # A full-set leaf counts only when its system generated (nearly) every item of the
 # language: same bar as the scorers' SCORE_MIN_COVERAGE.

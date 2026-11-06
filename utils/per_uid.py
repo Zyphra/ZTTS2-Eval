@@ -39,33 +39,28 @@ def read_lines(path):
         return []
 
 
-def parse_scp(path):
-    """``<uid> <path>`` -> ``{uid: path}``. Used for wav.scp / prompt_wav.scp.
-
-    Collapses the doubled slash that ``data/clean/`` prompt paths carry
-    (``data/clean//en/waveform/...``).
-    """
+def parse_tsv(path, numeric=True):
+    """Header + rows TSV -> ``{first_col: {header: value}}``. Rows whose field count
+    differs from the header's are skipped. With ``numeric`` each value that parses as
+    a float is returned as one; otherwise every value stays a string."""
+    lines = read_lines(path)
+    if not lines:
+        return {}
+    header = lines[0].split("\t")
     out = {}
-    for line in read_lines(path):
-        if not line.strip():
+    for line in lines[1:]:
+        c = line.split("\t")
+        if len(c) != len(header):
             continue
-        parts = line.split(None, 1)
-        if len(parts) == 2:
-            out[parts[0]] = parts[1].strip().replace("//", "/")
-    return out
-
-
-def parse_text(path):
-    """``<uid> <free text>`` -> ``{uid: text}``. Used for text / prompt_text."""
-    out = {}
-    for line in read_lines(path):
-        if not line.strip():
-            continue
-        parts = line.split(None, 1)
-        if len(parts) == 2:
-            out[parts[0]] = parts[1]
-        elif len(parts) == 1:
-            out[parts[0]] = ""
+        row = {}
+        for k, v in zip(header[1:], c[1:]):
+            if numeric:
+                try:
+                    v = float(v)
+                except ValueError:
+                    pass
+            row[k] = v
+        out[c[0]] = row
     return out
 
 

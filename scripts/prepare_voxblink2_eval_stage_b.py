@@ -33,6 +33,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from utils.score_msr_utmos import DEFAULT_CKPT, load_model, score_wave  # noqa: E402
+from utils.scp import load_msr_utmos_cache  # noqa: E402
 from utils.text_norm import near_duplicate  # noqa: E402
 
 # Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
@@ -74,19 +75,6 @@ def read_slice(path, start, end):
     s = max(0, min(s, e))
     wav, _ = sf.read(path, start=s, stop=e, dtype="float32", always_2d=False)
     return wav
-
-
-def load_msr_utmos_cache(path):
-    cache = {}
-    if not os.path.exists(path):
-        return cache
-    with open(path) as f:
-        for line in f:
-            parts = line.rstrip("\n").split("\t")
-            if len(parts) != 6: continue
-            spk, vid, seg, s, e, sc = parts
-            cache[(spk, vid, seg, float(s), float(e))] = float(sc)
-    return cache
 
 
 def append_msr_utmos_cache(path, key, score):

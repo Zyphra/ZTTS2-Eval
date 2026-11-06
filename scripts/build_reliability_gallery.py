@@ -17,6 +17,8 @@ import os
 import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, REPO)
+from utils.per_uid import parse_wer  # noqa: E402
 
 
 def _series_stats(raw_glob):
@@ -25,8 +27,7 @@ def _series_stats(raw_glob):
     files = sorted(glob.glob(os.path.join(REPO, raw_glob)))
     n_utts = 0
     for p in files:
-        with open(p, errors="replace") as f:
-            n_utts += sum(1 for line in f if line.strip())
+        n_utts += len(parse_wer(p))
     return len(files), n_utts
 
 

@@ -68,6 +68,46 @@ class ScpTest(unittest.TestCase):
         p = _write("u1 a sentence  with  spaces\n")
         self.assertEqual(load_text(p), {"u1": "a sentence  with  spaces"})
 
+    def test_load_scp_collapses_double_slash_without_resolving(self):
+        p = _write("u1 data/clean//en/x.wav\n")
+        self.assertEqual(load_scp(p, resolve=False), {"u1": "data/clean/en/x.wav"})
+
+    def test_missing_ok_returns_empty(self):
+        missing = "/nonexistent/does/not/exist"
+        self.assertEqual(load_scp(missing, missing_ok=True), {})
+        self.assertEqual(load_text(missing, missing_ok=True), {})
+        with self.assertRaises(OSError):
+            load_text(missing)
+
+
+class EntryPointValidationTest(unittest.TestCase):
+    """run_score.sh / scripts/lib_gen.sh reject bad arguments before any server starts."""
+
+    def _run(self, *cmd):
+        t0 = time.monotonic()
+        proc = subprocess.run(list(cmd), cwd=REPO, capture_output=True, text=True, timeout=60)
+        return proc, time.monotonic() - t0
+
+    def test_run_score_requires_decode_dir(self):
+        proc, _ = self._run("bash", "run_score.sh")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("--decode_dir is required", proc.stderr)
+
+    def test_run_score_unknown_task_fails_fast(self):
+        proc, dt = self._run("bash", "run_score.sh", "--decode_dir", "/tmp/x/bogus")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("unknown task 'bogus'", proc.stderr)
+        self.assertLess(dt, 5.0)  # the ASR servers never started
+
+    def test_gen_langs_basket_filter_and_unknown_task(self):
+        proc, _ = self._run("bash", "-c",
+                            '. scripts/lib_gen.sh; gen_langs in-the-wild "" "en fr xx"')
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.split(), ["en", "fr"])
+        proc, _ = self._run("bash", "-c", '. scripts/lib_gen.sh; gen_langs nosuch ""')
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("unknown task 'nosuch'", proc.stderr)
+
 
 class AverageWerTest(unittest.TestCase):
     """End-to-end run of utils/average_wer.py on synthetic .raw rows.

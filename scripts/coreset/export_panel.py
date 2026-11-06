@@ -36,7 +36,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file_
 sys.path.insert(0, REPO_ROOT)
 
 from common import Matrix, load_panel  # noqa: E402
-from utils.per_uid import parse_scp, parse_text  # noqa: E402
+from utils.scp import load_scp, load_text  # noqa: E402
 
 SET_TASK = {"clean": "clean", "itw": "in-the-wild"}
 
@@ -71,9 +71,9 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
         idx, w = idx[order], w[order]
 
         src = os.path.join(REPO_ROOT, "data", src_task, lang)
-        texts = parse_text(os.path.join(src, "text"))
-        ptexts = parse_text(os.path.join(src, "prompt_text"))
-        pwavs = parse_scp(os.path.join(src, "prompt_wav.scp"))
+        texts = load_text(os.path.join(src, "text"), missing_ok=True)
+        ptexts = load_text(os.path.join(src, "prompt_text"), missing_ok=True)
+        pwavs = load_scp(os.path.join(src, "prompt_wav.scp"), resolve=False, missing_ok=True)
 
         dst = os.path.join(out_root, lang)
         os.makedirs(os.path.join(dst, "waveform"), exist_ok=True)
@@ -122,7 +122,7 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
         # ITW: held-out target recordings (target_wav.scp), same subset of uids.
         src_target = os.path.join(src, "target_wav.scp")
         if os.path.isfile(src_target):
-            twavs = parse_scp(src_target)
+            twavs = load_scp(src_target, resolve=False, missing_ok=True)
             with open(os.path.join(dst, "target_wav.scp"), "w", encoding="utf-8") as fh:
                 for uid, *_ in rows:
                     if uid in twavs:

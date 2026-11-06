@@ -21,6 +21,7 @@ from jiwer import process_words  # noqa: E402
 # Tokenize with the scorer's OWN prepare() (incl. normalize_ortho for ar/fa/he and
 # the zh trad->simplified fold) so edit boundaries match the scored WER exactly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from utils.per_uid import parse_wer  # noqa: E402
 from utils.text_norm import CHAR_LANGS, base_lang, prepare  # noqa: E402
 
 
@@ -92,18 +93,17 @@ def run(root):
         raw = os.path.join(d, "wav_res_ref_text.wer.raw")
         if not os.path.isfile(raw):
             continue
-        for line in open(raw):
-            p = line.rstrip("\n").split("\t")
-            if len(p) < 7:
+        for d in parse_wer(raw).values():
+            if d["sub"] is None:
                 continue
             # Rows the reference ASR never transcribed carry an <UNSCOREABLE:Reason>
             # sentinel instead of a hypothesis and a synthetic all-deletions edit
             # decomposition (utils/run_wer.py). They are a real maximum-error score
             # but there is no transcript to classify, so they are not edits.
-            if p[3].startswith("<UNSCOREABLE"):
+            if d["hyp_text"].startswith("<UNSCOREABLE"):
                 continue
-            rt = prepare(p[2], base).split()
-            ht = prepare(p[3], base).split()
+            rt = prepare(d["ref_text"], base).split()
+            ht = prepare(d["hyp_text"], base).split()
             if rt == ht:
                 continue
             # segmentation check (CJK/Thai): identical once inter-token spaces drop

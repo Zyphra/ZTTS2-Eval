@@ -47,6 +47,7 @@ sys.path.insert(0, SCRIPTS_DIR)
 import speaking_rate_dist as sr  # noqa: E402
 sys.path.insert(0, REPO_ROOT)
 from utils.ground_truth_split import split_indices  # noqa: E402
+from utils.scp import load_text  # noqa: E402
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import write_json_atomic  # noqa: E402
 
@@ -80,8 +81,8 @@ def langs_for(test_set, only):
 def build_panel(test_set, lang, args):
     base = os.path.join(REPO_ROOT, "data", test_set, lang)
     systems = {} if args.ground_truth_only else sr.find_systems(test_set, lang)
-    prompt_text = sr.read_kv(os.path.join(base, "prompt_text"))
-    target_text = sr.read_kv(os.path.join(base, "text"))
+    prompt_text = load_text(os.path.join(base, "prompt_text"))
+    target_text = load_text(os.path.join(base, "text"))
 
     ref_files = sorted(glob.glob(os.path.join(base, "waveform", "*.wav")))
     ref_all, ref_pad = sr.char_rates(ref_files, prompt_text, args.top_db, args.workers)

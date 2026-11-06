@@ -31,13 +31,18 @@ def resolve_path(p):
     return p
 
 
-def load_scp(path):
+def load_scp(path, resolve=True, missing_ok=False):
     """Parse a ``<uttid> <value>`` file into a ``{uttid: value}`` dict.
 
     Whitespace-collapsing: the first whitespace run separates the id from the
-    value (``str.split(maxsplit=1)``). Blank lines are skipped. This matches the
-    generation clients (generate_zonos2 / generate_omni).
+    value (``str.split(maxsplit=1)``). Blank lines are skipped. Values get the
+    doubled slash that ``data/clean/`` prompt paths carry collapsed
+    (``data/clean//en/...`` -> ``data/clean/en/...``) and, when ``resolve``, are
+    re-anchored on this checkout (``resolve_path``). A missing file returns ``{}``
+    when ``missing_ok``, else raises.
     """
+    if missing_ok and not os.path.exists(path):
+        return {}
     out = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -45,7 +50,8 @@ def load_scp(path):
             if not line:
                 continue
             uid, val = line.split(maxsplit=1)
-            out[uid] = resolve_path(val)
+            val = val.replace("//", "/")
+            out[uid] = resolve_path(val) if resolve else val
     return out
 
 
@@ -68,12 +74,15 @@ def load_scp_items(path):
     return items
 
 
-def load_text(path):
+def load_text(path, missing_ok=False):
     """Parse a ``<uttid> <text>`` file into a ``{uttid: text}`` dict.
 
     Splits on the first space only (``str.partition(" ")``), so the text value
-    keeps its internal spacing verbatim.
+    keeps its internal spacing verbatim. A missing file returns ``{}`` when
+    ``missing_ok``, else raises.
     """
+    if missing_ok and not os.path.exists(path):
+        return {}
     out = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -83,3 +92,19 @@ def load_text(path):
             uid, _, txt = line.partition(" ")
             out[uid] = txt
     return out
+
+
+def load_msr_utmos_cache(path):
+    """``{(spk, vid, seg, start, end): score}`` from the VoxBlink2 MSR-UTMOS clip cache
+    (``data/in-the-wild/_msr_utmos_cache.tsv``); ``{}`` if the file is missing. Rows
+    without exactly six tab fields are skipped."""
+    cache = {}
+    if not os.path.exists(path):
+        return cache
+    with open(path) as f:
+        for line in f:
+            p = line.rstrip("\n").split("\t")
+            if len(p) != 6:
+                continue
+            cache[(p[0], p[1], p[2], float(p[3]), float(p[4]))] = float(p[5])
+    return cache

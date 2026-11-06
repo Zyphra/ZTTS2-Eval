@@ -23,6 +23,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
+from utils.scp import load_text  # noqa: E402
 from utils.text_norm import near_duplicate, text_key  # noqa: E402
 
 DATA = os.path.join(REPO, "data")
@@ -40,15 +41,6 @@ def read_lines(path):
 def uid_of(line):
     parts = line.split(None, 1)
     return parts[0].decode("utf-8") if parts else None
-
-
-def as_dict(path):
-    d = {}
-    for ln in read_lines(path):
-        u = uid_of(ln)
-        if u is not None:
-            d[u] = ln.split(None, 1)[1].decode("utf-8").strip() if len(ln.split(None, 1)) > 1 else ""
-    return d
 
 
 def drop_uids(path, uids):
@@ -71,9 +63,9 @@ def find_duplicates(task):
         tp = os.path.join(root, lang, "text")
         if not os.path.isfile(tp):
             continue
-        text = as_dict(tp)
-        ptext = as_dict(os.path.join(root, lang, "prompt_text"))
-        pwav = as_dict(os.path.join(root, lang, "prompt_wav.scp"))
+        text = load_text(tp)
+        ptext = load_text(os.path.join(root, lang, "prompt_text"))
+        pwav = load_text(os.path.join(root, lang, "prompt_wav.scp"))
         hits = []
         for uid, t in text.items():
             if uid in ptext and near_duplicate(ptext[uid], t):

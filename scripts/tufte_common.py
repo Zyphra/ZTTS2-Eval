@@ -39,6 +39,7 @@ import numpy as np
 # canonical implementation instead so reconstructed edit counts stay exact.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.text_norm import CHAR_LANGS, base_lang, prepare  # noqa: E402,F401
+from utils.per_uid import parse_wer  # noqa: E402
 
 
 def ref_token_count(text, base):
@@ -125,18 +126,13 @@ def load_series(globs, label="lang", label_re=None, rename=None, limit=0):
         leaf = _up(path, 1)
         base = base_lang(leaf)
         label_val = rn.get(lbl := resolve_label(path, label, label_re), lbl)
-        with open(path) as fh:
-            for line in fh:
-                line = line.rstrip("\n")
-                if not line:
-                    continue
-                p = line.split("\t")
-                if len(p) < 7:
-                    continue
-                n = ref_token_count(p[2], base)
-                e = round(float(p[6]) * n) + round(float(p[5]) * n) + round(float(p[4]) * n)
-                edits[label_val].append(e)
-                langs[label_val].add(leaf)
+        for d in parse_wer(path).values():
+            if d["sub"] is None:
+                continue
+            n = ref_token_count(d["ref_text"], base)
+            e = round(d["sub"] * n) + round(d["del"] * n) + round(d["ins"] * n)
+            edits[label_val].append(e)
+            langs[label_val].add(leaf)
     E = {m: np.asarray(v, dtype=int) for m, v in edits.items()}
     meta = {m: {"n": len(E[m]), "langs": sorted(langs[m])} for m in E}
 

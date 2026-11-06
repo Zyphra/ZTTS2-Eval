@@ -95,6 +95,9 @@ import librosa
 import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO)
+from utils.per_uid import parse_wer  # noqa: E402
+from utils.scp import load_text  # noqa: E402
 
 
 def w2(x, y, n_iter=10, seed=0):
@@ -119,17 +122,6 @@ def w2(x, y, n_iter=10, seed=0):
     return float(np.mean(out))
 
 
-def read_kv(path):
-    """Read a `<uttid> <rest of line>` mapping (data/<set>/<lang>/text style)."""
-    out = {}
-    with open(path) as fh:
-        for line in fh:
-            parts = line.rstrip("\n").split(" ", 1)
-            if len(parts) == 2:
-                out[parts[0]] = parts[1]
-    return out
-
-
 def utt_of(path):
     """Map a wav to its uid. Both test sets use the uttid_N scheme: the reference
     waveform file is prompt_audio_N.wav (-> uttid_N), the system file is uttid_N.wav."""
@@ -149,18 +141,8 @@ def heard_uids(wav_dir, max_wer=MAX_WER):
     raw = os.path.join(os.path.dirname(os.path.normpath(wav_dir)), "wav_res_ref_text.wer.raw")
     if not os.path.isfile(raw):
         return None
-    out = set()
-    with open(raw, encoding="utf-8") as fh:
-        for line in fh:
-            parts = line.rstrip("\n").split("\t")
-            if len(parts) < 2:
-                continue
-            try:
-                if float(parts[1]) <= max_wer:
-                    out.add(utt_of(parts[0]))
-            except ValueError:
-                continue
-    return out
+    return {utt_of(u) for u, d in parse_wer(raw).items()
+            if d["wer"] is not None and d["wer"] <= max_wer}
 
 
 def heard_files(wav_dir):
@@ -404,8 +386,8 @@ def main():
     for p in (ref_dir, os.path.join(base, "prompt_text"), os.path.join(base, "text")):
         if not os.path.exists(p):
             raise SystemExit(f"missing {p}")
-    prompt_text = read_kv(os.path.join(base, "prompt_text"))
-    target_text = read_kv(os.path.join(base, "text"))
+    prompt_text = load_text(os.path.join(base, "prompt_text"))
+    target_text = load_text(os.path.join(base, "text"))
 
     ref_all, ref_pad = char_rates(sorted(glob.glob(ref_dir + "/*.wav")), prompt_text, args.top_db, args.workers)
     ref = ref_all[ref_all <= args.cap]

@@ -20,6 +20,7 @@ import sys
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO)
 from utils.benchmark import QWEN_LANGS  # noqa: E402
+from utils.per_uid import parse_wer  # noqa: E402
 SETS = {"clean": "gt_clean", "in-the-wild": "gt_in-the-wild"}
 
 WER_RE = re.compile(r"^WER:\s*([\d.]+)")
@@ -56,7 +57,7 @@ def read_leaf(d):
         m = MSR_CI_RE.search(open(mc).read())
         if m: msr_ci = tuple(map(float, m.groups()))
     raw = os.path.join(d, "wav_res_ref_text.wer.raw")
-    n = sum(1 for _ in open(raw)) if os.path.exists(raw) else None
+    n = len(parse_wer(raw)) if os.path.exists(raw) else None
     return dict(lang=os.path.basename(d.rstrip("/")), wer=wer, wer_ci=wer_ci,
                 msr=msr, msr_ci=msr_ci, n=n)
 
