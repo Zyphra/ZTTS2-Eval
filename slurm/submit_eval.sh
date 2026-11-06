@@ -65,7 +65,7 @@
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
+    echo "error: run this from the repo root" 1>&2
     exit 1
 fi
 

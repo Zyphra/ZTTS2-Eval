@@ -5,7 +5,7 @@
 #
 # CosyVoice3 is a WITH-reference-text zero-shot cloner and is multilingual (text-in,
 # no per-language code needed), so it covers all 9 clean languages. Writes wavs to
-# results/cosyvoice3/<task>/<lang>/wavs/. Score with run_infer_zonos2_eval.sh.
+# results/cosyvoice3/<task>/<lang>/wavs/. Score with the command printed at the end (run_score.sh).
 #
 #   bash run_generate_cosyvoice.sh                          # clean, all 9 langs
 #   bash run_generate_cosyvoice.sh --test_set "en zh" --limit 3   # smoke test
@@ -23,10 +23,7 @@
 #   --overwrite  regenerate existing wavs                  (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 task=clean
 test_set=
@@ -39,6 +36,7 @@ overwrite=false
 
 help_message="usage: bash run_generate_cosyvoice.sh [--task T] [--test_set \"...\"] [--fp16 true] [--speed X] [--out_root D] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 VENV="${VENV:-$HOME/.venvs/cosyvoice}"
 PY="${VENV}/bin/python"
@@ -46,19 +44,6 @@ COSY_SRC="${COSYVOICE_SRC:-third_party/CosyVoice}"
 if [ ! -x "${PY}" ]; then
     echo "error: no CosyVoice venv at ${VENV} -- run 'bash scripts/setup_cosyvoice_env.sh' first (or set VENV)" 1>&2
     exit 1
-fi
-
-# The 9 clean langs (CosyVoice3 is multilingual; no language flag needed).
-sets_for() {
-    case "$1" in
-        clean)          echo "en zh de es fr it ja ko ru" ;;
-        in-the-wild) echo "en zh de es fr it ja ko ru" ;;
-        *) echo "" ;;
-    esac
-}
-names="${test_set:-$(sets_for ${task})}"
-if [ -z "${names}" ]; then
-    echo "error: unknown task '${task}'" 1>&2; exit 1
 fi
 
 md_opt=""; [ -n "${model_dir}" ] && md_opt="--model-dir ${model_dir}"
@@ -85,8 +70,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-[ "${ran}" -eq 0 ] && { echo "error: nothing generated for '${names}'" 1>&2; exit 1; }
+gen_require_ran "${ran}" "${names}" "${task}"
 
-echo
-echo "generation done -> ${out_root}/${task}/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set \"${names}\""
+gen_done "${out_root}" "${task}" "${names}"

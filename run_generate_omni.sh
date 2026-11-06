@@ -7,48 +7,49 @@
 #   3. stops the server, then moves to the next model
 # A trap stops the running server on success, error, or Ctrl-C.
 #
-# Generation only -- score the output afterwards with run_infer_zonos2_eval.sh.
+# Generation only -- score with the command printed at the end (run_score.sh).
 #
 # Requires vLLM-Omni (the `vllm-omni` CLI), installed in this repo's .venv (Python
 # 3.12) or in the venv named by OMNI_VENV. generate_omni.py is just an HTTP client and
 # runs from the same venv.
 #
-#   bash run_generate_omni.sh --model all
-#   bash run_generate_omni.sh --model qwen3-tts-0.6b
+#   bash run_generate_omni.sh --model all                                  # clean, every model
+#   bash run_generate_omni.sh --model qwen3-tts-0.6b --task in-the-wild
 #   bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean --test_set "en" --limit 3
+#   bash run_generate_omni.sh --model fish-s2-pro --out_root results/_seeds/omni_fish-s2-pro
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model      model key (see ALL_MODELS below) or "all"   (default all)
-#   --task       restrict to one task group       (optional)
-#   --test_set   restrict to names within --task             (optional; needs --task)
+#   --task       task group (clean, in-the-wild, a panel)     (default clean)
+#   --test_set   languages within --task (default: every language of the task)
+#   --out_root   results root for a single --model     (default results/omni_<model>)
 #   --gpu        GPU index for the server                    (default 0)
 #   --port       server port                                 (default 8091)
-#   --workers    concurrent requests per test set            (default 4)
+#   --workers    concurrent requests per test set            (default 16)
 #   --limit      only the first N utterances per set          (default 0 = all)
 #   --overwrite  regenerate existing wavs                     (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=all
-task=
+task=clean
 test_set=
+out_root=""
 gpu=0
 port=8091
-workers=4
+workers=16
 limit=0
 overwrite=false
 
-help_message="usage: bash run_generate_omni.sh --model {all|<key>} [--task T] [--test_set \"...\"] [--gpu N] [--port N] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash run_generate_omni.sh --model {all|<key>} [--task T] [--test_set \"...\"] [--out_root D] [--gpu N] [--port N] [--workers N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
 
-if [ -n "${test_set}" ] && [ -z "${task}" ]; then
-    echo "error: --test_set requires --task" 1>&2
+if [ -n "${out_root}" ] && [ "${model}" = "all" ]; then
+    echo "error: --out_root needs a single --model" 1>&2
     exit 1
 fi
+names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 # Project venv: generate_omni.py (HTTP client) runs with <venv>/bin/python; the server
 # is launched with <venv>/bin/vllm-omni. <venv> is OMNI_VENV (default .venv), e.g. another
@@ -77,10 +78,9 @@ if [ -z "${DEPLOY_DIR}" ] || [ ! -d "${DEPLOY_DIR}" ]; then
 fi
 
 # --- model registry --------------------------------------------------------
-# Shared with run_generate_omni_voxblink.sh via scripts/omni_models.sh: ALL_MODELS,
-# NEW_MODELS, model_spec, reftext_policy, refaudio_mode, extra_pythonpath,
-# extra_serve_args, extra_env, extra_client_args. Add or edit models THERE so both
-# tasks stay in sync.
+# Shared via scripts/omni_models.sh: ALL_MODELS, NEW_MODELS, model_spec,
+# reftext_policy, refaudio_mode, extra_pythonpath, extra_serve_args, extra_env,
+# extra_client_args. Add or edit models THERE.
 . scripts/omni_models.sh
 
 if [ "${model}" = "all" ]; then models="${ALL_MODELS}"; else models="${model}"; fi
@@ -92,31 +92,15 @@ for m in ${models}; do
     fi
 done
 
-# --- test sets --------------------------------------------------
-sets_for() {
-    case "$1" in
-        clean)              echo "zh en ja ko de es fr it ru" ;;
-        *) echo "" ;;
-    esac
-}
-
-# --language override for each test set (all current sets have an explicit
-# entry); the generator falls back to per-utterance auto-detect for any miss.
+# --language override per test set: generate_omni.py knows {en zh ja ko de es fr it
+# ru}; the other codes fall through to "Auto" (it warns) and rely on detect_lang() /
+# server auto-detect. Everything else is sent without --language.
 lang_for() {
-    case "$1/$2" in
-        clean/zh) echo zh ;;
-        clean/en) echo en ;;
-        clean/ja) echo ja ;;
-        clean/ko) echo ko ;;
-        clean/de) echo de ;;
-        clean/es) echo es ;;
-        clean/fr) echo fr ;;
-        clean/it) echo it ;;
-        clean/ru) echo ru ;;
+    case "$1" in
+        en|zh|ja|ko|de|es|fr|it|ru|pt|ar|hi|tr|tl|pl|id|th) echo "$1" ;;
         *) echo "" ;;
     esac
 }
-
 
 # --- server lifecycle ------------------------------------------------------
 # Set OMNI_HOST/OMNI_PORT/OMNI_GPU before sourcing serve_omni.sh (it builds URLs).
@@ -125,8 +109,7 @@ export OMNI_PORT="${port}"
 export OMNI_GPU="${gpu}"
 . scripts/serve_omni.sh
 trap 'stop_omni_server' EXIT INT TERM
-
-tasks="${task:-clean}"
+ran=0
 
 # Snapshot PYTHONPATH so per-model additions (extra_pythonpath) can be reset each
 # iteration instead of accumulating across models in a `--model all` sweep.
@@ -190,47 +173,37 @@ for m in ${models}; do
         continue
     fi
 
-    for tk in ${tasks}; do
-        names="${test_set:-$(sets_for ${tk})}"
-        if [ -z "${names}" ]; then
-            echo "error: unknown task '${tk}'" 1>&2
-            stop_omni_server
-            exit 1
+    for nm in ${names}; do
+        data_dir="data/${task}/${nm}"
+        out_dir="${out_root:-results/omni_${m}}/${task}/${nm}"
+        if [ ! -f "${data_dir}/text" ]; then
+            echo "[skip] ${data_dir}: no 'text' file" 1>&2
+            continue
         fi
-        for nm in ${names}; do
-            data_dir="data/${tk}/${nm}"
-            # OMNI_OUT_ROOT overrides the results root for control/variant runs
-            # (e.g. the 2026-08 seed study writes under results/_seeds/) without
-            # touching the published tree. Default is the published layout.
-            out_dir="${OMNI_OUT_ROOT:-results}/omni_${m}/${tk}/${nm}"
-            if [ ! -f "${data_dir}/text" ]; then
-                echo "[skip] ${data_dir}: no 'text' file" 1>&2
-                continue
-            fi
 
-            lang_opt=""
-            lg="$(lang_for ${tk} ${nm})"
-            [ -n "${lg}" ] && lang_opt="--language ${lg}"
-            ow_opt=""
-            [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
+        lang_opt=""
+        lg="$(lang_for ${nm})"
+        [ -n "${lg}" ] && lang_opt="--language ${lg}"
+        ow_opt=""
+        [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 
-            echo "=== [omni:${m}] ${data_dir} -> ${out_dir} (mode=${mode}) ${lang_opt} ==="
-            "${PY}" scripts/generate_omni.py \
-                --server "http://127.0.0.1:${port}" \
-                --mode "${mode}" \
-                --model "${model_id}" \
-                --data-dir "${data_dir}" \
-                --out-dir "${out_dir}" \
-                --workers "${workers}" \
-                --limit "${limit}" \
-                ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
-        done
+        echo "=== [omni:${m}] ${data_dir} -> ${out_dir} (mode=${mode}) ${lang_opt} ==="
+        "${PY}" scripts/generate_omni.py \
+            --server "http://127.0.0.1:${port}" \
+            --mode "${mode}" \
+            --model "${model_id}" \
+            --data-dir "${data_dir}" \
+            --out-dir "${out_dir}" \
+            --workers "${workers}" \
+            --limit "${limit}" \
+            ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
+        ran=$((ran + 1))
     done
 
     stop_omni_server
 done
 
-echo
-echo "generation done -> results/omni_<model>/"
-echo "score it with run_infer_zonos2_eval.sh, e.g.:"
-echo "  DECODE_DIR=results/omni_qwen3-tts-0.6b/clean bash run_infer_zonos2_eval.sh"
+gen_require_ran "${ran}" "${names}" "${task}"
+for m in ${models}; do
+    gen_done "${out_root:-results/omni_${m}}" "${task}" "${names}"
+done

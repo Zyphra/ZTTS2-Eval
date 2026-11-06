@@ -60,7 +60,7 @@ export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 echo "[e2e] task=${E2E_TASK} src_task=${SRC_TASK} systems='${E2E_SYSTEMS}'"
 echo "[e2e] langs: ${LANGS}"
 
-# --- 1. materialize panel DECODE_DIRs from the existing full-set wavs ---------------
+# --- 1. materialize panel decode dirs from the existing full-set wavs ---------------
 for sys in ${E2E_SYSTEMS}; do
     n_link=0; n_miss=0
     for lg in ${LANGS}; do

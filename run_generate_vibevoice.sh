@@ -21,13 +21,11 @@
 #   bash run_generate_vibevoice.sh --test_set "en de"         # a subset
 #   bash run_generate_vibevoice.sh --limit 3                  # smoke
 #
-# Options: --task (clean|in-the-wild), --test_set (default = all supported),
+# Options: --task (clean | in-the-wild | panel), --test_set (default = task basket ∩ supported),
 #          --speaker (rotate|Carter|...|Spk0|Spk1), --out_root, --limit, --overwrite.
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root" 1>&2; exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 task=clean
 test_set=
@@ -38,6 +36,8 @@ overwrite=false
 
 help_message="usage: bash run_generate_vibevoice.sh [--task T] [--test_set \"en de\"] [--speaker S] [--out_root D] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+ALL_LANGS="en de es fr it ja ko nl pl pt"
+names=$(gen_langs "${task}" "${test_set}" "${ALL_LANGS}") || exit 1
 
 # Our language code -> preset-voice file prefix in demo/voices/streaming_model.
 # Empty result = no preset ships for that language (e.g. ru, zh) -> skip it.
@@ -51,7 +51,6 @@ voice_for() {
         *)  echo "" ;;
     esac
 }
-ALL_LANGS="en de es fr it ja ko nl pl pt"
 
 VENV="${VENV:-$HOME/.venvs/vibevoice}"
 PY="${VENV}/bin/python"
@@ -63,9 +62,9 @@ fi
 
 # Resolve the language list: an explicit --test_set is filtered down to the languages
 # a preset voice exists for (the SLURM launcher passes whole-task lists that include
-# ru/zh/ar/...); an empty --test_set means every supported language.
+# ru/zh/ar/...); an empty --test_set means the task basket ∩ supported languages.
 langs=""
-for l in ${test_set:-${ALL_LANGS}}; do
+for l in ${names}; do
     v="$(voice_for "${l}")"
     if [ -z "${v}" ]; then
         [ -n "${test_set}" ] && echo "[vibevoice] skip '${l}': no preset voice ships for it" 1>&2
@@ -99,8 +98,6 @@ for l in ${langs}; do
         --voice-lang "${v}" --speaker "${speaker}" --limit "${limit}" ${ow_opt}
 done
 
-echo
-echo "generation done -> ${out_root}/${task}/ (${langs})"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set \"${langs}\""
+gen_done "${out_root}" "${task}" "${langs}"
 echo "note: speaker-similarity is not meaningful for VibeVoice (preset voice); read WER + MSR-UTMOS."
 echo "note: only 'en' is a supported language upstream; the other nine are vendor-flagged exploratory."

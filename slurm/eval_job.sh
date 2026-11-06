@@ -30,7 +30,7 @@
 #
 # The omni TTS server is stopped before the ASR server starts (serve_omni.sh waits
 # for the port to free), so a single GPU serves both the generation and scoring
-# phases with no contention -- the same shape as scripts/run_full_zonos2_generic.sh.
+# phases with no contention.
 #SBATCH --job-name=ztts-eval
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
@@ -117,13 +117,8 @@ gen_args=()
 case "${engine}" in
     omni)
         out_base="results/omni_${model}"
-        if [ "${task}" = in-the-wild ]; then
-            gen_script="run_generate_omni_voxblink.sh"   # task is pinned; no --task
-            gen_args=(--model "${model}")
-        else
-            gen_script="run_generate_omni.sh"
-            gen_args=(--model "${model}" --task "${task}")
-        fi
+        gen_script="run_generate_omni.sh"
+        gen_args=(--model "${model}" --task "${task}")
         gen_args+=(--port "${OMNI_PORT}" --workers "${workers}" --limit "${limit}")
         ;;
     zonos2)
@@ -143,13 +138,8 @@ case "${engine}" in
         [ -n "${server}" ] && zonos2_srv=(--server "${server}")
         [ -n "${model_path}" ] && zonos2_srv+=(--model_path "${model_path}")
         [ -n "${accurate_mode}" ] && zonos2_srv+=(--accurate_mode "${accurate_mode}")
-        if [ "${task}" = in-the-wild ]; then
-            gen_script="run_generate_zonos2_voxblink.sh"  # task is pinned; no --task
-            gen_args=("${zonos2_srv[@]}" --out_root "${out_base}/in-the-wild")
-        else
-            gen_script="run_generate_zonos2.sh"
-            gen_args=("${zonos2_srv[@]}" --task "${task}" --out_root "${out_base}")
-        fi
+        gen_script="run_generate_zonos2.sh"
+        gen_args=("${zonos2_srv[@]}" --task "${task}" --out_root "${out_base}")
         gen_args+=(--workers "${workers}" --limit "${limit}")
         ;;
     kokoro)

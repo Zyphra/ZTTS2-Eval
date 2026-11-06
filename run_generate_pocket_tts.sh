@@ -11,7 +11,7 @@
 # Options (Kaldi-style "--name value"):
 #   --model      pocket-tts                                          (default pocket-tts)
 #   --task       clean | in-the-wild                              (default clean)
-#   --test_set   langs to run (quote); '' = all 6 supported          (default '')
+#   --test_set   langs to run (quote); '' = basket ∩ supported       (default '')
 #   --out_root   results root                                (default results/<model>)
 #   --workers    model processes per leaf                               (default 16)
 #   --threads    CPU threads per process                                 (default 2)
@@ -19,10 +19,7 @@
 #   --overwrite  regenerate existing wavs                          (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=pocket-tts
 task=clean
@@ -37,17 +34,13 @@ help_message="usage: bash run_generate_pocket_tts.sh [--task T] [--test_set \"..
 . utils/parse_options.sh || exit 1
 
 [ "${model}" = pocket-tts ] || { echo "error: unknown model '${model}' (pocket-tts)" 1>&2; exit 1; }
-case "${task}" in
-    clean|in-the-wild) ;;
-    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
-esac
+supported="en fr de pt it es"
+names=$(gen_langs "${task}" "${test_set}" "${supported}") || exit 1
 out_root="${out_root:-results/${model}}"
 PY="${POCKET_TTS_VENV:-$HOME/.venvs/pocket-tts}/bin/python"
 [ -x "${PY}" ] || { echo "error: no Pocket TTS venv at ${PY%/bin/python}" 1>&2; exit 1; }
 export HF_HUB_OFFLINE=1
 
-supported="en fr de pt it es"
-names="${test_set:-${supported}}"
 for nm in ${names}; do
     case " ${supported} " in
         *" ${nm} "*) ;;
@@ -70,7 +63,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-[ "${ran}" -eq 0 ] && { echo "error: nothing generated for '${names}'" 1>&2; exit 1; }
+gen_require_ran "${ran}" "${names}" "${task}"
 
-echo
-echo "generation done -> ${out_root}/${task}/"
+gen_done "${out_root}" "${task}" "${names}"

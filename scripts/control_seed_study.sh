@@ -43,7 +43,7 @@ else
     # so a fresh run IS the sampling-variance probe. (If a backend turns out to be
     # deterministic, run-vs-published will be ~identical — that is a finding, not
     # a failure.)
-    OMNI_OUT_ROOT="${ROOT}" bash run_generate_omni.sh --model "${SYSTEM}" \
+    bash run_generate_omni.sh --model "${SYSTEM}" --out_root "${ROOT}/omni_${SYSTEM}" \
         --task "${TASK}" --test_set "${LANGS}" --gpu 0 --port "${port}"
 fi
 

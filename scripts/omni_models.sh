@@ -1,10 +1,7 @@
 # scripts/omni_models.sh -- shared vLLM-Omni TTS model registry.
 #
-# SOURCE this (`. scripts/omni_models.sh`); do not execute it. Both generation
-# drivers (run_generate_omni.sh for clean / FLEURS-R, and
-# run_generate_omni_voxblink.sh for the VoxBlink2 set) source this single copy so
-# the model list and per-model policies can never drift apart. Every model added
-# here is available to BOTH tasks.
+# SOURCE this (`. scripts/omni_models.sh`); do not execute it. run_generate_omni.sh
+# sources this single copy for every task.
 
 # vLLM-Omni TTS models. Each spec is "<hf-model-id>|<mode>|<deploy-config yaml>".
 #   mode clone  -> zero-shot voice cloning (task_type=Base, reference wav + transcript)

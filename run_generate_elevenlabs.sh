@@ -10,8 +10,8 @@
 #
 # The benchmark language is each data dir's basename; the client maps it to the
 # provider's language code. Writes wavs to <out_root>/<task>/<lang>/wavs/ and
-# skips existing wavs, so re-running retries failures. Score afterwards with the
-# hint printed at the end.
+# skips existing wavs, so re-running retries failures. Score with the command
+# printed at the end (run_score.sh).
 #
 # Run it directly (it picks up .venv/bin/python); a bare `uv run` re-syncs and
 # drops the optional extra.
@@ -30,10 +30,7 @@
 #   --overwrite  regenerate existing wavs                     (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=v4
 task=clean
@@ -53,13 +50,9 @@ case "${model}" in
 esac
 [ -z "${out_root}" ] && out_root="results/elevenlabs_${model}"
 
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+gen_main_py
 
-names="${test_set:-$(python3 -m utils.benchmark langs "${task}")}"
-if [ -z "${names}" ]; then
-    echo "error: unknown task '${task}'" 1>&2
-    exit 1
-fi
+names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 
@@ -83,15 +76,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-if [ "${ran}" -eq 0 ]; then
-    echo "error: nothing generated (no data/${task}/<lang>/text for: ${names})" 1>&2
-    exit 1
-fi
+gen_require_ran "${ran}" "${names}" "${task}"
 
-case "${task}" in
-    *voxblink*) scorer=run_infer_voxblink_eval.sh ;;
-    *)          scorer=run_infer_zonos2_eval.sh ;;
-esac
-echo
-echo "generation done -> ${out_root}/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash ${scorer} --task ${task} --test_set \"${names}\""
+gen_done "${out_root}" "${task}" "${names}"

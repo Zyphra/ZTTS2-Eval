@@ -7,8 +7,8 @@
 #
 # MOSS-TTS (8B MossTTSDelay) is a multilingual zero-shot cloner; clone mode
 # conditions on the reference wav's timbre (audio only), so it covers all 9
-# clean langs. Writes results/moss-tts/<task>/<lang>/wavs/. Score with
-# run_infer_zonos2_eval.sh.
+# clean langs. Writes results/moss-tts/<task>/<lang>/wavs/. Score with the command
+# printed at the end (run_score.sh).
 #
 #   bash run_generate_moss_tts.sh                          # clean, all 9 langs
 #   bash run_generate_moss_tts.sh --test_set "en zh" --limit 3   # smoke test
@@ -22,10 +22,7 @@
 #   --overwrite  regenerate existing wavs                  (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=moss-tts       # variant key (see moss_id below); all share the one venv
 model_dir=           # explicit HF id / path override (wins over --model)
@@ -37,6 +34,7 @@ overwrite=false
 
 help_message="usage: bash run_generate_moss_tts.sh [--model VARIANT] [--task T] [--test_set \"...\"] [--out_root D] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 # MOSS-TTS family variants -> HF model id. All run through the same native path
 # (AutoModel/AutoProcessor); the Local/Nano architectures ship their own modeling
@@ -71,15 +69,6 @@ if [ ! -x "${PY}" ]; then
     exit 1
 fi
 
-sets_for() {
-    case "$1" in
-        clean|in-the-wild) echo "en zh de es fr it ja ko ru" ;;
-        *) echo "" ;;
-    esac
-}
-names="${test_set:-$(sets_for ${task})}"
-[ -z "${names}" ] && { echo "error: unknown task '${task}'" 1>&2; exit 1; }
-
 ran=0
 for nm in ${names}; do
     data_dir="data/${task}/${nm}"
@@ -100,8 +89,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-[ "${ran}" -eq 0 ] && { echo "error: nothing generated for '${names}'" 1>&2; exit 1; }
+gen_require_ran "${ran}" "${names}" "${task}"
 
-echo
-echo "generation done -> ${out_root}/${task}/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set \"${names}\""
+gen_done "${out_root}" "${task}" "${names}"

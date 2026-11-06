@@ -13,7 +13,7 @@
 # Options (Kaldi-style "--name value"):
 #   --model      phonon-40m-multilingual                 (default phonon-40m-multilingual)
 #   --task       clean | in-the-wild                    (default clean)
-#   --test_set   langs to run (quote); '' = all 5 supported          (default '')
+#   --test_set   langs to run (quote); '' = basket ∩ supported       (default '')
 #   --out_root   results root                                (default results/<model>)
 #   --workers    model processes per leaf                               (default 16)
 #   --threads    CPU threads per process                                 (default 2)
@@ -21,10 +21,7 @@
 #   --overwrite  regenerate existing wavs                          (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=phonon-40m-multilingual
 task=clean
@@ -42,10 +39,7 @@ case "${model}" in
     phonon-40m-multilingual) repo=gradium/phonon-40m-multilingual; supported="en fr de es pt" ;;
     *) echo "error: unknown Phonon model '${model}' (phonon-40m-multilingual)" 1>&2; exit 1 ;;
 esac
-case "${task}" in
-    clean|in-the-wild) ;;
-    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
-esac
+names=$(gen_langs "${task}" "${test_set}" "${supported}") || exit 1
 out_root="${out_root:-results/${model}}"
 PY="${PHONON_VENV:-$HOME/.venvs/phonon}/bin/python"
 [ -x "${PY}" ] || { echo "error: no Phonon venv at ${PY%/bin/python} (pip install ptts==0.6.0 soundfile numpy)" 1>&2; exit 1; }
@@ -59,7 +53,6 @@ snapshot() {  # REPO -> local snapshot dir in the HF cache
 model_dir="$(snapshot "${repo}")"
 catalog_dir="$(snapshot gradium/phonon-voices)"
 
-names="${test_set:-${supported}}"
 for nm in ${names}; do
     case " ${supported} " in
         *" ${nm} "*) ;;
@@ -83,7 +76,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-[ "${ran}" -eq 0 ] && { echo "error: nothing generated for '${names}'" 1>&2; exit 1; }
+gen_require_ran "${ran}" "${names}" "${task}"
 
-echo
-echo "generation done -> ${out_root}/${task}/"
+gen_done "${out_root}" "${task}" "${names}"

@@ -20,13 +20,11 @@
 #   bash run_generate_vibevoice15.sh --test_set "en"      # one language
 #   bash run_generate_vibevoice15.sh --limit 3            # smoke
 #
-# Options: --task (clean|in-the-wild), --test_set (default = en zh),
+# Options: --task (clean | in-the-wild | panel), --test_set (default = basket ∩ en zh; 7b: basket),
 #          --cfg_scale, --ddpm_steps, --out_root, --limit, --overwrite.
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root" 1>&2; exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 task=clean
 model=1.5b
@@ -66,9 +64,10 @@ esac
 #
 # Re-probe before widening this for a new variant; --allow_unsupported forces anything.
 case "${model}" in
-    7b)  ALL_LANGS="$(ls "data/${task}" 2>/dev/null | tr '\n' ' ')" ;;
+    7b)  ALL_LANGS="" ;;          # empty = the task's full basket, no filter
     *)   ALL_LANGS="en zh" ;;
 esac
+names=$(gen_langs "${task}" "${test_set}" "${ALL_LANGS}") || exit 1
 
 VENV="${VENV:-$HOME/.venvs/vibevoice15}"
 PY="${VENV}/bin/python"
@@ -81,8 +80,8 @@ fi
 # Resolve the language list. The SLURM launcher passes whole-task lists, so filter an
 # explicit --test_set down to the supported languages rather than failing on the rest.
 langs=""
-for l in ${test_set:-${ALL_LANGS}}; do
-    case " ${ALL_LANGS} " in
+for l in ${names}; do
+    case " ${ALL_LANGS:-${l}} " in
         *" ${l} "*) ;;
         *) if [ "${allow_unsupported}" = true ]; then
                # Exploratory only. The card says en/zh; other languages are UNSUPPORTED
@@ -115,9 +114,7 @@ for l in ${langs}; do
         --cfg-scale "${cfg_scale}" --ddpm-steps "${ddpm_steps}" --limit "${limit}" ${ow_opt}
 done
 
-echo
-echo "generation done -> ${out_root}/${task}/ (${langs})"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set \"${langs}\""
+gen_done "${out_root}" "${task}" "${langs}"
 echo "note: VibeVoice-${model} IS a cloner -- speaker-similarity is meaningful (unlike vibevoice-rt-0.5b)."
 if [ "${model}" = 7b ]; then
     echo "note: 7B weights come from the third-party 'vibevoice' org (Microsoft withdrew VibeVoice-Large); see third_party/VibeVoice-1.5B/PROVENANCE.md."

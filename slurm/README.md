@@ -21,7 +21,7 @@ bash slurm/submit_eval.sh --engine omni --model all
 bash slurm/submit_eval.sh --engine omni --model qwen3-tts-0.6b \
      --task clean --test_set en --limit 3
 
-# the VoxBlink2 task instead of FLEURS-R:
+# the In-The-Wild (VoxBlink2) task instead of Clean (FLEURS-R):
 bash slurm/submit_eval.sh --engine omni --model all --task in-the-wild
 
 # print the sbatch commands without submitting:
@@ -108,8 +108,8 @@ hard-coded and come from the submitter.
 - **`native_gen_job.sh`** / **`omni_gen_job.sh`** — generation on 8-GPU nodes (array
   jobs; always submit with `--array`) for in-process drivers (`GEN_DRIVER`: any driver
   taking `--model --task --test_set --out_root --limit`, e.g. `run_generate_moss_tts.sh`,
-  `run_generate_ming3.sh`) and for vLLM-Omni (`run_generate_omni.sh` /
-  `run_generate_omni_voxblink.sh`, one server per leaf on its GPU). The pending leaves
+  `run_generate_ming3.sh`) and for vLLM-Omni (`run_generate_omni.sh`, one server per
+  leaf on its GPU). The pending leaves
   (task × lang with a text uid lacking a wav) are listed once, largest first; each GPU
   claims the next leaf (atomic mkdir under
   `logs/slurm/ztts-{native,omni}-gen-<array job>-claims/`), so late tasks never leave a
@@ -117,7 +117,7 @@ hard-coded and come from the submitter.
   requeued task releases its own unfinished claims. Environment: `GEN_DRIVER` and
   `GEN_MODEL` (required), `GEN_TASKS`, `GEN_LANGS`, `GEN_LIMIT`, `GEN_OUT_ROOT`; and
   `OMNI_GEN_MODEL` (required), `OMNI_GEN_TASKS`, `OMNI_GEN_LANGS`, `OMNI_GEN_LIMIT`,
-  `OMNI_GEN_WORKERS` (default 16), `OMNI_VENV`, `OMNI_OUT_ROOT`. The omni servers run
+  `OMNI_GEN_WORKERS` (default 16), `OMNI_VENV`, `OMNI_GEN_OUT_ROOT`. The omni servers run
   with `HF_HUB_OFFLINE=1`, so download the model on a networked host first. Both print a
   `COVERAGE <system> <task> <lang> <got>/<want>` line per leaf and exit 1 iff a leaf is
   left in `logs/slurm/ztts-{native,omni}-gen-<array job>_<task>-failed.txt` (for omni
@@ -148,8 +148,7 @@ only GPU 0), so the allocated GPU is used with no extra plumbing. The job body s
 `ASR_GPU=0`/`SCORE_GPU=0` only to skip their `nvidia-smi` free-memory scans.
 
 Because the omni TTS server is stopped before the ASR server starts, a single GPU
-serves both the generation and scoring phases sequentially with no contention — the
-same shape as `scripts/run_full_zonos2_generic.sh`.
+serves both the generation and scoring phases sequentially with no contention.
 
 ## Ports: why they are per-job
 

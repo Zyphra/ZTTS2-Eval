@@ -34,10 +34,7 @@
 #   --overwrite   regenerate existing wavs   (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=zonos3-rate30-20k-r2grpo-reftext_embedding
 task=clean
@@ -68,11 +65,7 @@ done
 out_root="${out_root:-results/${model}}"
 
 # Resolved before the env rewrites PATH / PYTHONPATH.
-names="${test_set:-$(python3 -m utils.benchmark langs "${task}")}"
-if [ -z "${names}" ]; then
-    echo "error: unknown task '${task}'" 1>&2
-    exit 1
-fi
+names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 # The single-rank engine's rendezvous defaults to :23333, shared by every process on the node.
 port=$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1])')
@@ -113,15 +106,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-if [ "${ran}" -eq 0 ]; then
-    echo "error: nothing generated (no data/${task}/<lang>/text for: ${names})" 1>&2
-    exit 1
-fi
+gen_require_ran "${ran}" "${names}" "${task}"
 
-case "${task}" in
-    *in-the-wild*) scorer=run_infer_voxblink_eval.sh ;;
-    *)             scorer=run_infer_zonos2_eval.sh ;;
-esac
-echo
-echo "generation done -> ${out_root}/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash ${scorer} --task ${task} --test_set \"${names}\""
+gen_done "${out_root}" "${task}" "${names}"

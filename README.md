@@ -535,9 +535,9 @@ frontier; Delta panels estimate differences only) are in
 (offline, CPU-only — it reads the per-utterance scores already in `results/`).
 
 Generation scripts are provided for local/open models (`run_generate_zonos2.sh`,
-`run_generate_zonos3.sh`, `run_generate_omni.sh`) and for hosted providers. For the In-The-Wild set,
-generation scripts are provided as siblings of the FLEURS-R ones
-(`run_generate_*_voxblink.sh`); they pin `task=in-the-wild`.
+`run_generate_zonos3.sh`, `run_generate_omni.sh`) and for hosted providers. Every
+driver takes `--task` (`clean`, `in-the-wild` or a panel) and `--test_set`, and prints
+the `run_score.sh` command for its output at the end.
 
 * **`run_generate_omni.sh`** is self-contained — it starts/stops a local
   vLLM-Omni server (`uv sync --extra omni`) and is the recommended starting point.

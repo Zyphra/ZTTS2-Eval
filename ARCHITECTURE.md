@@ -99,15 +99,14 @@ ZTTS2-Eval/
   `scripts/serve_omni.sh`, then runs `scripts/generate_omni.py`
   (`POST /v1/audio/speech`). Inline model registry: qwen3-tts, cosyvoice3, voxcpm2,
   voxtral-tts, moss-tts-nano, fish-s2-pro, etc. `OMNI_VENV` names a venv with the omni
-  extra other than `.venv`. `slurm/omni_gen_job.sh` is the 8-GPU node job (both tasks).
+  extra other than `.venv`; `--out_root` redirects a single model's leaves.
+  `slurm/omni_gen_job.sh` is the 8-GPU node job (both tasks).
 - **Hosted providers**: `run_generate_gemini.sh`, `run_generate_elevenlabs.sh`
   (+ `_clone`), `run_generate_cartesia.sh`, `run_generate_inworld.sh` →
   `scripts/generate_<provider>.py`. Each reads its API key from an env var, takes
   `--task`/`--test_set` like `run_generate_zonos3.sh` (language = data-dir basename,
   validated by `utils.genclient.benchmark_lang`) and writes `gen_meta.json`. One
   instance per provider account at a time (the clone purges are account-wide).
-- **`run_generate_{omni,zonos2}_voxblink.sh`** → variants targeting the
-  `in-the-wild` task.
 
 ### Evaluation → scores written next to the wavs
 - **`run_score.sh --decode_dir <system results>/<task>`** → starts Qwen3-ASR and
@@ -177,7 +176,6 @@ self-contained `assets/reliability_gallery.html`. `run_reliability.sh` runs as a
 late step of `results_doc/run.sh` (the run ends with the snapshot publish).
 
 **Run wrappers (`.sh`):** `run_score_wer.sh`,
-`run_full_zonos2_generic.sh`,
 `setup_ttsds_env.sh` (the venv MPM needs), `wer_groundtruth.sh`.
 
 **Servers (sourced, not executed):** `serve_asr.sh` (`start/stop_asr_server`,

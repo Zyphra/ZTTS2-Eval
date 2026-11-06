@@ -19,10 +19,7 @@
 #   --overwrite  regenerate existing wavs              (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 task=clean
 test_set=     # NeuTTS is English-only; accepted (the SLURM launcher passes it) but
@@ -66,7 +63,5 @@ echo "=== [neutts-2e] ${data_dir} -> ${out_dir}  (speaker=${speaker} emotion=${e
     --limit "${limit}" \
     ${ow_opt}
 
-echo
-echo "generation done -> ${out_root}/${task}/en/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set en"
+gen_done "${out_root}" "${task}" en
 echo "note: speaker-similarity is not meaningful for NeuTTS-2E (preset voice); read WER + MSR-UTMOS."

@@ -8,7 +8,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --requeue
 #SBATCH --output=logs/slurm/%x-%A_%a.out
-# Generate a vLLM-Omni model (run_generate_omni.sh / run_generate_omni_voxblink.sh, which
+# Generate a vLLM-Omni model (run_generate_omni.sh, which
 # start and stop their own server) on 8-GPU nodes, one server + client per GPU. Always
 # submit as an ARRAY job (the %A_%a output name and the <array job>_<task> file tags
 # assume one), from the repo root:
@@ -23,8 +23,7 @@
 #   OMNI_GEN_LIMIT    only the first N utterances per leaf               (default 0 = all)
 #   OMNI_GEN_WORKERS  concurrent requests per server               (default 16, as eval_job)
 #   OMNI_VENV         venv with vllm-omni installed (read by the drivers)  (default .venv)
-#   OMNI_OUT_ROOT     results root (read by the drivers); leaves land in
-#                     <root>/omni_<model>/<task>/<lang>                   (default results)
+#   OMNI_GEN_OUT_ROOT leaves land in <root>/<task>/<lang>    (default results/omni_<model>)
 #
 # Pending leaves (task x lang with a text uid lacking a wav) are listed once per array job
 # (first task to start, under a mkdir lock), largest first, and frozen. Each GPU takes the
@@ -49,7 +48,7 @@ OMNI_GEN_LANGS=${OMNI_GEN_LANGS:-}
 OMNI_GEN_LIMIT=${OMNI_GEN_LIMIT:-0}
 OMNI_GEN_WORKERS=${OMNI_GEN_WORKERS:-16}
 system=omni_${OMNI_GEN_MODEL}
-leaf_root=${OMNI_OUT_ROOT:-results}/${system}
+leaf_root=${OMNI_GEN_OUT_ROOT:-results/${system}}
 export HF_HUB_OFFLINE=1
 
 job=${SLURM_JOB_ID:-$$}
@@ -113,15 +112,9 @@ for ((s = 0; s < n_gpu; s++)); do
         mkdir -p "${OMNI_LOG_DIR}"
         port=$(( 20000 + (job % 1000) * 40 + s * 4 ))
         run_leaf() {
-            if [ "$1" = in-the-wild ]; then
-                bash run_generate_omni_voxblink.sh --model "${OMNI_GEN_MODEL}" --test_set "$2" \
-                    --gpu "${s}" --port "${port}" --workers "${OMNI_GEN_WORKERS}" \
-                    --limit "${OMNI_GEN_LIMIT}" < /dev/null
-            else
-                bash run_generate_omni.sh --model "${OMNI_GEN_MODEL}" --task "$1" --test_set "$2" \
-                    --gpu "${s}" --port "${port}" --workers "${OMNI_GEN_WORKERS}" \
-                    --limit "${OMNI_GEN_LIMIT}" < /dev/null
-            fi
+            bash run_generate_omni.sh --model "${OMNI_GEN_MODEL}" --task "$1" --test_set "$2" \
+                --out_root "${leaf_root}" --gpu "${s}" --port "${port}" \
+                --workers "${OMNI_GEN_WORKERS}" --limit "${OMNI_GEN_LIMIT}" < /dev/null
         }
         while read -r _n task lang <&3; do
             c="${claims}/${task}__${lang}"

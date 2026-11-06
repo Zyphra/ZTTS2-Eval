@@ -15,16 +15,13 @@
 # Options (Kaldi-style "--name value"):
 #   --model      ming-3.0-tts-{0.5b,tiny}[-trim]               (default ming-3.0-tts-0.5b)
 #   --task       clean | in-the-wild                (default clean)
-#   --test_set   langs to run (quote); '' = all 7 supported    (default '')
+#   --test_set   langs to run (quote); '' = basket ∩ supported  (default '')
 #   --out_root   results root                                  (default results/<model>)
 #   --limit      only the first N utterances per set            (default 0 = all)
 #   --overwrite  regenerate existing wavs                      (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 model=ming-3.0-tts-0.5b
 task=clean
@@ -35,6 +32,8 @@ overwrite=false
 
 help_message="usage: bash run_generate_ming3.sh [--model ming-3.0-tts-{0.5b,tiny}[-trim]] [--task T] [--test_set \"...\"] [--out_root D] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+supported="zh en de es fr ja ko"
+names=$(gen_langs "${task}" "${test_set}" "${supported}") || exit 1
 
 trim_opt=""
 case "${model}" in
@@ -44,10 +43,6 @@ case "${model%-trim}" in
     ming-3.0-tts-0.5b) variant=0.5b; venv="${MING3_VENV:-$HOME/.venvs/ming3}" ;;
     ming-3.0-tts-tiny) variant=tiny; venv="${MING3_TINY_VENV:-$HOME/.venvs/ming3-tiny}" ;;
     *) echo "error: unknown Ming-3.0 model '${model}' (ming-3.0-tts-{0.5b,tiny}[-trim])" 1>&2; exit 1 ;;
-esac
-case "${task}" in
-    clean|in-the-wild) ;;
-    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
 esac
 out_root="${out_root:-results/${model}}"
 SRC="${MING3_SRC:-third_party/Ming-3.0-tts}"
@@ -61,8 +56,6 @@ fi
 # stalls model load.
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 
-supported="zh en de es fr ja ko"
-names="${test_set:-${supported}}"
 for nm in ${names}; do
     case " ${supported} " in
         *" ${nm} "*) ;;
@@ -86,7 +79,6 @@ for nm in ${names}; do
     ran=$((ran + 1))
 done
 
-[ "${ran}" -eq 0 ] && { echo "error: nothing generated for '${names}'" 1>&2; exit 1; }
+gen_require_ran "${ran}" "${names}" "${task}"
 
-echo
-echo "generation done -> ${out_root}/${task}/"
+gen_done "${out_root}" "${task}" "${names}"

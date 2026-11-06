@@ -10,8 +10,8 @@
 # Kokoro covers a subset of the benchmark languages. Supported here:
 #   en zh es fr it ja  (+ pt hi for in-the-wild);  de ko ru are NOT supported and skipped.
 #
-# Writes wavs to results/kokoro/<task>/<lang>/wavs/. Score afterwards with
-# run_infer_zonos2_eval.sh (DECODE_DIR=results/kokoro/<task>).
+# Writes wavs to results/kokoro/<task>/<lang>/wavs/. Score with the command printed
+# at the end (run_score.sh).
 #
 #   bash run_generate_kokoro.sh                              # clean, all supported langs
 #   bash run_generate_kokoro.sh --test_set "en zh" --limit 3 # smoke test
@@ -20,7 +20,7 @@
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --task       clean | in-the-wild            (default clean)
-#   --test_set   langs to run (quote); '' = all supported  (default '')
+#   --test_set   langs to run (quote); '' = basket ∩ supported (default '')
 #   --voice      override the per-language default voice    (optional)
 #   --speed      speaking-rate multiplier                  (default 1.0)
 #   --device     torch device (cuda|cpu; default: auto)     (optional)
@@ -29,10 +29,7 @@
 #   --overwrite  regenerate existing wavs                  (default false)
 set -e
 
-if [ ! -f utils/parse_options.sh ]; then
-    echo "error: run this from the repo root (utils/parse_options.sh not found)" 1>&2
-    exit 1
-fi
+. scripts/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
 task=clean
 test_set=
@@ -45,6 +42,8 @@ overwrite=false
 
 help_message="usage: bash run_generate_kokoro.sh [--task T] [--test_set \"...\"] [--voice V] [--speed X] [--device cuda|cpu] [--out_root D] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+ALL_SUPPORTED="en zh es fr it ja pt hi"
+names=$(gen_langs "${task}" "${test_set}" "${ALL_SUPPORTED}") || exit 1
 
 VENV="${VENV:-$HOME/.venvs/kokoro}"
 PY="${VENV}/bin/python"
@@ -69,10 +68,6 @@ map_for() {
         *)  echo "" ;;
     esac
 }
-
-# Default language set = every Kokoro-supported lang that also exists under data/<task>/.
-ALL_SUPPORTED="en zh es fr it ja pt hi"
-names="${test_set:-${ALL_SUPPORTED}}"
 
 ran=0
 for nm in ${names}; do
@@ -111,7 +106,5 @@ if [ "${ran}" -eq 0 ]; then
     exit 1
 fi
 
-echo
-echo "generation done -> ${out_root}/${task}/"
-echo "score with:  DECODE_DIR=${out_root}/${task} bash run_infer_zonos2_eval.sh --task ${task} --test_set \"${names}\""
+gen_done "${out_root}" "${task}" "${names}"
 echo "note: speaker-similarity is not meaningful for Kokoro (preset voice, no cloning); read WER + MSR-UTMOS."
