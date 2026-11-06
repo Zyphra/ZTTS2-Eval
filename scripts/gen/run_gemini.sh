@@ -5,7 +5,7 @@
 #
 #   uv sync --inexact --extra gemini   # one-time; --inexact keeps the scorer extras
 #   export GEMINI_API_KEY=...
-#   bash scripts/gen/run_gemini.sh --task clean_mini --test_set "en ja" --limit 4
+#   bash scripts/gen/run_gemini.sh --task clean_mini --test-set "en ja" --limit 4
 #   bash scripts/gen/run_gemini.sh --task in-the-wild
 #
 # The benchmark language is each data dir's basename; the client maps it to the
@@ -31,12 +31,14 @@
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model      3.8-flash                                    (default 3.8-flash)
 #   --task       task group                                   (default clean)
-#   --test_set   languages within --task   (default: every language of the task)
-#   --out_root   results root              (default results/gemini_<model>)
+#   --test-set   languages within --task   (default: every language of the task)
+#   --out-root   results root (default: gen_default_out_root; gemini row:
+#                results/gemini_<model>)
 #   --batch      true = Batch API, false = unary calls         (default true)
 #   --workers    concurrent unary requests per language       (default 4)
 #   --limit      only the first N utterances per set          (default 0 = all)
 #   --overwrite  regenerate existing wavs                     (default false)
+#   --list-langs print the languages that would run and exit  (default false)
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -49,8 +51,9 @@ batch=true
 workers=4
 limit=0
 overwrite=false
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_gemini.sh [--model 3.8-flash] [--task T] [--test_set \"...\"] [--out_root D] [--batch true|false] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_gemini.sh [--model 3.8-flash] [--task T] [--test-set \"...\"] [--out-root D] [--batch true|false] [--workers N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
@@ -61,11 +64,14 @@ if [ "${batch}" != "true" ] && [ "${batch}" != "false" ]; then
     echo "error: --batch must be true or false (got '${batch}')" 1>&2
     exit 2
 fi
-[ -z "${out_root}" ] && out_root="results/gemini_${model}"
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root gemini "${model}")
+
+GEN_NAME=gemini
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 repo_py
-
-names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 

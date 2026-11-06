@@ -19,8 +19,8 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, pick_voice, run_generate_loop, save_wav_atomic)
-from utils.scp import load_scp  # noqa: E402
+    apply_limit, format_error, load_test_set, pick_voice, run_generate_loop,
+    save_wav_atomic, write_gen_meta_once)
 
 SR = 24000
 SPEAKERS = ["emily", "paul", "sophie", "steven"]
@@ -40,12 +40,14 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set")
+    ap.add_argument("--seed", type=int, default=0, help="NeuTTS2E sampling seed")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
 
-    texts = load_scp(os.path.join(args.data_dir, "text"))
-    uids = list(texts.keys())            # preset voice -> every utterance in `text`
+    # preset voice -> every utterance in `text`
+    texts, _, _, uids = load_test_set(args.data_dir, need_prompt_wav=False,
+                                      need_prompt_text=False)
     uids = apply_limit(uids, args.limit, args.stratified_bins)
 
     wav_dir = os.path.join(args.out_dir, "wavs")
@@ -74,12 +76,13 @@ def main():
         dev = "cpu"
     print(f"[neutts-2e] loading NeuTTS2E on {dev} ...", flush=True)
     from neutts import NeuTTS2E  # noqa: E402  -- downloads the model on first run
-    tts = NeuTTS2E(backbone_device=dev, codec_device=dev, seed=0)
+    tts = NeuTTS2E(backbone_device=dev, codec_device=dev, seed=args.seed)
+
+    write_gen_meta_once(args.out_dir, args.overwrite, model="neuphonic/neutts-2e",
+                        seed=args.seed, speaker=args.speaker, emotion=args.emotion)
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             wav = tts.infer(texts[uid], speaker=speaker_for(uid), emotion=args.emotion)
             wav = np.asarray(wav, dtype=np.float32).reshape(-1)
@@ -91,7 +94,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

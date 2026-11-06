@@ -34,7 +34,8 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.gen import generate_zonos3 as gz  # noqa: E402
 from utils.genclient import (  # noqa: E402
-    apply_limit, benchmark_lang, format_error, load_test_set, save_wav_atomic, write_gen_meta)
+    apply_limit, benchmark_lang, format_error, load_test_set, pending_uids, save_wav_atomic,
+    write_gen_meta_once)
 
 SR = 44100
 #: Languages whose prompt transcript and target text are joined without a separator.
@@ -115,7 +116,7 @@ def main():
     uids = apply_limit(uids, args.limit)
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
-    todo = [u for u in uids if args.overwrite or not os.path.exists(os.path.join(wav_dir, u + ".wav"))]
+    todo = pending_uids(uids, wav_dir, args.overwrite)
     skip = len(uids) - len(todo)
     print(f"{len(uids)} items, {skip} already generated, {len(todo)} to do", flush=True)
     if not todo:
@@ -147,31 +148,31 @@ def main():
     print(f"engine ready in {time.time() - t0:.0f}s: {codec}, hop {hop}, headroom {headroom_db} dB", flush=True)
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(
-            args.out_dir,
-            model="zonos3-mini",
-            checkpoint=args.model_path,
-            runtime_rev=os.environ.get("ZONOS3_RUNTIME_REV"),
-            engine="in-process TTSLLM",
-            speaker_mode="embedding",
-            ref_text=args.ref_text,
-            continuation=("prompt_text + text; prompt codec frames prefilled after the silence prefill; "
-                          "output = audio after the prefill") if args.ref_text else None,
-            prompt_trim_top_db=TRIM_TOP_DB if args.ref_text and args.trim_prompt else None,
-            drop_prompt_frames=args.drop_prompt_frames if args.ref_text else None,
-            text_join="none" if lang in NO_SPACE_JOIN else "space",
-            language=language,
-            text_normalization=tn,
-            seed=args.seed,
-            max_tokens=args.max_tokens,
-            **SAMPLING,
-            prepend_silence=True,
-            silence_prefill_frames=SILENCE_FRAMES,
-            batch=args.batch,
-            max_seq_len_override=4096,
-            output_headroom_db=headroom_db,
-        )
+    write_gen_meta_once(
+        args.out_dir,
+        args.overwrite,
+        model="zonos3-mini",
+        checkpoint=args.model_path,
+        runtime_rev=os.environ.get("ZONOS3_RUNTIME_REV"),
+        engine="in-process TTSLLM",
+        speaker_mode="embedding",
+        ref_text=args.ref_text,
+        continuation=("prompt_text + text; prompt codec frames prefilled after the silence prefill; "
+                      "output = audio after the prefill") if args.ref_text else None,
+        prompt_trim_top_db=TRIM_TOP_DB if args.ref_text and args.trim_prompt else None,
+        drop_prompt_frames=args.drop_prompt_frames if args.ref_text else None,
+        text_join="none" if lang in NO_SPACE_JOIN else "space",
+        language=language,
+        text_normalization=tn,
+        seed=args.seed,
+        max_tokens=args.max_tokens,
+        **SAMPLING,
+        prepend_silence=True,
+        silence_prefill_frames=SILENCE_FRAMES,
+        batch=args.batch,
+        max_seq_len_override=4096,
+        output_headroom_db=headroom_db,
+    )
 
     params = TTSSamplingParams(**SAMPLING, seed=args.seed, max_tokens=args.max_tokens)
     ok = fail = 0

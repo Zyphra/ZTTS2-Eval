@@ -28,9 +28,9 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
     apply_limit, format_error, load_test_set, pick_voice, run_generate_loop,
-    save_wav_atomic)
+    save_wav_atomic, write_gen_meta_once)
 
-SEED = 4242424242424242  # ptts.TTS default seed
+DEFAULT_SEED = 4242424242424242  # ptts.TTS default seed
 _W = None
 
 
@@ -42,9 +42,9 @@ def _init_worker(model_dir, catalog_dir, lang, quant, threads):
 
 
 def _synth(job):
-    text, voice, out_path = job
+    text, voice, seed, out_path = job
     try:
-        wav = _W.synth(text, voice=voice, seed=SEED)
+        wav = _W.synth(text, voice=voice, seed=seed)
         if wav.size == 0:
             return "empty audio", 0.0
         return "ok", save_wav_atomic(wav, _W.sample_rate, out_path)
@@ -64,6 +64,8 @@ def main():
     ap.add_argument("--workers", type=int, default=16, help="model processes")
     ap.add_argument("--threads", type=int, default=2, help="CPU threads per process")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
+    ap.add_argument("--seed", type=int, default=DEFAULT_SEED,
+                    help="sampling seed passed on every call (default: the ptts default)")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
@@ -86,20 +88,21 @@ def main():
           f"{len(pool_names)} '{args.language}' voices, {args.workers} x {args.threads} threads",
           flush=True)
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model_dir, quant=args.quant,
+                        seed=args.seed)
     pool = multiprocessing.get_context("spawn").Pool(
         args.workers, initializer=_init_worker,
         initargs=(args.model_dir, args.voice_catalog, args.language, args.quant, args.threads))
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
-        status, dur = pool.apply(_synth, ((texts[uid], voices[uid], out_path),))
+        status, dur = pool.apply(_synth, ((texts[uid], voices[uid], args.seed, out_path),))
         return uid, status, dur
 
     # Threads only dispatch; the synthesis runs in the worker processes.
     with pool:
-        run_generate_loop(uids, generate, workers=args.workers, desc="generate", wav_dir=wav_dir)
+        run_generate_loop(uids, generate, workers=args.workers, desc="generate", wav_dir=wav_dir,
+                          overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

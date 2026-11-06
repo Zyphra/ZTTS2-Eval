@@ -18,27 +18,19 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SRC="${MING3_SRC:-${REPO_ROOT}/third_party/Ming-3.0-tts}"
 MING3_REPO="${MING3_REPO:-https://github.com/inclusionAI/Ming-3.0-tts}"
 MING3_COMMIT="${MING3_COMMIT:-a39b80660bdc5a4394d5e1d41af6dbfd9c443a54}"
-VENV_05B="${MING3_VENV:-$HOME/.venvs/ming3}"
-VENV_TINY="${MING3_TINY_VENV:-$HOME/.venvs/ming3-tiny}"
+MING3_VENV="${MING3_VENV:-$HOME/.venvs/ming3}"
+MING3_TINY_VENV="${MING3_TINY_VENV:-$HOME/.venvs/ming3-tiny}"
 
-if [ "${1:-}" = "--force" ]; then
-    rm -rf "${VENV_05B}" "${VENV_TINY}"
-fi
+. "${REPO_ROOT}/scripts/setup/lib_setup.sh"
+setup_force_from_args "$@"
 
-step() { printf "\n=== %s ===\n" "$*"; }
+setup_step "1. Ming-3.0-tts @ ${MING3_COMMIT:0:10} -> ${SRC}"
+setup_checkout "${MING3_REPO}" "${SRC}" "${MING3_COMMIT}"
 
-step "1. Ming-3.0-tts @ ${MING3_COMMIT:0:10} -> ${SRC}"
-if [ ! -d "${SRC}/.git" ]; then
-    mkdir -p "$(dirname "${SRC}")"
-    git clone "${MING3_REPO}" "${SRC}"
-fi
-git -C "${SRC}" fetch -q origin
-git -C "${SRC}" checkout -q "${MING3_COMMIT}"
-
-step "2. 0.5b venv ${VENV_05B} (python 3.10, requirements.txt, cu124)"
-[ -x "${VENV_05B}/bin/python" ] || uv venv --python 3.10 "${VENV_05B}"
+setup_step "2. 0.5b venv ${MING3_VENV} (python 3.10, requirements.txt, cu124)"
+setup_venv "${MING3_VENV}" 3.10
 # librosa: generate_ming3.py --trim-prompt (the *-trim systems).
-uv pip install --python "${VENV_05B}/bin/python" \
+uv pip install --python "${MING3_VENV}/bin/python" \
     --extra-index-url https://download.pytorch.org/whl/cu124 \
     --index-strategy unsafe-best-match \
     -r "${SRC}/requirements.txt" librosa==0.11.0
@@ -47,27 +39,27 @@ uv pip install --python "${VENV_05B}/bin/python" \
 # None, and on 3.10 every tiny process dies after ~120-150 utterances with "Fatal Python
 # error: none_dealloc" (None is immortal from 3.12; fla itself recommends >= 3.11). The
 # package pins are unchanged.
-step "3. tiny venv ${VENV_TINY} (python 3.12, requirements-tiny.txt, cu118)"
-[ -x "${VENV_TINY}/bin/python" ] || uv venv --python 3.12 "${VENV_TINY}"
-uv pip install --python "${VENV_TINY}/bin/python" \
+setup_step "3. tiny venv ${MING3_TINY_VENV} (python 3.12, requirements-tiny.txt, cu118)"
+setup_venv "${MING3_TINY_VENV}" 3.12
+uv pip install --python "${MING3_TINY_VENV}/bin/python" \
     --index-strategy unsafe-best-match \
     -r "${SRC}/requirements-tiny.txt" librosa==0.11.0
 
-step "4. models -> HF cache"
-"${VENV_05B}/bin/python" - <<'PY'
+setup_step "4. models -> HF cache"
+"${MING3_VENV}/bin/python" - <<'PY'
 from huggingface_hub import snapshot_download
 for repo in ("inclusionAI/Ming-3.0-tts-0.5b", "inclusionAI/Ming-3.0-tts-tiny"):
     print(repo, snapshot_download(repo))
 PY
 
-step "5. smoke check: imports + CUDA"
-(cd "${SRC}" && "${VENV_05B}/bin/python" -c \
+setup_step "5. smoke check: imports + CUDA"
+(cd "${SRC}" && "${MING3_VENV}/bin/python" -c \
     "import torch, ming_tts; print('0.5b torch', torch.__version__, 'cuda?', torch.cuda.is_available())")
-(cd "${SRC}" && "${VENV_TINY}/bin/python" -c \
+(cd "${SRC}" && "${MING3_TINY_VENV}/bin/python" -c \
     "import torch, ming_tiny; print('tiny torch', torch.__version__, 'cuda?', torch.cuda.is_available())")
 
 cat <<EOF
 
-Ming-3.0-tts venvs ready: ${VENV_05B} (0.5b), ${VENV_TINY} (tiny). Generate with:
-  bash scripts/gen/run_ming3.sh --model ming-3.0-tts-0.5b --test_set en --limit 3
+Ming-3.0-tts venvs ready: ${MING3_VENV} (0.5b), ${MING3_TINY_VENV} (tiny). Generate with:
+  bash scripts/gen/run_ming3.sh --model ming-3.0-tts-0.5b --test-set en --limit 3
 EOF

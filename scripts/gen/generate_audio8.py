@@ -17,18 +17,15 @@ Usage:
         --data-dir data/clean/en --out-dir results/audio8-tts-realistic-0.6b/clean/en
 """
 import argparse
-import json
 import os
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, bytes_to_wav, format_error, load_test_set, run_generate_loop,
-    with_retry, write_gen_meta)
+    apply_limit, bytes_to_wav, format_error, get_json, http_post, load_test_set,
+    run_generate_loop, with_retry, write_gen_meta_once)
 
 MODEL_ID = "Edge0/Audio8-TTS-Realistic-0.6b"
 MODEL_REVISION = "1e857568bfd4f02931aca3988ee773a44d2d26d3"
@@ -60,8 +57,7 @@ def main():
 
     server = args.server.rstrip("/")
     try:
-        with urllib.request.urlopen(server + "/v1/models", timeout=10) as resp:
-            served_model = json.loads(resp.read())["data"][0]["id"]
+        served_model = get_json(server + "/v1/models")["data"][0]["id"]
     except Exception as e:
         sys.exit(f"error: cannot read /v1/models: {format_error(e)} (server {server})")
 
@@ -73,25 +69,22 @@ def main():
     url = server + SPEECH_PATH
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(
-            args.out_dir,
-            model=MODEL_ID,
-            model_revision=MODEL_REVISION,
-            served_model=served_model,
-            base_url=args.server,
-            runtime_rev=os.environ.get("AUDIO8_RUNTIME_REV"),
-            cuda_graph=os.environ.get("AUDIO8_DISABLE_CUDA_GRAPH", "0") != "1",
-            conditioning="prompt wav + prompt_text transcript",
-            max_new_tokens=args.max_new_tokens,
-            seed=None,
-            **POLICY,
-        )
+    write_gen_meta_once(
+        args.out_dir, args.overwrite,
+        model=MODEL_ID,
+        model_revision=MODEL_REVISION,
+        served_model=served_model,
+        base_url=args.server,
+        runtime_rev=os.environ.get("AUDIO8_RUNTIME_REV"),
+        cuda_graph=os.environ.get("AUDIO8_DISABLE_CUDA_GRAPH", "0") != "1",
+        conditioning="prompt wav + prompt_text transcript",
+        max_new_tokens=args.max_new_tokens,
+        seed=None,
+        **POLICY,
+    )
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         payload = {
             "model": served_model,
             "input": texts[uid],
@@ -102,13 +95,9 @@ def main():
                             "text": prompt_texts[uid]}],
         }
         try:
-            req = urllib.request.Request(
-                url, data=json.dumps(payload).encode(),
-                headers={"Content-Type": "application/json"})
-
             def _call():
-                with urllib.request.urlopen(req, timeout=args.timeout) as resp:
-                    return resp.read(), resp.headers.get("X-Completion-Tokens")
+                body, headers = http_post(url, payload, args.timeout)
+                return body, headers.get("X-Completion-Tokens")
 
             raw, ctoks = with_retry(_call, args.retries, args.retry_base_delay)
             if ctoks and ctoks.isdigit() and int(ctoks) >= args.max_new_tokens:
@@ -117,12 +106,11 @@ def main():
                       "kept truncated", flush=True)
             dur = bytes_to_wav(raw, out_path)
             return uid, "ok", dur
-        except urllib.error.HTTPError as e:
-            return uid, f"http {e.code}: {e.read().decode(errors='replace')[:200]}", 0.0
         except Exception as e:
             return uid, format_error(e), 0.0
 
-    run_generate_loop(uids, generate, args.workers, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, args.workers, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

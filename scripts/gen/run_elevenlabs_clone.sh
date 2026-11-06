@@ -6,7 +6,7 @@
 #
 #   uv sync --inexact --extra elevenlabs   # one-time; --inexact keeps the scorer extras
 #   export ELEVENLABS_API_KEY=...
-#   bash scripts/gen/run_elevenlabs_clone.sh --task clean_mini --test_set "en ja" --limit 4
+#   bash scripts/gen/run_elevenlabs_clone.sh --task clean_mini --test-set "en ja" --limit 4
 #   bash scripts/gen/run_elevenlabs_clone.sh --task in-the-wild
 #
 # The benchmark language is each data dir's basename; the client maps it to the
@@ -25,12 +25,14 @@
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model      v4                                           (default v4)
 #   --task       task group                                   (default clean)
-#   --test_set   languages within --task   (default: every language of the task)
-#   --out_root   results root              (default results/elevenlabs_<model>_clone)
+#   --test-set   languages within --task   (default: every language of the task)
+#   --out-root   results root (default: gen_default_out_root; elevenlabs_clone row:
+#                results/elevenlabs_<model>_clone)
 #   --workers    concurrent requests per language             (default 4)
-#   --seed       generation seed, provider best-effort        (default 0)
+#   --seed       generation seed, provider best-effort; '' = none (default 0)
 #   --limit      only the first N utterances per set          (default 0 = all)
 #   --overwrite  regenerate existing wavs                     (default false)
+#   --list-langs print the languages that would run and exit  (default false)
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -43,21 +45,26 @@ workers=4
 seed=0
 limit=0
 overwrite=false
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_elevenlabs_clone.sh [--model v4] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--seed N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_elevenlabs_clone.sh [--model v4] [--task T] [--test-set \"...\"] [--out-root D] [--workers N] [--seed N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
     v4) ;;
     *) echo "${help_message}" 1>&2; exit 1 ;;
 esac
-[ -z "${out_root}" ] && out_root="results/elevenlabs_${model}_clone"
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root elevenlabs_clone "${model}")
+
+GEN_NAME=elevenlabs_clone
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 repo_py
 
-names=$(gen_langs "${task}" "${test_set}") || exit 1
-
 ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
+seed_opt=(); [ -n "${seed}" ] && seed_opt=(--seed "${seed}")
 
 ran=0
 for nm in ${names}; do
@@ -73,7 +80,7 @@ for nm in ${names}; do
         --data-dir "${data_dir}" \
         --out-dir "${out_dir}" \
         --workers "${workers}" \
-        --seed "${seed}" \
+        "${seed_opt[@]}" \
         --limit "${limit}" \
         ${ow_opt}
     ran=$((ran + 1))

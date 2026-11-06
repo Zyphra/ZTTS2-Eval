@@ -374,32 +374,112 @@ def write_gen_meta(out_dir, **fields):
     return path
 
 
+def write_gen_meta_once(out_dir, overwrite, **fields):
+    """write_gen_meta() unless <out_dir>/gen_meta.json already exists.
+
+    A resumed run keeps the provenance of the run that started the leaf; --overwrite
+    regenerates every wav and so rewrites the meta too. Returns the path written, or
+    None when the existing file was kept."""
+    if overwrite or not os.path.exists(os.path.join(out_dir, "gen_meta.json")):
+        return write_gen_meta(out_dir, **fields)
+    return None
+
+
+# --- seeding --------------------------------------------------------------------
+
+def seed_everything(seed):
+    """Seed Python's, numpy's and torch's (incl. every CUDA device's) RNGs.
+
+    numpy and torch are imported lazily and skipped when absent, so API clients can
+    import this module without them."""
+    random.seed(seed)
+    try:
+        import numpy as np
+        np.random.seed(seed % (2 ** 32))
+    except ImportError:
+        pass
+    try:
+        import torch
+    except ImportError:
+        return
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+# --- HTTP (stdlib) --------------------------------------------------------------
+
+_USER_AGENT = "zonos2-eval"
+
+
+def get_json(url, timeout=10):
+    """GET url and decode its JSON body."""
+    import json
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def http_post(url, payload, timeout):
+    """POST payload as JSON; returns (body bytes, response headers).
+
+    An HTTP error status raises RuntimeError('HTTP <code>: <detail>') with the first
+    300 characters of the server's error body, the form http_status_of() parses."""
+    import json
+    import urllib.error
+    import urllib.request
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": _USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.read(), r.headers
+    except urllib.error.HTTPError as e:
+        try:
+            detail = e.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001 - the body is best-effort context only
+            detail = ""
+        raise RuntimeError(f"HTTP {e.code}: {detail[:300]}") from None
+
+
+def server_alive(base_url, timeout=5):
+    """True when GET <base_url>/health answers 2xx."""
+    import urllib.request
+    req = urllib.request.Request(base_url.rstrip("/") + "/health",
+                                 headers={"User-Agent": _USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return 200 <= r.status < 300
+    except Exception:  # noqa: BLE001 - unreachable / refused / HTTP error all mean "not alive"
+        return False
+
+
 # --- shared generate loop ----------------------------------------------------
 
-def run_generate_loop(uids, generate, workers, desc, wav_dir):
+def pending_uids(uids, wav_dir, overwrite):
+    """The uids still to generate: all of them with overwrite, else those without
+    <wav_dir>/<uid>.wav."""
+    if overwrite:
+        return list(uids)
+    return [u for u in uids if not os.path.exists(os.path.join(wav_dir, f"{u}.wav"))]
+
+
+def run_generate_loop(uids, generate, workers, desc, wav_dir, overwrite=False):
     """The common generation loop: progress bar + ok/skip/fail summary + hint.
 
-    generate(uid) must return (uid, status, duration_s) where status is "ok",
-    "skip", or an error string (logged as '[gen] <uid>: <status>' -- build error
-    strings with format_error() so the exception type is never lost). workers >
-    1 maps utterances over a ThreadPoolExecutor (API/server clients); workers <=
-    1 runs sequentially in the caller's thread (in-process GPU engines).
-    Also drops a gen_meta.json provenance stub next to wav_dir (in its parent
-    when wav_dir is the conventional <out_dir>/wavs) unless one already exists
-    -- clients with richer knowledge (model id, sampling params) should call
-    write_gen_meta() themselves BEFORE this loop. Returns (ok, skip, fail)."""
+    Unless overwrite, a uid whose <wav_dir>/<uid>.wav exists is counted as skipped
+    and generate is never called for it. generate(uid) must return
+    (uid, status, duration_s) where status is "ok", "skip", or an error string
+    (logged as '[gen] <uid>: <status>' -- build error strings with format_error()
+    so the exception type is never lost). workers > 1 maps utterances over a
+    ThreadPoolExecutor (API/server clients); workers <= 1 runs sequentially in the
+    caller's thread (in-process GPU engines). Returns (ok, skip, fail)."""
     from tqdm import tqdm
 
-    meta_dir = os.path.dirname(os.path.abspath(wav_dir)) \
-        if os.path.basename(os.path.normpath(wav_dir)) == "wavs" else wav_dir
-    if os.path.isdir(wav_dir) and \
-            not os.path.exists(os.path.join(meta_dir, "gen_meta.json")):
-        try:
-            write_gen_meta(meta_dir)
-        except OSError as e:
-            print(f"[warn] gen_meta.json not written: {e}")
-
-    ok = fail = skip = 0
+    todo = pending_uids(uids, wav_dir, overwrite)
+    ok = fail = 0
+    skip = len(uids) - len(todo)
     durations = []
 
     def consume(results):
@@ -417,9 +497,9 @@ def run_generate_loop(uids, generate, workers, desc, wav_dir):
     if workers and workers > 1:
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=workers) as ex:
-            consume(tqdm(ex.map(generate, uids), total=len(uids), desc=desc))
+            consume(tqdm(ex.map(generate, todo), total=len(todo), desc=desc))
     else:
-        consume(tqdm((generate(u) for u in uids), total=len(uids), desc=desc))
+        consume(tqdm((generate(u) for u in todo), total=len(todo), desc=desc))
 
     mean_dur = sum(durations) / len(durations) if durations else 0.0
     print(f"done: {ok} ok, {skip} skipped, {fail} failed | "

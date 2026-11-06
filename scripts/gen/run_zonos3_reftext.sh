@@ -3,11 +3,11 @@
 # (scripts/gen/generate_zonos3_reftext.py on zonos2.tts.llm.TTSLLM; no server: /tts/generate cannot prefill the prompt's
 # codec frames). Text = prompt transcript + target text; the prompt's frames (edge silence trimmed, top_db 35, last 2
 # frames dropped: they carry the clip's end-of-file edge, which the LM reads as the utterance's end) follow
-# the 0.2 s silence prefill; the output is the audio after the prefill. --ref_text false drops transcript and prompt
+# the 0.2 s silence prefill; the output is the audio after the prefill. --ref-text false drops transcript and prompt
 # frames (the in-process twin of the server's speaker_mode=embedding row). One process per call; writes
 # <out_root>/<task>/<lang>/wavs/.
 #
-#   bash scripts/gen/run_zonos3_reftext.sh --task clean_mini --test_set "en zh" --limit 4
+#   bash scripts/gen/run_zonos3_reftext.sh --task clean_mini --test-set "en zh" --limit 4
 #   bash scripts/gen/run_zonos3_reftext.sh --task in-the-wild --gpu 2
 #   GEN_DRIVER=scripts/gen/run_zonos3_reftext.sh GEN_MODEL=zonos3-rate30-20k-r2grpo-reftext_embedding \
 #       sbatch --parsable --chdir="$(pwd -P)" --export=ALL --array=0-1 slurm/gen_job.sh
@@ -21,14 +21,15 @@
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model       system name                (default zonos3-rate30-20k-r2grpo-reftext_embedding)
 #   --task        task group                 (default clean)
-#   --test_set    languages within --task    (default: every language of the task)
-#   --out_root    results root               (default results/<model>)
+#   --test-set    languages within --task    (default: every language of the task)
+#   --list-langs  true = print the languages that would run and exit (default false)
+#   --out-root    results root (default: gen_default_out_root; zonos3_reftext row: results/<model>)
 #   --gpu         GPU index                  (default ${CUDA_VISIBLE_DEVICES:-0})
-#   --ref_text    true = continuation from the prompt transcript + frames (default true)
-#   --trim_prompt true = trim the prompt wav's edge silence before encoding its frames (default true)
-#   --drop_prompt_frames  drop the last N codec frames of the prompt encoding (default 2)
+#   --ref-text    true = continuation from the prompt transcript + frames (default true)
+#   --trim-prompt true = trim the prompt wav's edge silence before encoding its frames (default true)
+#   --drop-prompt-frames  drop the last N codec frames of the prompt encoding (default 2)
 #   --seed        sampling seed              (default 0)
-#   --max_tokens  generated frames cap       (default 1350)
+#   --max-tokens  generated frames cap       (default 1350)
 #   --batch       requests per engine call   (default 64)
 #   --limit       only the first N utterances per set (default 0 = all)
 #   --overwrite   regenerate existing wavs   (default false)
@@ -40,6 +41,7 @@ model=zonos3-rate30-20k-r2grpo-reftext_embedding
 task=clean
 test_set=
 out_root=
+list_langs=false
 gpu=${CUDA_VISIBLE_DEVICES:-0}
 ref_text=true
 trim_prompt=true
@@ -50,22 +52,25 @@ batch=64
 limit=0
 overwrite=false
 
-help_message="usage: bash scripts/gen/run_zonos3_reftext.sh [--model M] [--task T] [--test_set \"...\"] [--out_root D] [--gpu N] [--ref_text true|false] [--trim_prompt true|false] [--drop_prompt_frames N] [--seed N] [--max_tokens N] [--batch N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_zonos3_reftext.sh [--model M] [--task T] [--test-set \"...\"] [--list-langs true] [--out-root D] [--gpu N] [--ref-text true|false] [--trim-prompt true|false] [--drop-prompt-frames N] [--seed N] [--max-tokens N] [--batch N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
+
+# Resolved before the env rewrites PATH / PYTHONPATH.
+GEN_NAME="${model}"
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 for opt in ref_text trim_prompt overwrite; do
     case "${!opt}" in
         true|false) ;;
-        *) echo "error: --${opt} must be true or false (got '${!opt}')" 1>&2; exit 2 ;;
+        *) echo "error: --${opt//_/-} must be true or false (got '${!opt}')" 1>&2; exit 2 ;;
     esac
 done
 [ -d "${ZONOS3_HOME:-}" ] || { echo "error: ZONOS3_HOME is not set" 1>&2; exit 1; }
 [ -f "${ZONOS3_ENV:-}" ] || { echo "error: ZONOS3_ENV is not set" 1>&2; exit 1; }
 [ -n "${ZONOS3_MODEL:-}" ] || { echo "error: ZONOS3_MODEL is not set" 1>&2; exit 1; }
-out_root="${out_root:-results/${model}}"
-
-# Resolved before the env rewrites PATH / PYTHONPATH.
-names=$(gen_langs "${task}" "${test_set}") || exit 1
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root zonos3_reftext "${model}")
 
 # The single-rank engine's rendezvous defaults to :23333, shared by every process on the node.
 port=$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1])')
@@ -97,7 +102,7 @@ for nm in ${names}; do
         --data-dir "${data_dir}" \
         --out-dir "${out_dir}" \
         --model-path "${ZONOS3_MODEL}" \
-        --seed "${seed}" \
+        ${seed:+--seed "${seed}"} \
         --max-tokens "${max_tokens}" \
         --batch "${batch}" \
         --limit "${limit}" \

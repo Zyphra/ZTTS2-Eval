@@ -48,7 +48,7 @@ sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
     apply_limit, benchmark_lang, bytes_to_wav, format_error, http_status_of,
     load_test_set, parse_l16_rate, pick_voice, retry_after_of, run_generate_loop,
-    save_wav_atomic, with_retry, write_gen_meta)
+    pending_uids, save_wav_atomic, with_retry, write_gen_meta_once)
 
 try:
     from google import genai
@@ -325,11 +325,8 @@ def run_batch(client, model_id, uids, texts, args, wav_dir, label):
     state_path = os.path.join(args.out_dir, BATCH_STATE)
     jobs = _load_jobs(state_path)
 
-    def has_wav(u):
-        return os.path.exists(os.path.join(wav_dir, u + ".wav"))
-
     wanted = set(uids)
-    skipped = {u for u in uids if has_wav(u)} if not args.overwrite else set()
+    skipped = set(uids) - set(pending_uids(uids, wav_dir, args.overwrite))
     written, last_error, durations = set(), {}, []
 
     def sweep():
@@ -351,8 +348,8 @@ def run_batch(client, model_id, uids, texts, args, wav_dir, label):
         """Submit the missing uids; returns how many were refused with 429."""
         limited = 0
         covered = {u for e in jobs for u in e["uids"]}
-        todo = [u for u in uids if u not in covered and u not in written and (
-            args.overwrite or not has_wav(u))]
+        todo = [u for u in pending_uids(uids, wav_dir, args.overwrite)
+                if u not in covered and u not in written]
         step = args.batch_max_requests if args.batch_max_requests > 0 else max(1, len(todo))
         out = os.path.normpath(args.out_dir)
         for i in range(0, len(todo), step):
@@ -476,12 +473,11 @@ def main():
     print(f"[gemini:{args.model}] voice assignments -> {vpath}")
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(args.out_dir, provider="gemini", model=model_id,
-                       endpoint="generateContent", voice_mode="preset", language=lang,
-                       language_sent=None, output_format="audio/wav",
-                       style_prompt=args.style_prompt or None,
-                       serving="batch" if args.batch else "unary")
+    write_gen_meta_once(args.out_dir, args.overwrite, provider="gemini", model=model_id,
+                        endpoint="generateContent", voice_mode="preset", language=lang,
+                        language_sent=None, output_format="audio/wav",
+                        style_prompt=args.style_prompt or None,
+                        serving="batch" if args.batch else "unary", seed=None)
 
     if args.batch:
         run_batch(client, model_id, uids, texts, args, wav_dir, f"gemini:{args.model}")
@@ -489,8 +485,6 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             raw, mime = synth(client, model_id, texts[uid],
                               pick_voice(uid, GEMINI_VOICES),
@@ -501,7 +495,8 @@ def main():
             return uid, format_error(e), 0.0
 
     ok, _, _ = run_generate_loop(uids, generate, args.workers,
-                                 desc=f"gemini:{args.model}", wav_dir=wav_dir)
+                                 desc=f"gemini:{args.model}", wav_dir=wav_dir,
+                                 overwrite=args.overwrite)
     if ok:
         _mark_serving(args.out_dir, "unary")
 

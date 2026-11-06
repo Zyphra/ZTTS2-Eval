@@ -6,7 +6,7 @@
 #
 #   uv sync --inexact --extra cartesia   # one-time; --inexact keeps the scorer extras
 #   export CARTESIA_API_KEY=...
-#   bash scripts/gen/run_cartesia.sh --mode clone --task clean_mini --test_set "en ja" --limit 4
+#   bash scripts/gen/run_cartesia.sh --mode clone --task clean_mini --test-set "en ja" --limit 4
 #   bash scripts/gen/run_cartesia.sh --mode clone --task in-the-wild
 #
 # The benchmark language is each data dir's basename; the client maps it to the
@@ -25,11 +25,13 @@
 #   --model      sonic-3.6                                    (default sonic-3.6)
 #   --mode       preset | clone                               (default preset)
 #   --task       task group                                   (default clean)
-#   --test_set   languages within --task   (default: every language of the task)
-#   --out_root   results root  (default results/cartesia_<model>, + _clone for --mode clone)
+#   --test-set   languages within --task   (default: every language of the task)
+#   --out-root   results root (default: gen_default_out_root; cartesia row:
+#                results/cartesia_<model>, + _clone for --mode clone)
 #   --workers    concurrent requests per language             (default 4)
 #   --limit      only the first N utterances per set          (default 0 = all)
 #   --overwrite  regenerate existing wavs                     (default false)
+#   --list-langs print the languages that would run and exit  (default false)
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -42,8 +44,9 @@ out_root=
 workers=4
 limit=0
 overwrite=false
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_cartesia.sh [--model sonic-3.6] [--mode preset|clone] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_cartesia.sh [--model sonic-3.6] [--mode preset|clone] [--task T] [--test-set \"...\"] [--out-root D] [--workers N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
@@ -54,14 +57,14 @@ if [ "${mode}" != "preset" ] && [ "${mode}" != "clone" ]; then
     echo "error: --mode must be preset or clone (got '${mode}')" 1>&2
     exit 2
 fi
-if [ -z "${out_root}" ]; then
-    out_root="results/cartesia_${model}"
-    [ "${mode}" = "clone" ] && out_root="${out_root}_clone"
-fi
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root cartesia "${model}" "${mode}")
+
+GEN_NAME=cartesia
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 repo_py
-
-names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 

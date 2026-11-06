@@ -6,9 +6,9 @@
 # loops every language of the task through it, then stops it. Pass --server <URL>
 # to use an already-running server instead (no launch/stop).
 #
-#   bash scripts/gen/run_zonos3.sh --speaker_mode reference --task clean_mini --test_set "en ja" --limit 4
-#   bash scripts/gen/run_zonos3.sh --speaker_mode embedding --task clean --gpu 2
-#   bash scripts/gen/run_zonos3.sh --speaker_mode reference --server http://127.0.0.1:1920 --task in-the-wild
+#   bash scripts/gen/run_zonos3.sh --speaker-mode reference --task clean_mini --test-set "en ja" --limit 4
+#   bash scripts/gen/run_zonos3.sh --speaker-mode embedding --task clean --gpu 2
+#   bash scripts/gen/run_zonos3.sh --speaker-mode reference --server http://127.0.0.1:1920 --task in-the-wild
 #
 # Writes wavs to <out_root>/<task>/<lang>/wavs/. Score with the command
 # printed at the end (scripts/score/run_score.sh).
@@ -21,13 +21,14 @@
 #   --server        external endpoint; EMPTY = launch our own     (default '')
 #   --gpu           GPU index for the launched server             (default 0)
 #   --port          preferred port for the launched server        (default 1920)
-#   --speaker_mode  reference | embedding                         (required)
+#   --speaker-mode  reference | embedding                         (required)
 #   --task          task group                                    (default clean)
-#   --test_set      languages within --task   (default: every language of the task)
-#   --out_root      results root              (default results/zonos3-mini_<speaker_mode>)
+#   --test-set      languages within --task   (default: every language of the task)
+#   --list-langs    true = print the languages that would run and exit (default false)
+#   --out-root      results root (default: gen_default_out_root; zonos3 row: results/zonos3-mini_<speaker-mode>)
 #   --workers       concurrent requests per language              (default 16)
 #   --seed          sampling seed                                 (default 0)
-#   --max_tokens    per-request token cap                         (default 1350)
+#   --max-tokens    per-request token cap                         (default 1350)
 #   --limit         only the first N utterances per set           (default 0 = all)
 #   --overwrite     regenerate existing wavs                      (default false)
 #   --laci          true = LACI decoding (laci=true; the server needs --laci-heads,
@@ -43,6 +44,7 @@ speaker_mode=
 task=clean
 test_set=
 out_root=
+list_langs=false
 workers=16
 seed=0
 max_tokens=1350
@@ -50,22 +52,25 @@ limit=0
 overwrite=false
 laci=false
 
-help_message="usage: bash scripts/gen/run_zonos3.sh --speaker_mode reference|embedding [--server URL|''] [--gpu N] [--port N] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--seed N] [--max_tokens N] [--limit N] [--overwrite true] [--laci true]"
+help_message="usage: bash scripts/gen/run_zonos3.sh --speaker-mode reference|embedding [--server URL|''] [--gpu N] [--port N] [--task T] [--test-set \"...\"] [--list-langs true] [--out-root D] [--workers N] [--seed N] [--max-tokens N] [--limit N] [--overwrite true] [--laci true]"
 . utils/parse_options.sh || exit 1
 
+GEN_NAME=zonos3
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
+
 if [ "${speaker_mode}" != "reference" ] && [ "${speaker_mode}" != "embedding" ]; then
-    echo "error: --speaker_mode must be reference or embedding (got '${speaker_mode}')" 1>&2
+    echo "error: --speaker-mode must be reference or embedding (got '${speaker_mode}')" 1>&2
     exit 2
 fi
 if [ "${laci}" != "true" ] && [ "${laci}" != "false" ]; then
     echo "error: --laci must be true or false (got '${laci}')" 1>&2
     exit 2
 fi
-[ -z "${out_root}" ] && out_root="results/zonos3-mini_${speaker_mode}"
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root zonos3 "" "${speaker_mode}")
 
 repo_py
-
-names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 # --- server lifecycle -----------------------------------------------------------
 if [ -z "${server}" ]; then
@@ -96,7 +101,7 @@ for nm in ${names}; do
         --out-dir "${out_dir}" \
         --speaker-mode "${speaker_mode}" \
         --workers "${workers}" \
-        --seed "${seed}" \
+        ${seed:+--seed "${seed}"} \
         --max-tokens "${max_tokens}" \
         --limit "${limit}" \
         ${ow_opt} ${laci_opt}

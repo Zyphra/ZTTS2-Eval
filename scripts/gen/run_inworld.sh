@@ -7,8 +7,8 @@
 #
 #   uv sync --inexact --extra inworld   # one-time; --inexact keeps the scorer extras
 #   export INWORLD_API_KEY=...
-#   bash scripts/gen/run_inworld.sh --clone true --task clean_mini --test_set "en ja" --limit 4
-#   bash scripts/gen/run_inworld.sh --clone true --clone_rate_per_min 5 --task in-the-wild
+#   bash scripts/gen/run_inworld.sh --clone true --task clean_mini --test-set "en ja" --limit 4
+#   bash scripts/gen/run_inworld.sh --clone true --clone-rate-per-min 5 --task in-the-wild
 #
 # The benchmark language is each data dir's basename; the client maps it to the
 # provider's language code. Writes wavs to <out_root>/<task>/<lang>/wavs/ and
@@ -19,20 +19,22 @@
 # drops the optional extra.
 #
 # Only one instance per provider account may run at a time: clone creation is
-# paced to the workspace's CloneVoice rate limit (--clone_rate_per_min), which
+# paced to the workspace's CloneVoice rate limit (--clone-rate-per-min), which
 # concurrent runs would share. Needs a key with voices write access for --clone.
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model              2                                    (default 2)
 #   --clone              true = instant voice cloning         (default false)
 #   --task               task group                           (default clean)
-#   --test_set           languages within --task (default: every language of the task)
-#   --out_root           results root (default results/inworld_<model>, + _clone for --clone true)
+#   --test-set           languages within --task (default: every language of the task)
+#   --out-root           results root (default: gen_default_out_root; inworld row:
+#                        results/inworld_<model>, + _clone for --clone true)
 #   --workers            concurrent requests per language, preset mode (default 4)
-#   --clone_rate_per_min clone requests/minute (token bucket)  (default 5)
-#   --clone_workers      clone+synth+delete pipelines         (default 4)
+#   --clone-rate-per-min clone requests/minute (token bucket)  (default 5)
+#   --clone-workers      clone+synth+delete pipelines         (default 4)
 #   --limit              only the first N utterances per set  (default 0 = all)
 #   --overwrite          regenerate existing wavs             (default false)
+#   --list-langs         print the languages that would run and exit (default false)
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -47,8 +49,9 @@ clone_rate_per_min=5
 clone_workers=4
 limit=0
 overwrite=false
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_inworld.sh [--model 2] [--clone true|false] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--clone_rate_per_min R] [--clone_workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_inworld.sh [--model 2] [--clone true|false] [--task T] [--test-set \"...\"] [--out-root D] [--workers N] [--clone-rate-per-min R] [--clone-workers N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
@@ -59,14 +62,14 @@ if [ "${clone}" != "true" ] && [ "${clone}" != "false" ]; then
     echo "error: --clone must be true or false (got '${clone}')" 1>&2
     exit 2
 fi
-if [ -z "${out_root}" ]; then
-    out_root="results/inworld_${model}"
-    [ "${clone}" = "true" ] && out_root="${out_root}_clone"
-fi
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root inworld "${model}" "${clone}")
+
+GEN_NAME=inworld
+names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 repo_py
-
-names=$(gen_langs "${task}" "${test_set}") || exit 1
 
 ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 clone_opt=""; [ "${clone}" = "true" ] && clone_opt="--clone"

@@ -45,10 +45,9 @@ from tqdm import tqdm
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from utils.benchmark import CLEAN_LANGS, ITW_LANGS  # noqa: E402
 from utils.genclient import (  # noqa: E402
     apply_limit, benchmark_lang, bytes_to_wav, format_error, load_test_set,
-    pick_voice, run_generate_loop, with_retry, write_gen_meta)
+    pending_uids, pick_voice, run_generate_loop, with_retry, write_gen_meta_once)
 
 
 # --- model ids ---------------------------------------------------------------
@@ -63,8 +62,14 @@ VOICES_URL = "https://api.inworld.ai/voices/v1/voices"   # voice catalogue
 CLONE_URL = "https://api.inworld.ai/voices/v1/voices:clone"   # instant voice cloning (IVC)
 
 # Benchmark language -> Inworld language code (synth `language` and clone
-# `languageCode`). TTS-2 covers every Clean + ITW language; Tagalog is `fil`.
-INWORLD_LANG = {**{lg: lg for lg in CLEAN_LANGS + ITW_LANGS}, "tl": "fil"}
+# `languageCode`). TTS-2 covers every Clean + ITW language (benchmark_lang()
+# validates the basket); Tagalog is `fil`.
+INWORLD_LANG_OVERRIDES = {"tl": "fil"}
+
+
+def inworld_lang(lang):
+    return INWORLD_LANG_OVERRIDES.get(lang, lang)
+
 
 # TTS-2 accepts clone samples up to 30 s (the longest benchmark prompt is 20 s).
 CLONE_MAX_SECONDS = 30.0
@@ -250,7 +255,7 @@ def build_preset_voices(headers, uids, lang, args):
     vpath = os.path.join(args.out_dir, "voices.txt")
     with open(vpath, "w", encoding="utf-8") as f:
         for uid in uids:
-            voice = pick_voice(uid, pool_for(INWORLD_LANG[lang]))
+            voice = pick_voice(uid, pool_for(inworld_lang(lang)))
             voice_for[uid] = voice
             f.write(f"{uid}\t{voice}\t{lang}\n")
     print(f"[inworld:{args.model}] voice assignments -> {vpath}")
@@ -343,8 +348,7 @@ def run_clone_mode(headers, model_id, uids, texts, prompts, lang_code, wav_dir, 
     pending_path = os.path.join(args.out_dir, "pending_clones.txt")
     open(pending_path, "w").close()  # fresh ledger for this run
 
-    todo = [u for u in uids
-            if args.overwrite or not os.path.exists(os.path.join(wav_dir, u + ".wav"))]
+    todo = pending_uids(uids, wav_dir, args.overwrite)
     done_already = len(uids) - len(todo)
     limiter = RateLimiter(args.clone_rate_per_min / 60.0, args.clone_burst)
     print(f"[inworld:clone] {len(todo)} to do ({done_already} wavs already present), "
@@ -460,7 +464,7 @@ def main():
     texts, prompts, prompt_texts, uids = load_test_set(args.data_dir)
     uids = apply_limit(uids, args.limit)
     lang = benchmark_lang(args.data_dir)
-    lang_code = INWORLD_LANG[lang]
+    lang_code = inworld_lang(lang)
 
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
@@ -469,14 +473,14 @@ def main():
           f"(text={len(texts)}, prompt_wav={len(prompts)}, prompt_text={len(prompt_texts)})")
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(args.out_dir, provider="inworld", model=model_id,
-                       endpoint=TTS_URL, voice_mode="clone" if args.clone else "preset",
-                       language=lang, language_sent=lang_code,
-                       output_format=AUDIO_ENCODING, delivery_mode=DELIVERY_MODE,
-                       **({"clone_rate_per_min": args.clone_rate_per_min,
-                           "clone_max_seconds": args.clone_max_seconds}
-                          if args.clone else {}))
+    write_gen_meta_once(args.out_dir, args.overwrite, provider="inworld", model=model_id,
+                        endpoint=TTS_URL, voice_mode="clone" if args.clone else "preset",
+                        language=lang, language_sent=lang_code,
+                        output_format=AUDIO_ENCODING, delivery_mode=DELIVERY_MODE,
+                        seed=None,
+                        **({"clone_rate_per_min": args.clone_rate_per_min,
+                            "clone_max_seconds": args.clone_max_seconds}
+                           if args.clone else {}))
 
     if args.clone:
         run_clone_mode(headers, model_id, uids, texts, prompts, lang_code, wav_dir, args)
@@ -486,8 +490,6 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             raw = synth(headers, model_id, texts[uid], voice_for[uid], lang_code,
                         args.timeout, args.retries, args.retry_base_delay)
@@ -497,7 +499,8 @@ def main():
             return uid, format_error(e), 0.0
 
     run_generate_loop(uids, generate, args.workers,
-                      desc=f"inworld:{args.model}", wav_dir=wav_dir)
+                      desc=f"inworld:{args.model}", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

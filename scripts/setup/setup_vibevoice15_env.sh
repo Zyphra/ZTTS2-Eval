@@ -19,15 +19,15 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VENV="${VENV:-$HOME/.venvs/vibevoice15}"
+VIBEVOICE15_VENV="${VIBEVOICE15_VENV:-$HOME/.venvs/vibevoice15}"
 SRC="${VIBEVOICE15_SRC:-${REPO_ROOT}/third_party/VibeVoice-1.5B}"
 PY_VER="${PY_VER:-3.11}"
 CUDA_TAG="${CUDA_TAG:-cu128}"
 
-if [ "${1:-}" = "--force" ]; then rm -rf "$VENV"; fi
-step() { printf "\n=== %s ===\n" "$*"; }
+. "${REPO_ROOT}/scripts/setup/lib_setup.sh"
+setup_force_from_args "$@"
 
-step "1. check the vendored inference tree"
+setup_step "1. check the vendored inference tree"
 if [ ! -f "${SRC}/vibevoice/modular/modeling_vibevoice_inference.py" ]; then
     echo "error: ${SRC} is missing modeling_vibevoice_inference.py" 1>&2
     echo "       (it is vendored, not cloned -- see ${SRC}/PROVENANCE.md)" 1>&2
@@ -35,23 +35,23 @@ if [ ! -f "${SRC}/vibevoice/modular/modeling_vibevoice_inference.py" ]; then
 fi
 echo "ok: ${SRC}"
 
-step "2. uv venv ${VENV} (python ${PY_VER})"
-[ -x "${VENV}/bin/python" ] || uv venv --python "${PY_VER}" "${VENV}"
+setup_step "2. uv venv ${VIBEVOICE15_VENV} (python ${PY_VER})"
+setup_venv "${VIBEVOICE15_VENV}" "${PY_VER}"
 
-step "3. pin cu128 torch FIRST"
-uv pip install --python "${VENV}/bin/python" \
+setup_step "3. pin cu128 torch FIRST"
+uv pip install --python "${VIBEVOICE15_VENV}/bin/python" \
     --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" --index-strategy unsafe-best-match \
     "torch==2.8.0" torchaudio
 
-step "4. runtime deps (transformers pinned to match the realtime recipe)"
+setup_step "4. runtime deps (transformers pinned to match the realtime recipe)"
 # diffusers: dpm_solver.py subclasses its SchedulerMixin/ConfigMixin.
 # librosa + soundfile: vibevoice_tokenizer_processor.py loads/saves audio with them.
-uv pip install --python "${VENV}/bin/python" \
+uv pip install --python "${VIBEVOICE15_VENV}/bin/python" \
     --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" --index-strategy unsafe-best-match \
     "transformers==4.51.3" diffusers accelerate librosa soundfile numpy tqdm
 
-step "5. smoke check (imports the vendored tree via PYTHONPATH, no install)"
-PYTHONPATH="${SRC}" "${VENV}/bin/python" - <<'PY'
+setup_step "5. smoke check (imports the vendored tree via PYTHONPATH, no install)"
+PYTHONPATH="${SRC}" "${VIBEVOICE15_VENV}/bin/python" - <<'PY'
 import torch, transformers
 from vibevoice.modular.modeling_vibevoice_inference import VibeVoiceForConditionalGenerationInference
 from vibevoice.processor.vibevoice_processor import VibeVoiceProcessor

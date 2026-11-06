@@ -14,26 +14,29 @@
 #
 #   bash scripts/gen/run_zonos2.sh                        # clean, self-managed server
 #   bash scripts/gen/run_zonos2.sh --task in-the-wild --gpu 0
-#   bash scripts/gen/run_zonos2.sh --task clean --test_set en --limit 3
-#   bash scripts/gen/run_zonos2.sh --accurate_mode false # expressive mode
+#   bash scripts/gen/run_zonos2.sh --task clean --test-set en --limit 3
+#   bash scripts/gen/run_zonos2.sh --accurate-mode false # expressive mode
 #   bash scripts/gen/run_zonos2.sh --server http://host:1919   # external server
-#   bash scripts/gen/run_zonos2.sh --task in-the-wild --gen_args "--clean-speaker-background"
+#   bash scripts/gen/run_zonos2.sh --task in-the-wild --gen-args "--clean-speaker-background"
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --server     external TTS endpoint; EMPTY = launch our own  (default '' = self-managed)
 #   --gpu        GPU index for the launched server              (default 0)
 #   --port       port for the launched server                   (default 1919)
-#   --model_path model path/id for the launched server          (default serve default)
+#   --model-path model path/id for the launched server          (default serve default)
 #   --task       task group (clean, in-the-wild, a panel)        (default clean)
-#   --test_set   languages within --task (default: every language of the task)
-#   --out_root   results root                                   (default results/zonos2)
+#   --test-set   languages within --task (default: every language of the task)
+#   --list-langs true = print the languages that would run and exit (default false)
+#   --out-root   results root (default: gen_default_out_root; zonos2 row:
+#                results/zonos2_accurate | results/zonos2_expressive | results/zonos2 when --accurate-mode is unset)
 #   --workers    concurrent requests per test set               (default 16)
+#   --seed       sampling seed; '' = generator default 0        (default '')
 #   --limit      only the first N utterances per set            (default 0 = all)
-#   --stratified_bins  if >0, sample K evenly-spaced utts per set (in-the-wild is sorted
+#   --stratified-bins  if >0, sample K evenly-spaced utts per set (in-the-wild is sorted
 #                worst->best MSR-UTMOS; --limit picks the worst N, this one per bin)
 #   --overwrite  regenerate existing wavs                       (default false)
-#   --gen_args   raw passthrough to scripts/gen/generate_zonos2.py  (default '')
-#                e.g. --gen_args "--temperature 0.7 --topk 90"
+#   --gen-args   raw passthrough to scripts/gen/generate_zonos2.py  (default '')
+#                e.g. --gen-args "--temperature 0.7 --topk 90"
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -45,13 +48,15 @@ port=1919
 model_path=
 task=clean
 test_set=
-out_root="results/zonos2"
+out_root=
+list_langs=false
+seed=
 workers=16
 limit=0
 stratified_bins=0
 overwrite=false
 # Raw passthrough to scripts/gen/generate_zonos2.py, for sampling/decoding sweeps
-# (e.g. --gen_args "--temperature 0.7 --topk 90 --repetition-window 128").
+# (e.g. --gen-args "--temperature 0.7 --topk 90 --repetition-window 128").
 # Empty = the script's defaults, which are the released model's reference config.
 # NOTE utils/parse_options.sh does `eval $name=\"$2\"`, so quoted JSON inside this
 # string loses its inner quotes -- use --quality-buckets' quote-free k=v:k=v form.
@@ -74,10 +79,14 @@ text_norm=false
 # otherwise fake the eval).
 accurate_mode=
 
-help_message="usage: bash scripts/gen/run_zonos2.sh [--server URL|''] [--gpu N] [--port N] [--model_path M] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--limit N] [--stratified_bins K] [--overwrite true] [--gen_args \"...\"] [--speaking_rate_bucket N|''] [--text_norm true] [--accurate_mode true]"
+help_message="usage: bash scripts/gen/run_zonos2.sh [--server URL|''] [--gpu N] [--port N] [--model-path M] [--task T] [--test-set \"...\"] [--list-langs true] [--out-root D] [--workers N] [--seed N] [--limit N] [--stratified-bins K] [--overwrite true] [--gen-args \"...\"] [--speaking-rate-bucket N|''] [--text-norm true] [--accurate-mode true]"
 . utils/parse_options.sh || exit 1
 
+GEN_NAME=zonos2
 names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root zonos2 "" "${accurate_mode}")
 repo_py
 
 # --- server lifecycle -----------------------------------------------------------
@@ -142,13 +151,13 @@ acc_opt=""
 if [ -n "${accurate_mode}" ]; then
     acc_supported=$(${PY} -c "import json; print(json.load(open('${caps_json}')).get('accurate_mode_token_enabled', False))" 2>/dev/null)
     if [ "${acc_supported}" != "True" ]; then
-        echo "error: --accurate_mode set but server does not expose accurate_mode_token_enabled" 1>&2
+        echo "error: --accurate-mode set but server does not expose accurate_mode_token_enabled" 1>&2
         exit 1
     fi
     case "${accurate_mode}" in
         true)  acc_opt="--accurate-mode" ;;
         false) acc_opt="--no-accurate-mode" ;;
-        *) echo "error: --accurate_mode must be true, false, or empty" 1>&2; exit 1 ;;
+        *) echo "error: --accurate-mode must be true, false, or empty" 1>&2; exit 1 ;;
     esac
     echo "[zonos2] accurate_mode=${accurate_mode} (server supports the token)"
 fi
@@ -207,6 +216,7 @@ for nm in ${names}; do
 
     ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
     strat_opt=""; [ "${stratified_bins}" -gt 0 ] && strat_opt="--stratified-bins ${stratified_bins}"
+    seed_opt=""; [ -n "${seed}" ] && seed_opt="--seed ${seed}"
 
     echo "=== [zonos2] ${data_dir} -> ${out_dir}  ${lang_opt} ${norm_opt} ${sr_opt} ${acc_opt} ${strat_opt} ==="
     "${PY}" scripts/gen/generate_zonos2.py \
@@ -215,7 +225,7 @@ for nm in ${names}; do
         --out-dir "${out_dir}" \
         --workers "${workers}" \
         --limit "${limit}" \
-        ${lang_opt} ${norm_opt} ${sr_opt} ${acc_opt} ${strat_opt} ${ow_opt} ${gen_args}
+        ${lang_opt} ${norm_opt} ${sr_opt} ${acc_opt} ${strat_opt} ${seed_opt} ${ow_opt} ${gen_args}
     ran=$((ran + 1))
 done
 

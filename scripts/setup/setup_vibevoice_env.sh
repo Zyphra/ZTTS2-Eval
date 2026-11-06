@@ -10,33 +10,32 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VENV="${VENV:-$HOME/.venvs/vibevoice}"
+VIBEVOICE_VENV="${VIBEVOICE_VENV:-$HOME/.venvs/vibevoice}"
 SRC="${VIBEVOICE_SRC:-${REPO_ROOT}/third_party/VibeVoice}"
 PY_VER="${PY_VER:-3.11}"
 CUDA_TAG="${CUDA_TAG:-cu128}"
-VV_REPO="${VV_REPO:-https://github.com/microsoft/VibeVoice}"
+VIBEVOICE_REPO="${VIBEVOICE_REPO:-https://github.com/microsoft/VibeVoice}"
+VIBEVOICE_COMMIT="${VIBEVOICE_COMMIT:-16fb2cb1217c9934a886e1948ffb06120caa2df5}"
 
-if [ "${1:-}" = "--force" ]; then rm -rf "$VENV"; fi
-step() { printf "\n=== %s ===\n" "$*"; }
+. "${REPO_ROOT}/scripts/setup/lib_setup.sh"
+setup_force_from_args "$@"
 
-step "1. clone VibeVoice -> ${SRC}"
-if [ ! -d "${SRC}/.git" ]; then
-    mkdir -p "$(dirname "${SRC}")"; git clone --depth 1 "${VV_REPO}" "${SRC}"
-else echo "already cloned"; fi
+setup_step "1. VibeVoice @ ${VIBEVOICE_COMMIT:0:10} -> ${SRC}"
+setup_checkout "${VIBEVOICE_REPO}" "${SRC}" "${VIBEVOICE_COMMIT}"
 
-step "2. uv venv ${VENV} (python ${PY_VER})"
-[ -x "${VENV}/bin/python" ] || uv venv --python "${PY_VER}" "${VENV}"
+setup_step "2. uv venv ${VIBEVOICE_VENV} (python ${PY_VER})"
+setup_venv "${VIBEVOICE_VENV}" "${PY_VER}"
 
-step "3. pin cu128 torch FIRST, then VibeVoice[streamingtts] (transformers==4.51.3)"
-uv pip install --python "${VENV}/bin/python" \
+setup_step "3. pin cu128 torch FIRST, then VibeVoice[streamingtts] (transformers==4.51.3)"
+uv pip install --python "${VIBEVOICE_VENV}/bin/python" \
     --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" --index-strategy unsafe-best-match \
     "torch==2.8.0" torchaudio
-uv pip install --python "${VENV}/bin/python" \
+uv pip install --python "${VIBEVOICE_VENV}/bin/python" \
     --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" --index-strategy unsafe-best-match \
     -e "${SRC}[streamingtts]" soundfile
 
-step "4. smoke check"
-"${VENV}/bin/python" - <<'PY'
+setup_step "4. smoke check"
+"${VIBEVOICE_VENV}/bin/python" - <<'PY'
 import torch
 from vibevoice.modular.modeling_vibevoice_streaming_inference import VibeVoiceStreamingForConditionalGenerationInference  # noqa: F401
 from vibevoice.processor.vibevoice_streaming_processor import VibeVoiceStreamingProcessor  # noqa: F401
@@ -45,7 +44,7 @@ PY
 
 cat <<EOF
 
-VibeVoice venv ready at ${VENV}. Model microsoft/VibeVoice-Realtime-0.5B downloads
+VibeVoice venv ready at ${VIBEVOICE_VENV}. Model microsoft/VibeVoice-Realtime-0.5B downloads
 to the HF cache on first run. Generate (English only):
   bash scripts/gen/run_vibevoice.sh
   bash scripts/gen/run_vibevoice.sh --limit 3

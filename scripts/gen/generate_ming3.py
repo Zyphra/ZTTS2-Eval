@@ -26,7 +26,6 @@ systems keep the prompts as given.
 """
 import argparse
 import os
-import random
 import sys
 import tempfile
 from pathlib import Path
@@ -38,12 +37,13 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
     apply_limit, format_error, load_test_set, run_generate_loop,
-    save_wav_atomic)
+    save_wav_atomic, seed_everything, write_gen_meta_once)
 
 MODEL_IDS = {"0.5b": "inclusionAI/Ming-3.0-tts-0.5b", "tiny": "inclusionAI/Ming-3.0-tts-tiny"}
 LANGS = {"zh", "en", "de", "es", "fr", "ja", "ko"}
 TINY_TASK = {"zh": "seed", "en": "seed"}  # every other supported language: multilingual
-SEED_05B = 1895  # infer.py --seed default
+DEFAULT_SEED_05B = 1895  # infer.py --seed default
+TINY_SEED = 1234  # the tiny model's formal seed, applied by generate() itself
 TRIM_TOP_DB = 35.0  # scripts/prosody/score_mpm_shuffle_floor.py and the speaking-rate metric
 
 
@@ -59,13 +59,6 @@ def trimmed_copy(path, out_dir):
     return out
 
 
-def seed_everything(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
 def main():
     ap = argparse.ArgumentParser(description="Generate TTS audio with Ming-3.0-tts (native).")
     ap.add_argument("--variant", required=True, choices=sorted(MODEL_IDS))
@@ -77,18 +70,27 @@ def main():
                     help="output dir; wavs are written to <out-dir>/wavs/")
     ap.add_argument("--model-dir", default="", help="HF id or path (default: per variant)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="0.5b: seed reset before every utterance (default %d); tiny: not "
+                         "settable (fixed %d)" % (DEFAULT_SEED_05B, TINY_SEED))
     ap.add_argument("--trim-prompt", action="store_true",
                     help="trim the prompt wav's edge silence (top_db %g) before encoding"
                          % TRIM_TOP_DB)
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
+    if args.variant == "tiny" and args.seed is not None:
+        ap.error("--seed is not settable for the tiny variant (fixed %d)" % TINY_SEED)
+    seed = (DEFAULT_SEED_05B if args.seed is None else args.seed) \
+        if args.variant == "0.5b" else TINY_SEED
 
     texts, prompts, prompt_texts, uids = load_test_set(args.data_dir)
     uids = apply_limit(uids, args.limit)
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
     model_dir = args.model_dir or MODEL_IDS[args.variant]
+    write_gen_meta_once(args.out_dir, args.overwrite, model=model_dir, variant=args.variant,
+                        seed=seed, trim_prompt=args.trim_prompt)
 
     print(f"[ming3] loading {model_dir} ({args.variant}) ...", flush=True)
     if args.variant == "0.5b":
@@ -98,7 +100,7 @@ def main():
         sr = int(tts.sample_rate)
 
         def synth(uid, prompt):
-            seed_everything(SEED_05B)
+            seed_everything(seed)
             return tts.synthesize(task="TTS", text=texts[uid], language_id=args.language,
                                   prompt_wav_path=prompt, prompt_text=prompt_texts[uid],
                                   use_spk_emb=True, raw_text=True)
@@ -117,8 +119,6 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             prompt = (trimmed_copy(prompts[uid], tmp.name) if args.trim_prompt
                       else prompts[uid])
@@ -136,7 +136,8 @@ def main():
 
     # workers=1: in-process GPU model -> sequential loop in this thread.
     with tmp:
-        run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+        run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                          overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

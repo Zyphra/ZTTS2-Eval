@@ -22,7 +22,7 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
     apply_limit, format_error, load_test_set, run_generate_loop,
-    save_wav_atomic)
+    save_wav_atomic, seed_everything, write_gen_meta_once)
 
 MODEL_ID = os.environ.get("MOSS_TTS_DIR", "OpenMOSS-Team/MOSS-TTS")
 
@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed every RNG before each utterance (default: unseeded)")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
@@ -68,14 +70,19 @@ def main():
         mkw["attn_implementation"] = args.attn
     model = AutoModel.from_pretrained(args.model_dir, **mkw).to(device)
     model.eval()
-    # sample rate: processors expose it via .model_config.sampling_rate, but some
-    # variants (e.g. Nano) use a bare tokenizer without model_config -- fall back to
+    # sample rate: processors expose it via .model_config.sampling_rate; fall back to
     # the model config, then 24 kHz (48 kHz for the v2-tokenizer stereo variants).
     mc = getattr(processor, "model_config", None)
     sr = (getattr(mc, "sampling_rate", None)
           or getattr(getattr(model, "config", None), "sampling_rate", None)
           or 24000)
     sr = int(sr)
+
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model_dir, seed=args.seed,
+                        attn=args.attn or None, temperature=args.temperature,
+                        top_p=args.top_p, top_k=args.top_k,
+                        repetition_penalty=args.repetition_penalty,
+                        max_new_tokens=args.max_new_tokens)
 
     def synth(uid):
         # Clone mode: timbre from the reference wav (audio only, no transcript).
@@ -101,8 +108,8 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
+        if args.seed is not None:
+            seed_everything(args.seed)
         try:
             wav = synth(uid)
             if wav is None or wav.size == 0:
@@ -113,7 +120,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

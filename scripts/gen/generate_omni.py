@@ -20,18 +20,16 @@ Usage:
 """
 import argparse
 import base64
-import json
 import os
 import sys
-import urllib.error
-import urllib.request
 
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    bytes_to_wav as save_wav, detect_lang, format_error, load_test_set,
-    normalize_lang, pick_voice, run_generate_loop, with_retry)
+    bytes_to_wav as save_wav, detect_lang, format_error, get_json, http_post,
+    load_test_set, normalize_lang, pick_voice, run_generate_loop, server_alive,
+    with_retry, write_gen_meta_once)
 
 SPEECH_PATH = "/v1/audio/speech"
 VOICES_PATH = "/v1/audio/voices"
@@ -58,40 +56,10 @@ def normalize_prompt_path(raw):
     return os.path.normpath(raw)
 
 
-def server_alive(server, timeout=5):
-    """Quick GET /health so a wrong --server (or a dead server) fails fast."""
-    try:
-        with urllib.request.urlopen(server.rstrip("/") + "/health",
-                                    timeout=timeout) as r:
-            return 200 <= r.status < 300
-    except Exception:
-        return False
-
-
-def http_post(url, payload, timeout):
-    """POST a JSON body; return the raw response bytes. Raises with detail on error."""
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=data, method="POST",
-        headers={"Content-Type": "application/json", "User-Agent": "zonos2-eval"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")[:300]
-        raise RuntimeError(f"HTTP {e.code}: {detail}") from None
-
-
-def http_get_json(url, timeout):
-    req = urllib.request.Request(url, headers={"User-Agent": "zonos2-eval"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
-
-
 def fetch_voices(server, timeout):
     """GET /v1/audio/voices -> list of speaker names. Falls back to [DEFAULT_VOICE]."""
     try:
-        obj = http_get_json(server.rstrip("/") + VOICES_PATH, timeout)
+        obj = get_json(server.rstrip("/") + VOICES_PATH, timeout)
     except Exception:
         return [DEFAULT_VOICE]
     if isinstance(obj, dict):
@@ -280,10 +248,12 @@ def main():
             for uid in uids:
                 f.write(f"{uid}\t{pick_voice(uid, voices)}\n")
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model, mode=args.mode,
+                        seed=args.seed, temperature=args.temperature,
+                        no_ref_text=args.no_ref_text, x_vector_only=args.x_vector_only)
+
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             target_text = texts[uid]
             lang = forced_lang or detect_lang(target_text)
@@ -297,8 +267,8 @@ def main():
                                  x_vector_only=args.x_vector_only,
                                  send_language=not args.no_language)
             try:
-                raw = with_retry(lambda: http_post(speech_url, body, args.timeout),
-                                 args.retries, args.retry_base_delay)
+                raw, _ = with_retry(lambda: http_post(speech_url, body, args.timeout),
+                                    args.retries, args.retry_base_delay)
             except RuntimeError as e:
                 # Servers advertise different language sets: qwen3-tts accepts only 11
                 # and rejects e.g. Arabic/Hindi with `HTTP 400: Invalid language
@@ -311,15 +281,15 @@ def main():
                 print(f"[gen] {uid}: server rejected language "
                       f"{body['language']!r} -- retrying with Auto", flush=True)
                 body["language"] = "Auto"
-                raw = with_retry(lambda: http_post(speech_url, body, args.timeout),
-                                 args.retries, args.retry_base_delay)
+                raw, _ = with_retry(lambda: http_post(speech_url, body, args.timeout),
+                                    args.retries, args.retry_base_delay)
             dur = save_wav(raw, out_path)
             return uid, "ok", dur
         except Exception as e:  # noqa: BLE001
             return uid, format_error(e), 0.0
 
     run_generate_loop(uids, generate, args.workers, desc=args.mode,
-                      wav_dir=wav_dir)
+                      wav_dir=wav_dir, overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

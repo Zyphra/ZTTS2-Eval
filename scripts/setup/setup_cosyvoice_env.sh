@@ -9,48 +9,38 @@
 # Idempotent: re-running re-checks each step. Pass --force to nuke the venv.
 #
 #   bash scripts/setup/setup_cosyvoice_env.sh
-#   VENV=/some/path bash scripts/setup/setup_cosyvoice_env.sh   # override venv location
+#   COSYVOICE_VENV=/some/path bash scripts/setup/setup_cosyvoice_env.sh   # override venv location
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VENV="${VENV:-$HOME/.venvs/cosyvoice}"
+COSYVOICE_VENV="${COSYVOICE_VENV:-$HOME/.venvs/cosyvoice}"
 SRC="${COSYVOICE_SRC:-${REPO_ROOT}/third_party/CosyVoice}"
 PY_VER="${PY_VER:-3.10}"
-COSY_REPO="${COSY_REPO:-https://github.com/FunAudioLLM/CosyVoice}"
+COSYVOICE_REPO="${COSYVOICE_REPO:-https://github.com/FunAudioLLM/CosyVoice}"
+COSYVOICE_COMMIT="${COSYVOICE_COMMIT:-074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc}"
 
-if [ "${1:-}" = "--force" ]; then
-    rm -rf "$VENV"
-fi
+. "${REPO_ROOT}/scripts/setup/lib_setup.sh"
+setup_force_from_args "$@"
 
-step() { printf "\n=== %s ===\n" "$*"; }
+setup_step "1. CosyVoice (+ Matcha-TTS submodule) @ ${COSYVOICE_COMMIT:0:10} -> ${SRC}"
+setup_checkout "${COSYVOICE_REPO}" "${SRC}" "${COSYVOICE_COMMIT}" --recursive
 
-step "1. clone CosyVoice (+ Matcha-TTS submodule) -> ${SRC}"
-if [ ! -d "${SRC}/.git" ]; then
-    mkdir -p "$(dirname "${SRC}")"
-    git clone --recursive --depth 1 "${COSY_REPO}" "${SRC}"
-else
-    echo "already cloned"
-    git -C "${SRC}" submodule update --init --recursive --depth 1 || true
-fi
+setup_step "2. uv venv ${COSYVOICE_VENV} (python ${PY_VER})"
+setup_venv "${COSYVOICE_VENV}" "${PY_VER}"
+PY="${COSYVOICE_VENV}/bin/python"
 
-step "2. uv venv ${VENV} (python ${PY_VER})"
-if [ ! -x "${VENV}/bin/python" ]; then
-    uv venv --python "${PY_VER}" "${VENV}"
-fi
-PY="${VENV}/bin/python"
-
-step "3. install CosyVoice requirements (minus heavy/optional accel + openai-whisper)"
+setup_step "3. install CosyVoice requirements (minus heavy/optional accel + openai-whisper)"
 # requirements.txt carries multiple --extra-index-url lines (pytorch cu121 +
 # onnxruntime), so uv needs --index-strategy unsafe-best-match to resolve torch==2.3.1.
 # Drop tensorrt/deepspeed/vllm (only needed for accel we don't use) and openai-whisper
 # (its sdist build lacks a pkg_resources build-dep and aborts the whole install; we
 # install it separately below with --no-build-isolation).
 grep -viE "tensorrt|deepspeed|^vllm|openai-whisper|^# " "${SRC}/requirements.txt" \
-    > "${VENV}/reqs_min.txt"
+    > "${COSYVOICE_VENV}/reqs_min.txt"
 uv pip install --python "${PY}" --index-strategy unsafe-best-match \
-    -r "${VENV}/reqs_min.txt"
+    -r "${COSYVOICE_VENV}/reqs_min.txt"
 
-step "4. openai-whisper (imported by cosyvoice frontend) + setuptools<81 for pkg_resources"
+setup_step "4. openai-whisper (imported by cosyvoice frontend) + setuptools<81 for pkg_resources"
 # CosyVoice's frontend.py imports `whisper` at module load, so it IS required even
 # though we don't use its ASR. Build it against the already-installed torch
 # (--no-build-isolation). setuptools>=81 dropped pkg_resources, which cosyvoice
@@ -62,7 +52,7 @@ uv pip install --python "${PY}" --no-build-isolation --index-strategy unsafe-bes
 # input for Japanese; raw kanji gives ~60% WER).
 uv pip install --python "${PY}" pyopenjtalk
 
-step "5. smoke check: import CosyVoice3 + torch/onnxruntime CUDA"
+setup_step "5. smoke check: import CosyVoice3 + torch/onnxruntime CUDA"
 PYTHONPATH="${SRC}:${SRC}/third_party/Matcha-TTS" "${PY}" - <<'PY'
 import torch, onnxruntime, pkg_resources  # noqa: F401
 from cosyvoice.cli.cosyvoice import CosyVoice3  # noqa: F401
@@ -73,9 +63,9 @@ PY
 
 cat <<EOF
 
-CosyVoice3 venv ready at ${VENV}.
+CosyVoice3 venv ready at ${COSYVOICE_VENV}.
 Model FunAudioLLM/Fun-CosyVoice3-0.5B-2512 downloads to the HF cache on first run.
 Generate with:
   bash scripts/gen/run_cosyvoice.sh                          # clean, all langs
-  bash scripts/gen/run_cosyvoice.sh --test_set en --limit 3  # smoke test
+  bash scripts/gen/run_cosyvoice.sh --test-set en --limit 3  # smoke test
 EOF

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Score generated audio: WER (Qwen3-ASR / routed Whisper), speaker similarity and
 # MSR-UTMOS for every language leaf of one system's task directory. Any task works
-# (clean, in-the-wild, the coreset panels); it is read from the --decode_dir basename
+# (clean, in-the-wild, the coreset panels); it is read from the --decode-dir basename
 # unless --task is given, and data/<task>/<lang> supplies the references.
 #
-#   bash scripts/score/run_score.sh --decode_dir results/<system>/clean              # its whole basket
-#   bash scripts/score/run_score.sh --decode_dir results/<system>/in-the-wild --test_set "en zh ja"
-#   bash scripts/score/run_score.sh --decode_dir /tmp/runs/x --task clean_mini --test_set en
+#   bash scripts/score/run_score.sh --decode-dir results/<system>/clean              # its whole basket
+#   bash scripts/score/run_score.sh --decode-dir results/<system>/in-the-wild --test-set "en zh ja"
+#   bash scripts/score/run_score.sh --decode-dir /tmp/runs/x --task clean_mini --test-set en
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --decode_dir  <system results>/<task>, holding <lang>/wavs/       (required)
-#   --task        task name (default: basename of --decode_dir)
-#   --test_set    languages to score (default: the task's frozen basket,
+#   --decode-dir  <system results>/<task>, holding <lang>/wavs/       (required)
+#   --task        task name (default: basename of --decode-dir)
+#   --test-set    languages to score (default: the task's frozen basket,
 #                 `python3 -m utils.benchmark langs <task>`)
 #
 # GPU placement is handled by scripts/score/serve_asr.sh -- if ASR_GPU is unset it
@@ -30,17 +30,17 @@ decode_dir=""
 task=""
 test_set=""
 
-help_message="usage: bash scripts/score/run_score.sh --decode_dir <system results>/<task> [--task T] [--test_set \"...\"]"
+help_message="usage: bash scripts/score/run_score.sh --decode-dir <system results>/<task> [--task T] [--test-set \"...\"]"
 . utils/parse_options.sh || exit 1
 
 # All validation happens before the ASR servers start.
 if [ -z "${decode_dir}" ]; then
-    echo "error: --decode_dir is required (<system results>/<task>)" 1>&2
+    echo "error: --decode-dir is required (<system results>/<task>)" 1>&2
     exit 1
 fi
 [ -n "${task}" ] || task=$(basename "${decode_dir%/}")
 langs=$(python3 -m utils.benchmark langs "${task}" 2>/dev/null) || {
-    echo "error: unknown task '${task}' (from --decode_dir basename; pass --task)" 1>&2
+    echo "error: unknown task '${task}' (from --decode-dir basename; pass --task)" 1>&2
     exit 1
 }
 [ -n "${test_set}" ] || test_set=${langs}

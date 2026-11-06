@@ -12,11 +12,11 @@
 #
 #   # a single omni model, one language, quick smoke test:
 #   bash slurm/submit_eval.sh --engine omni --model qwen3-tts-0.6b \
-#        --task clean --test_set en --limit 3
+#        --task clean --test-set en --limit 3
 #
 #   # zonos2, self-managed server, both modes (accurate="stability" + expressive):
-#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode true  --task clean
-#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode false --task clean
+#   bash slurm/submit_eval.sh --engine zonos2 --accurate-mode true  --task clean
+#   bash slurm/submit_eval.sh --engine zonos2 --accurate-mode false --task clean
 #
 #   # zonos2 against an already-running external server instead of self-managing:
 #   bash slurm/submit_eval.sh --engine zonos2 --server http://<host>:<port> \
@@ -26,19 +26,20 @@
 #   bash slurm/submit_eval.sh --engine omni --model all --dry-run true
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --engine      omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
-#                 vibevoice15|audio8                                (default omni)
-#   --model       omni model key or "all"; ignored for zonos2     (default all)
+#   --engine      omni | zonos2 | kokoro | cosyvoice3 | moss-tts | neutts | vibevoice |
+#                 vibevoice15 | audio8                              (default omni)
+#   --model       omni model key, moss-tts variant, or vibevoice15 1.5b|7b; "all" =
+#                 every model of the engine; ignored by single-model engines (default all)
 #   --task        clean | in-the-wild                  (default clean)
-#   --test_set    space-separated langs (quote it), '' = default  (default '')
+#   --test-set    space-separated langs (quote it), '' = default  (default '')
 #   --workers     concurrent generation requests                  (default 16)
 #   --limit       first N utts per set, 0 = all                   (default 0)
 #   --score       run WER/spk/MSR-UTMOS after generation          (default true)
 #   --overwrite   regenerate existing wavs (passed to the gen)     (default false)
 #   --server      external zonos2 URL; EMPTY = self-manage (zonos2 only)  (default empty)
-#   --accurate_mode  zonos2 mode: true=accurate ("stability"), false=expressive,
+#   --accurate-mode  zonos2 mode: true=accurate ("stability"), false=expressive,
 #                 empty=server default (zonos2 only)              (default empty)
-#   --model_path  zonos2 model path/id for the launched server    (default serve default)
+#   --model-path  zonos2 model path/id for the launched server    (default serve default)
 #   --partition   SLURM partition                                 (default: cluster default)
 #   --account     SLURM account                                   (default: cluster default)
 #   --time        SLURM wall-clock limit; empty = 24h              (default '')
@@ -61,7 +62,7 @@
 # it, then reuses the GPU for scoring -- the same self-managed shape as the omni
 # engine. The server code lives in a separate checkout (set ZONOS2_HOME to a
 # ZONOS2 checkout) with its own venv; override via ZONOS2_* env or
-# --model_path. Pass --server <URL> to reuse an external server instead of launching.
+# --model-path. Pass --server <URL> to reuse an external server instead of launching.
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
@@ -96,7 +97,7 @@ nodelist=
 dependency=
 dry_run=false
 
-help_message="usage: bash slurm/submit_eval.sh --engine {omni|zonos2} [--model {all|<key>}] [--task T] [--test_set \"...\"] [--partition P] [--account A] [--dry-run true]"
+help_message="usage: bash slurm/submit_eval.sh --engine {omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15|audio8} [--model {all|<key>}] [--task T] [--test-set \"...\"] [--partition P] [--account A] [--dry-run true]"
 . utils/parse_options.sh || exit 1
 
 case "${task}" in
@@ -142,8 +143,6 @@ case "${engine}" in
         ;;
     moss-tts)
         # MOSS-TTS family (native): --model selects the variant, or "all" for every one.
-        # moss-tts-nano is RETIRED (decode bug) -- scripts/gen/run_moss_tts.sh still knows
-        # the variant, but it is out of the sweep. See scripts/gen/omni_models.sh.
         ALL_MOSS="moss-tts moss-tts-v1.5 moss-tts-local moss-tts-local-v1.5"
         if [ "${model}" = all ]; then models="${ALL_MOSS}"; else models="${model}"; fi
         for m in ${models}; do

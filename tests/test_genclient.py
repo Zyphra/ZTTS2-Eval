@@ -412,6 +412,25 @@ class RunGenerateLoopTest(unittest.TestCase):
                                               desc="t", wav_dir="/tmp/x")
         self.assertEqual((ok, skip, fail), (10, 1, 1))
 
+    def test_existing_wavs_are_skipped_without_calling_generate(self):
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "u_1.wav"), "wb").close()
+            called = []
+
+            def gen(uid):
+                called.append(uid)
+                return uid, "ok", 1.0
+
+            ok, skip, fail = gc.run_generate_loop(["u_1", "u_2"], gen, workers=1,
+                                                  desc="t", wav_dir=d)
+            self.assertEqual((ok, skip, fail), (1, 1, 0))
+            self.assertEqual(called, ["u_2"])
+            called.clear()
+            ok, skip, fail = gc.run_generate_loop(["u_1", "u_2"], gen, workers=2,
+                                                  desc="t", wav_dir=d, overwrite=True)
+            self.assertEqual((ok, skip, fail), (2, 0, 0))
+            self.assertEqual(sorted(called), ["u_1", "u_2"])
+
 
 if __name__ == "__main__":
     unittest.main()

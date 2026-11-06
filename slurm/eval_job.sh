@@ -8,19 +8,26 @@
 # them and calls `sbatch --export=ALL`, which sidesteps the comma/space escaping
 # problems of `sbatch --export=VAR=value` for multi-word test-set lists):
 #   EJ_REPO       repo root (also passed as sbatch --chdir)          (required)
-#   EJ_ENGINE     omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
-#                 vibevoice15|audio8                                 (required)
-#   EJ_MODEL      omni model key, or "zonos2" for the zonos2 engine  (required)
+#   EJ_ENGINE     omni | zonos2 | kokoro | cosyvoice3 | moss-tts | neutts |
+#                 vibevoice | vibevoice15 | audio8                    (required)
+#   EJ_MODEL      the engine's model key: omni model key; moss-tts variant
+#                 (moss-tts | moss-tts-v1.5 | moss-tts-local | moss-tts-local-v1.5);
+#                 vibevoice15 1.5b | 7b; any label for the single-model engines
+#                 (zonos2, kokoro, cosyvoice3, neutts, vibevoice, audio8)  (required)
 #   EJ_TASK       clean | in-the-wild                     (default clean)
-#   EJ_TEST_SET   space-separated langs; empty = the script default  (default empty)
-#   EJ_WORKERS    concurrent generation requests                     (default 16)
+#   EJ_TEST_SET   space-separated langs; empty = the driver default  (default empty)
+#   EJ_WORKERS    concurrent generation requests (omni, zonos2)      (default 16)
 #   EJ_LIMIT      first N utts per set, 0 = all                      (default 0)
 #   EJ_SCORE      true | false -- run WER/spk/MSR-UTMOS after gen     (default true)
+#   EJ_OVERWRITE  true = regenerate existing wavs                    (default false)
 #   EJ_SERVER     external zonos2 URL; EMPTY = self-manage the server (default empty)
-#   EJ_ACCURATE_MODE  zonos2 accurate_mode: true|false|empty          (default empty)
+#   EJ_ACCURATE_MODE  zonos2 --accurate-mode: true|false|empty        (default empty)
 #                 true = accurate ("stability"), false = expressive; routes output to
 #                 results/zonos2_accurate | results/zonos2_expressive respectively.
 #   EJ_MODEL_PATH zonos2 model path/id for the launched server        (default serve default)
+#
+# Output lands in $(gen_default_out_root <driver> EJ_MODEL <mode>)/<task>
+# (scripts/gen/lib_gen.sh), the driver's own default.
 #
 # GPU: this repo's server scripts default to CUDA index 0, which -- under this
 # cluster's `ConstrainDevices=yes` cgroup isolation -- IS the single GPU SLURM
@@ -42,7 +49,7 @@ set -euo pipefail
 
 cd "${EJ_REPO:?EJ_REPO not set (repo root)}"
 
-engine="${EJ_ENGINE:?EJ_ENGINE not set (omni|zonos2)}"
+engine="${EJ_ENGINE:?EJ_ENGINE not set (omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15|audio8)}"
 model="${EJ_MODEL:?EJ_MODEL not set}"
 task="${EJ_TASK:-clean}"
 test_set="${EJ_TEST_SET:-}"
@@ -73,14 +80,6 @@ export WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
 # the torch speaker-sim / MSR-UTMOS models; pin it so their scans don't run.
 export ASR_GPU=0
 export SCORE_GPU=0
-# Per-language ASR routing, matching how the GT baselines were scored: langs NOT in
-# QWEN_LANGS (utils/benchmark.py: zh ko th vi hi fa) are transcribed by Whisper
-# large-v3 with a
-# FORCED language instead of Qwen3-ASR auto-detect. Without this, synth for langs
-# like uk/bg/hr/ca/nb/sk is auto-detected and misrouted to a phonetic neighbour
-# (uk->Czech, bg->Russian, ca->Spanish), inflating WER to 50-99% while GT stays low.
-# Whisper co-locates on the same cgroup GPU at 0.35 mem-util (WHISPER_GPU=0).
-export ASR_ROUTING=1
 export WHISPER_GPU=0
 # ASR + Whisper co-locate on the one cgroup GPU during scoring (the TTS server is
 # already stopped): 0.35 mem-util each (28GB of 80GB) fits both comfortably.
@@ -104,107 +103,60 @@ echo "=== node=$(hostname) job=${job_id} CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEV
 echo "=== server logs -> ${SERVE_LOG_DIR}/ (shared) ==="
 
 # ---------------------------------------------------------------- generate ----
-gen_args=()
+# engine -> driver (scripts/gen/run_<driver>.sh) and its arguments.
+mode=""
 case "${engine}" in
     omni)
-        out_base="results/omni_${model}"
-        gen_script="scripts/gen/run_omni.sh"
-        gen_args=(--model "${model}" --task "${task}")
-        gen_args+=(--port "${tts_port}" --workers "${workers}" --limit "${limit}")
+        driver=omni
+        gen_args=(--model "${model}" --task "${task}" --port "${tts_port}"
+                  --workers "${workers}" --limit "${limit}")
         ;;
     zonos2)
-        # Mode-aware output root so the two accurate_mode variants never collide:
-        #   accurate ("stability") -> results/zonos2_accurate
-        #   expressive             -> results/zonos2_expressive
-        #   unset                  -> results/zonos2 (server default)
-        case "${accurate_mode}" in
-            true)  out_base="results/zonos2_accurate" ;;
-            false) out_base="results/zonos2_expressive" ;;
-            *)     out_base="results/zonos2" ;;
-        esac
         # Self-manage the server unless EJ_SERVER gives an external one. --gpu 0 is the
         # single cgroup-visible GPU; --port is the job's tts port (the server also binds
         # tts+1 for its IPC socket).
-        zonos2_srv=(--gpu 0 --port "${tts_port}")
-        [ -n "${server}" ] && zonos2_srv=(--server "${server}")
-        [ -n "${model_path}" ] && zonos2_srv+=(--model_path "${model_path}")
-        [ -n "${accurate_mode}" ] && zonos2_srv+=(--accurate_mode "${accurate_mode}")
-        gen_script="scripts/gen/run_zonos2.sh"
-        gen_args=("${zonos2_srv[@]}" --task "${task}" --out_root "${out_base}")
-        gen_args+=(--workers "${workers}" --limit "${limit}")
+        driver=zonos2
+        mode="${accurate_mode}"
+        gen_args=(--gpu 0 --port "${tts_port}")
+        [ -n "${server}" ] && gen_args=(--server "${server}")
+        [ -n "${model_path}" ] && gen_args+=(--model-path "${model_path}")
+        [ -n "${accurate_mode}" ] && gen_args+=(--accurate-mode "${accurate_mode}")
+        gen_args+=(--task "${task}" --workers "${workers}" --limit "${limit}")
         ;;
-    kokoro)
-        # Kokoro is an in-process preset-voice model (its own venv ~/.venvs/kokoro,
-        # no server, no ports). One script handles both tasks via --task; it maps
-        # langs to Kokoro voices and skips unsupported ones (de/ko/ru). Preset voice
-        # -> speaker-sim is not meaningful, but WER/MSR-UTMOS scoring below still runs.
-        out_base="results/kokoro"
-        gen_script="scripts/gen/run_kokoro.sh"
-        gen_args=(--task "${task}" --limit "${limit}")
-        ;;
-    cosyvoice3)
-        # CosyVoice3 native (upstream) -- in-process, its own venv ~/.venvs/cosyvoice,
-        # no server. WITH-ref-text cloner, multilingual (all 9 langs). One script
-        # handles both tasks via --task.
-        out_base="results/cosyvoice3"
-        gen_script="scripts/gen/run_cosyvoice.sh"
+    kokoro|cosyvoice3|neutts|vibevoice)
+        # In-process engines with their own venvs, no server.
+        case "${engine}" in cosyvoice3) driver=cosyvoice ;; *) driver=${engine} ;; esac
         gen_args=(--task "${task}" --limit "${limit}")
         ;;
     moss-tts)
-        # MOSS-TTS family native (upstream) -- in-process, own venv ~/.venvs/moss-tts,
-        # no server (vllm-omni's moss_tts codec is weight-incompatible; upstream works).
-        # EJ_MODEL is the variant key (moss-tts | moss-tts-v1.5 | moss-tts-local |
-        # moss-tts-local-v1.5 | moss-tts-nano); each writes results/<variant>.
-        out_base="results/${model}"
-        gen_script="scripts/gen/run_moss_tts.sh"
+        # MOSS-TTS family, in-process; EJ_MODEL is the variant, written to results/<variant>.
+        driver=moss_tts
         gen_args=(--model "${model}" --task "${task}" --limit "${limit}")
         ;;
-    neutts)
-        # NeuTTS-2E native -- in-process, own venv ~/.venvs/neutts, no server. Preset
-        # voice, ENGLISH ONLY (only the en set is generated + scored).
-        out_base="results/neutts-2e"
-        gen_script="scripts/gen/run_neutts.sh"
-        gen_args=(--task "${task}" --limit "${limit}")
-        ;;
-    vibevoice)
-        # VibeVoice-Realtime-0.5B native -- in-process, own venv ~/.venvs/vibevoice, no
-        # server. Preset-voice streaming TTS. An empty EJ_TEST_SET covers the 10 langs
-        # upstream ships preset voices for (en + 9 vendor-flagged exploratory); the
-        # driver filters any explicit list down to those. See scripts/gen/run_vibevoice.sh.
-        out_base="results/vibevoice-rt-0.5b"
-        gen_script="scripts/gen/run_vibevoice.sh"
-        gen_args=(--task "${task}" --limit "${limit}")
-        ;;
     vibevoice15)
-        # VibeVoice-1.5B native -- in-process, own venv ~/.venvs/vibevoice15, no server.
-        # A real zero-shot CLONER (takes prompt_wav.scp), so speaker-sim is meaningful
-        # here, unlike the preset-voice vibevoice engine above. English + Chinese only;
-        # the driver filters any other language out. Inference code is VENDORED --
-        # see third_party/VibeVoice-1.5B/PROVENANCE.md.
-        # EJ_MODEL selects the variant: 1.5b (microsoft) or 7b (third-party backup of
-        # the withdrawn VibeVoice-Large). Same code, same venv, different backbone.
+        # VibeVoice-1.5B (zero-shot cloner) or its 7B backbone; same code and venv.
         case "${model}" in
-            vibevoice15|1.5b) vv_model=1.5b; out_base="results/vibevoice-1.5b" ;;
-            7b|vibevoice7b)   vv_model=7b;   out_base="results/vibevoice-7b" ;;
+            vibevoice15|1.5b) model=1.5b ;;
+            7b|vibevoice7b)   model=7b ;;
             *) echo "eval_job: EJ_MODEL for vibevoice15 must be 1.5b or 7b (got '${model}')" 1>&2; exit 1 ;;
         esac
-        gen_script="scripts/gen/run_vibevoice15.sh"
-        gen_args=(--model "${vv_model}" --task "${task}" --limit "${limit}")
+        driver=vibevoice15
+        gen_args=(--model "${model}" --task "${task}" --limit "${limit}")
         ;;
     audio8)
-        # Audio8-TTS-Realistic-0.6B via the upstream SGLang-Omni adapter server
-        # (scripts/gen/serve_audio8.sh, venv ~/.venvs/audio8-sglang), self-managed on the cgroup
-        # GPU, stopped before scoring. WITH-ref-text cloner (prompt wav + prompt_text).
-        # No --workers: the client default (32) matches the server's max running requests.
-        out_base="results/audio8-tts-realistic-0.6b"
-        gen_script="scripts/gen/run_audio8.sh"
+        # Audio8-TTS-Realistic-0.6B via its SGLang-Omni adapter server, self-managed on the
+        # cgroup GPU and stopped before scoring. No --workers: the client default (32)
+        # matches the server's max running requests.
+        driver=audio8
         gen_args=(--gpu 0 --port "${tts_port}" --task "${task}" --limit "${limit}")
         ;;
     *)
         echo "eval_job: unknown EJ_ENGINE '${engine}' (omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15|audio8)" 1>&2; exit 1 ;;
 esac
-# Append --test_set as ONE argument so multi-word lists ("en zh de") aren't split.
-[ -n "${test_set}" ] && gen_args+=(--test_set "${test_set}")
+gen_script="scripts/gen/run_${driver}.sh"
+out_base=$(. scripts/gen/lib_gen.sh; gen_default_out_root "${driver}" "${model}" "${mode}")
+# Append --test-set as ONE argument so multi-word lists ("en zh de") aren't split.
+[ -n "${test_set}" ] && gen_args+=(--test-set "${test_set}")
 [ "${overwrite}" = true ] && gen_args+=(--overwrite true)
 
 echo "+ bash ${gen_script} ${gen_args[*]}"
@@ -231,13 +183,13 @@ if [ "${do_score}" = true ]; then
         # via set -e; the empty list is handled by the skip branch below.
         score_ts="$(cd "${decode_dir}" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | tr '\n' ' ')" || score_ts=""
     fi
-    # An empty score list must actually SKIP (otherwise scripts/score/run_score.sh would score the
-    # task's whole basket).
+    # An empty score list must actually SKIP (otherwise scripts/score/run_score.sh would
+    # score the task's whole basket).
     if [ -z "${score_ts// }" ]; then
         echo "=== nothing was generated for test_set='${test_set:-<derived>}' under ${decode_dir}; skipping scoring ==="
     else
-        echo "+ bash scripts/score/run_score.sh --decode_dir ${decode_dir} --test_set \"${score_ts}\""
-        bash scripts/score/run_score.sh --decode_dir "${decode_dir}" --test_set "${score_ts}"
+        echo "+ bash scripts/score/run_score.sh --decode-dir ${decode_dir} --test-set \"${score_ts}\""
+        bash scripts/score/run_score.sh --decode-dir "${decode_dir}" --test-set "${score_ts}"
     fi
 else
     echo "=== EJ_SCORE=${do_score}; skipping scoring. Generated audio under ${out_base}/${task}/ ==="

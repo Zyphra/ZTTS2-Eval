@@ -10,7 +10,7 @@
 # Set up the server venv, checkouts and model snapshot first:
 #   bash scripts/setup/setup_audio8_env.sh
 #
-#   bash scripts/gen/run_audio8.sh --task clean --test_set "en zh" --limit 4
+#   bash scripts/gen/run_audio8.sh --task clean --test-set "en zh" --limit 4
 #   bash scripts/gen/run_audio8.sh --task in-the-wild --gpu 2
 #   bash scripts/gen/run_audio8.sh --server http://127.0.0.1:8010 --task clean
 #   AUDIO8_DISABLE_CUDA_GRAPH=1 bash scripts/gen/run_audio8.sh ...   # CUDA graphs off
@@ -23,12 +23,14 @@
 #   --gpu             GPU index for the launched server           (default 0)
 #   --port            preferred port for the launched server      (default 8010)
 #   --task            task group                                  (default clean)
-#   --test_set        languages within --task (default: every language of the task)
-#   --out_root        results root      (default results/audio8-tts-realistic-0.6b)
+#   --test-set        languages within --task (default: every language of the task)
+#   --out-root        results root (default: gen_default_out_root; audio8 row:
+#                     results/audio8-tts-realistic-0.6b)
 #   --workers         concurrent requests per language            (default 32)
-#   --max_new_tokens  per-request codec-frame cap                 (default 1024)
+#   --max-new-tokens  per-request codec-frame cap                 (default 1024)
 #   --limit           only the first N utterances per set         (default 0 = all)
 #   --overwrite       regenerate existing wavs                    (default false)
+#   --list-langs      print the languages that would run and exit (default false)
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -38,18 +40,23 @@ gpu=0
 port=8010
 task=clean
 test_set=
-out_root="results/audio8-tts-realistic-0.6b"
+out_root=
 workers=32
 max_new_tokens=1024
 limit=0
 overwrite=false
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_audio8.sh [--server URL|''] [--gpu N] [--port N] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--max_new_tokens N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_audio8.sh [--server URL|''] [--gpu N] [--port N] [--task T] [--test-set \"...\"] [--out-root D] [--workers N] [--max-new-tokens N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
-repo_py
-
+GEN_NAME=audio8
 names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
+
+[ -n "${out_root}" ] || out_root=$(gen_default_out_root audio8 "")
+repo_py
 
 # --- server lifecycle -----------------------------------------------------------
 if [ -z "${server}" ]; then

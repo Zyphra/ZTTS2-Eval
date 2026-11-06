@@ -9,8 +9,8 @@
 #SBATCH --requeue
 #SBATCH --output=logs/slurm/%x-%A_%a.out
 # Generate one system on 8-GPU nodes, one generator per GPU, one leaf (task x lang) per
-# driver call. The driver must take `--model M --task T --test_set LANG --out_root R
-# --limit N`:
+# driver call. The driver must take `--model M --task T --test-set LANG --out-root R
+# --limit N --list-langs true`:
 #   GEN_SERVER=0  in-process drivers (no server): scripts/gen/run_moss_tts.sh (MOSS-TTS
 #                 family), scripts/gen/run_ming3.sh (Ming-3.0-tts), scripts/gen/run_pocket_tts.sh,
 #                 scripts/gen/run_zonos3_reftext.sh, ... Each GPU's process sees only its GPU.
@@ -32,13 +32,13 @@
 #   GEN_DRIVER     driver script, scripts/gen/run_<name>.sh                   (required)
 #   GEN_MODEL      model key of the driver                                    (required)
 #   GEN_TASKS      space-separated tasks                 (default "clean in-the-wild")
-#   GEN_LANGS      only these langs; empty = each task's whole basket       (default '')
+#   GEN_LANGS      only these langs; empty = every language the driver lists for the task
+#                  (`<driver> --model M --task T --list-langs true`)           (default '')
 #   GEN_LIMIT      only the first N utterances per leaf                (default 0 = all)
 #   GEN_SERVER     0 = in-process driver, 1 = server-launching driver        (default 0)
 #   GEN_WORKERS    concurrent requests per server (GEN_SERVER=1 only)        (default 16)
 #   GEN_OUT_ROOT   leaves land in <root>/<task>/<lang>
-#                  (default results/omni_<GEN_MODEL> for scripts/gen/run_omni.sh, else
-#                  results/<GEN_MODEL>)
+#                  (default: gen_default_out_root <driver> GEN_MODEL, scripts/gen/lib_gen.sh)
 #   OMNI_VENV      venv with vllm-omni installed (read by scripts/gen/run_omni.sh)
 #
 # Pending leaves (task x lang with a text uid lacking a wav) are listed once per array job
@@ -69,10 +69,9 @@ case "${GEN_SERVER}" in
     0|1) ;;
     *) echo "[gen] ERROR: GEN_SERVER must be 0 or 1 (got '${GEN_SERVER}')" >&2; exit 1 ;;
 esac
-if [ "$(basename "${GEN_DRIVER}")" = run_omni.sh ]; then
-    GEN_OUT_ROOT=${GEN_OUT_ROOT:-results/omni_${GEN_MODEL}}
-else
-    GEN_OUT_ROOT=${GEN_OUT_ROOT:-results/${GEN_MODEL}}
+driver_name=$(basename "${GEN_DRIVER}" .sh | sed 's/^run_//')
+if [ -z "${GEN_OUT_ROOT:-}" ]; then
+    GEN_OUT_ROOT=$(. scripts/gen/lib_gen.sh; gen_default_out_root "${driver_name}" "${GEN_MODEL}") || exit 1
 fi
 system=$(basename "${GEN_OUT_ROOT}")
 
@@ -102,9 +101,12 @@ want_of() { slurm_want "$(leaf_text "$1" "$2")" "${GEN_LIMIT}"; }
 missing_of() { slurm_missing "$(leaf_text "$1" "$2")" "$(leaf_wavs "$1" "$2")" "${GEN_LIMIT}"; }
 
 build_leaves() {  # "<missing> <task> <lang>" per pending leaf, largest first
-    local task lang m
+    local task lang m langs
     for task in ${GEN_TASKS}; do
-        for lang in $(python3 -m utils.benchmark langs "${task}"); do
+        # The driver's own language policy (basket ∩ what the model supports).
+        langs=$(bash "${GEN_DRIVER}" --model "${GEN_MODEL}" --task "${task}" --list-langs true 2>/dev/null) || {
+            echo "[gen] ERROR: ${GEN_DRIVER} --list-langs failed for task ${task}" >&2; continue; }
+        for lang in ${langs}; do
             [ -f "data/${task}/${lang}/text" ] || continue
             if [ -n "${GEN_LANGS}" ]; then
                 case " ${GEN_LANGS} " in *" ${lang} "*) ;; *) continue ;; esac
@@ -135,8 +137,8 @@ for ((s = 0; s < n_gpu; s++)); do
             srv_args=()
         fi
         run_leaf() {
-            bash "${GEN_DRIVER}" --model "${GEN_MODEL}" --task "$1" --test_set "$2" \
-                --out_root "${GEN_OUT_ROOT}" --limit "${GEN_LIMIT}" "${srv_args[@]}" < /dev/null
+            bash "${GEN_DRIVER}" --model "${GEN_MODEL}" --task "$1" --test-set "$2" \
+                --out-root "${GEN_OUT_ROOT}" --limit "${GEN_LIMIT}" "${srv_args[@]}" < /dev/null
         }
         while read -r _n task lang <&3; do
             key="${task}__${lang}"

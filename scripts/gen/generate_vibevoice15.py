@@ -30,7 +30,8 @@ _VV15 = Path(REPO) / "third_party" / "VibeVoice-1.5B"
 if _VV15.is_dir() and str(_VV15) not in sys.path:
     sys.path.insert(0, str(_VV15))
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, load_test_set, run_generate_loop)
+    apply_limit, format_error, load_test_set, run_generate_loop, seed_everything,
+    write_gen_meta_once)
 
 MODEL_ID = os.environ.get("VIBEVOICE15_DIR", "microsoft/VibeVoice-1.5B")
 
@@ -46,6 +47,8 @@ def main():
     ap.add_argument("--ddpm-steps", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--stratified-bins", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed every RNG before each utterance (default: unseeded)")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
@@ -75,6 +78,9 @@ def main():
     model.eval()
     model.set_ddpm_inference_steps(num_steps=args.ddpm_steps)
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model_dir, seed=args.seed,
+                        cfg_scale=args.cfg_scale, ddpm_steps=args.ddpm_steps)
+
     def synth(text, ref_wav):
         # VibeVoice is script-formatted and multi-speaker; our sets are single-utterance,
         # so every item is a one-turn "Speaker 1:" script with one reference voice.
@@ -94,8 +100,8 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
+        if args.seed is not None:
+            seed_everything(args.seed)
         try:
             audio = synth(texts[uid], prompt_wavs[uid])
             if audio is None:
@@ -112,7 +118,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

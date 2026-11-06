@@ -26,8 +26,8 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, run_generate_loop, save_wav_atomic)
-from utils.scp import load_scp  # noqa: E402
+    apply_limit, format_error, load_test_set, run_generate_loop, save_wav_atomic,
+    seed_everything, write_gen_meta_once)
 
 SR = 24000                       # Kokoro always outputs 24 kHz mono
 REPO_ID = "hexgrad/Kokoro-82M"
@@ -59,14 +59,16 @@ def main():
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set "
                          "(in-the-wild is sorted into UTMOS bins per lang)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed every RNG before each utterance (default: unseeded)")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
 
-    texts = load_scp(os.path.join(args.data_dir, "text"))
     # Kokoro is not a cloner -- keep EVERY utterance in `text` (do not intersect with
     # prompt_wav.scp), so the WER set matches the cloning models on identical text.
-    uids = list(texts.keys())
+    texts, _, _, uids = load_test_set(args.data_dir, need_prompt_wav=False,
+                                      need_prompt_text=False)
     uids = apply_limit(uids, args.limit, args.stratified_bins)
 
     wav_dir = os.path.join(args.out_dir, "wavs")
@@ -85,10 +87,13 @@ def main():
     from kokoro import KPipeline  # heavy import -- after arg parsing
     pipeline = KPipeline(lang_code=args.lang_code, repo_id=REPO_ID, device=device)
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=REPO_ID, seed=args.seed,
+                        lang_code=args.lang_code, voice=args.voice, speed=args.speed)
+
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
+        if args.seed is not None:
+            seed_everything(args.seed)
         try:
             # Kokoro splits long text into segments; concatenate their audio into one wav.
             chunks = [_to_np(audio) for _, _, audio in
@@ -102,7 +107,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

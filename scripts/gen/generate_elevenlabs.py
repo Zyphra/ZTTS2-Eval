@@ -30,10 +30,9 @@ import sys
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from utils.benchmark import CLEAN_LANGS, ITW_LANGS  # noqa: E402
 from utils.genclient import (  # noqa: E402
     apply_limit, benchmark_lang, bytes_to_wav, format_error, load_test_set,
-    pick_voice, run_generate_loop, with_retry, write_gen_meta)
+    pick_voice, run_generate_loop, with_retry, write_gen_meta_once)
 
 try:
     from elevenlabs.client import ElevenLabs
@@ -76,9 +75,15 @@ ELEVEN_VOICES = {
 VOICE_NAMES = list(ELEVEN_VOICES)
 
 # Benchmark language -> eleven_v4 language_code. eleven_v4 covers every Clean +
-# ITW language; only Norwegian Bokmal and Tagalog use different codes.
-# synth() still falls back to auto-detect on an 'unsupported_language' 400.
-ELEVEN_LANG = {**{lg: lg for lg in CLEAN_LANGS + ITW_LANGS}, "nb": "no", "tl": "fil"}
+# ITW language (benchmark_lang() validates the basket); only Norwegian Bokmal and
+# Tagalog use different codes. synth() still falls back to auto-detect on an
+# 'unsupported_language' 400.
+ELEVEN_LANG_OVERRIDES = {"nb": "no", "tl": "fil"}
+
+
+def eleven_lang(lang):
+    return ELEVEN_LANG_OVERRIDES.get(lang, lang)
+
 
 # Lossless 24 kHz WAV (available on every tier); re-written as PCM_16 for the scorers.
 OUTPUT_FORMAT = "wav_24000"
@@ -98,7 +103,7 @@ def synth(client, model_id, text, voice_id, lang, retries, base_delay, seed=-1):
     back to the same request without it (model auto-detects) so one rejected
     language never zeroes out a whole split. A non-negative seed is passed
     through (best-effort determinism on the provider side)."""
-    code = ELEVEN_LANG.get(lang)
+    code = eleven_lang(lang)
 
     def _call(send_lang):
         kwargs = dict(inputs=[{"text": text, "voice_id": voice_id}],
@@ -175,16 +180,13 @@ def main():
     print(f"[elevenlabs:{args.model}] voice assignments -> {vpath}")
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(args.out_dir, provider="elevenlabs", model=model_id,
-                       endpoint=ENDPOINT, voice_mode="preset", language=lang,
-                       language_sent=ELEVEN_LANG.get(lang), output_format=OUTPUT_FORMAT,
-                       seed=args.seed if args.seed >= 0 else None)
+    write_gen_meta_once(args.out_dir, args.overwrite, provider="elevenlabs", model=model_id,
+                        endpoint=ENDPOINT, voice_mode="preset", language=lang,
+                        language_sent=eleven_lang(lang), output_format=OUTPUT_FORMAT,
+                        seed=args.seed if args.seed >= 0 else None)
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             voice_id = ELEVEN_VOICES[pick_voice(uid, VOICE_NAMES)]
             raw = synth(client, model_id, texts[uid], voice_id, lang,
@@ -195,7 +197,8 @@ def main():
             return uid, format_error(e), 0.0
 
     run_generate_loop(uids, generate, args.workers,
-                      desc=f"elevenlabs:{args.model}", wav_dir=wav_dir)
+                      desc=f"elevenlabs:{args.model}", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

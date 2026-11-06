@@ -15,19 +15,22 @@
 #
 #   bash scripts/gen/run_omni.sh --model all                                  # clean, every model
 #   bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task in-the-wild
-#   bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean --test_set "en" --limit 3
-#   bash scripts/gen/run_omni.sh --model fish-s2-pro --out_root results/_seeds/omni_fish-s2-pro
+#   bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean --test-set "en" --limit 3
+#   bash scripts/gen/run_omni.sh --model fish-s2-pro --out-root results/_seeds/omni_fish-s2-pro
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model      model key (see ALL_MODELS below) or "all"   (default all)
 #   --task       task group (clean, in-the-wild, a panel)     (default clean)
-#   --test_set   languages within --task (default: every language of the task)
-#   --out_root   results root for a single --model     (default results/omni_<model>)
+#   --test-set   languages within --task (default: every language of the task)
+#   --out-root   results root for a single --model
+#                (default: gen_default_out_root; omni row: results/omni_<model>)
 #   --gpu        GPU index for the server                    (default 0)
-#   --port       server port                                 (default 8091)
+#   --port       preferred server port                       (default 8091)
 #   --workers    concurrent requests per test set            (default 16)
+#   --seed       request seed; '' = none sent                (default '')
 #   --limit      only the first N utterances per set          (default 0 = all)
 #   --overwrite  regenerate existing wavs                     (default false)
+#   --list-langs true: print the languages that would run and exit
 set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
@@ -41,21 +44,26 @@ port=8091
 workers=16
 limit=0
 overwrite=false
+seed=
+list_langs=false
 
-help_message="usage: bash scripts/gen/run_omni.sh --model {all|<key>} [--task T] [--test_set \"...\"] [--out_root D] [--gpu N] [--port N] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash scripts/gen/run_omni.sh --model {all|<key>} [--task T] [--test-set \"...\"] [--out-root D] [--gpu N] [--port N] [--workers N] [--seed N] [--limit N] [--overwrite true] [--list-langs true]"
 . utils/parse_options.sh || exit 1
 
 if [ -n "${out_root}" ] && [ "${model}" = "all" ]; then
-    echo "error: --out_root needs a single --model" 1>&2
+    echo "error: --out-root needs a single --model" 1>&2
     exit 1
 fi
+GEN_NAME="omni"
 names=$(gen_langs "${task}" "${test_set}") || exit 1
+gen_maybe_list "${list_langs}" "${names}"
+gen_nothing_to_do "${names}"
 
 # Project venv: generate_omni.py (HTTP client) runs with <venv>/bin/python; the server
-# is launched with <venv>/bin/vllm-omni. <venv> is OMNI_VENV (default .venv), e.g. another
-# checkout's venv that has the omni extra installed. Both fall back to PATH if absent.
+# is launched with <venv>/bin/vllm-omni (PATH fallback). <venv> is OMNI_VENV (default
+# .venv), e.g. another checkout's venv that has the omni extra installed.
+gen_venv_py OMNI_VENV .venv "run 'uv sync --extra omni' first"
 venv="${OMNI_VENV:-.venv}"
-if [ -x "${venv}/bin/python" ]; then PY="${venv}/bin/python"; else PY=python; fi
 if [ -x "${venv}/bin/vllm-omni" ]; then
     export OMNI_VLLM_BIN="${venv}/bin/vllm-omni"
 else
@@ -176,7 +184,7 @@ for m in ${models}; do
 
     for nm in ${names}; do
         data_dir="data/${task}/${nm}"
-        out_dir="${out_root:-results/omni_${m}}/${task}/${nm}"
+        out_dir="${out_root:-$(gen_default_out_root omni "${m}")}/${task}/${nm}"
         if [ ! -f "${data_dir}/text" ]; then
             echo "[skip] ${data_dir}: no 'text' file" 1>&2
             continue
@@ -187,6 +195,8 @@ for m in ${models}; do
         [ -n "${lg}" ] && lang_opt="--language ${lg}"
         ow_opt=""
         [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
+        seed_opt=""
+        [ -n "${seed}" ] && seed_opt="--seed ${seed}"
 
         echo "=== [omni:${m}] ${data_dir} -> ${out_dir} (mode=${mode}) ${lang_opt} ==="
         "${PY}" scripts/gen/generate_omni.py \
@@ -197,7 +207,7 @@ for m in ${models}; do
             --out-dir "${out_dir}" \
             --workers "${workers}" \
             --limit "${limit}" \
-            ${lang_opt} ${ow_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
+            ${lang_opt} ${ow_opt} ${seed_opt} ${ra_opt} ${nrt_opt} $(extra_client_args ${m})
         ran=$((ran + 1))
     done
 
@@ -206,5 +216,5 @@ done
 
 gen_require_ran "${ran}" "${names}" "${task}"
 for m in ${models}; do
-    gen_done "${out_root:-results/omni_${m}}" "${task}" "${names}"
+    gen_done "${out_root:-$(gen_default_out_root omni "${m}")}" "${task}" "${names}"
 done

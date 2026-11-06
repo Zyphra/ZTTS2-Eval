@@ -15,13 +15,6 @@ ALL_MODELS="qwen3-tts-1.7b qwen3-tts-0.6b cosyvoice3 voxcpm2 voxtral-tts fish-s2
 # validated. To enable: bump the runtime, smoke one, then promote.
 NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3 drama-3 breeze-tts-2"
 
-# RETIRED -- kept in model_spec() so an explicit --model still works, but out of both
-# sweep lists so `--model all` can never resurrect them, and their results/ trees were
-# deleted:
-#   moss-tts-nano  decode bug -- 3 usable utterances out of 1279 on clean/en
-#   indextts2      its diffusion DiT flash-attn kernel PTX-mismatches the driver; the
-#                  server reaches READY, then the first request kills the engine -> 0 wavs
-
 model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
     case "$1" in
         qwen3-tts-1.7b)      echo "Qwen/Qwen3-TTS-12Hz-1.7B-Base|clone|qwen3_tts.yaml" ;;
@@ -29,7 +22,6 @@ model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
         cosyvoice3)          echo "FunAudioLLM/Fun-CosyVoice3-0.5B-2512|clone|cosyvoice3.yaml" ;;
         voxcpm2)             echo "openbmb/VoxCPM2|clone|voxcpm2.yaml" ;;
         voxtral-tts)         echo "mistralai/Voxtral-4B-TTS-2603|preset|voxtral_tts.yaml" ;;
-        moss-tts-nano)       echo "OpenMOSS-Team/MOSS-TTS-Nano|clone|moss_tts_nano.yaml" ;;
         fish-s2-pro)         echo "fishaudio/s2-pro|clone|fish_qwen3_omni.yaml" ;;
         ming-flash-omni-tts) echo "inclusionAI/Ming-flash-omni-Preview|clone|ming_flash_omni_tts.yaml" ;;
         omnivoice)           echo "k2-fsa/OmniVoice|clone|omnivoice.yaml" ;;
@@ -44,7 +36,6 @@ model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
         qwen3-tts-0.6b-reftext) echo "Qwen/Qwen3-TTS-12Hz-0.6B-Base|clone|qwen3_tts.yaml" ;;
         voxcpm2-reftext)        echo "openbmb/VoxCPM2|clone|voxcpm2.yaml" ;;
         # --- newer TTS models: require the vllm-omni upgrade (NEW_MODELS) ---
-        indextts2)           echo "IndexTeam/IndexTTS-2|clone|indextts2.yaml" ;;
         glm-tts)             echo "zai-org/GLM-TTS|clone|glm_tts.yaml" ;;
         ming-tts)            echo "inclusionAI/Ming-omni-tts-0.5B|clone|ming_tts.yaml" ;;
         moss-tts)            echo "OpenMOSS-Team/MOSS-TTS|clone|moss_tts.yaml" ;;
@@ -82,7 +73,7 @@ model_spec() {  # key -> "<hf-model-id>|<mode>|<deploy-config yaml>"
 #   ""                              -> keep ref_text (model REQUIRES it)
 #   "--no-ref-text"                 -> audio-only cloning
 #   "--no-ref-text --x-vector-only" -> audio-only, needs x_vector_only_mode
-# qwen3-tts-* need --x-vector-only; voxcpm2/moss-tts-nano/omnivoice take plain
+# qwen3-tts-* need --x-vector-only; voxcpm2/omnivoice take plain
 # --no-ref-text; cosyvoice3/fish-s2-pro REJECT no-ref-text server-side. New clone
 # models default to ref_text until a no-ref-text smoke proves otherwise.
 # Env overrides: OMNI_FORCE_REFTEXT=1 forces ref_text; OMNI_FORCE_NOREFTEXT=1 forces
@@ -92,7 +83,7 @@ reftext_policy() {  # key -> extra generate_omni.py args
     [ "${OMNI_FORCE_NOREFTEXT:-0}" = 1 ] && { echo "--no-ref-text"; return; }
     case "$1" in
         qwen3-tts-1.7b|qwen3-tts-0.6b)   echo "--no-ref-text --x-vector-only" ;;
-        voxcpm2|moss-tts-nano|omnivoice) echo "--no-ref-text" ;;
+        voxcpm2|omnivoice)               echo "--no-ref-text" ;;
         cosyvoice3|fish-s2-pro)          echo "" ;;   # reject no-ref-text server-side
         *)                               echo "" ;;   # unverified -> keep ref_text
     esac
@@ -100,12 +91,11 @@ reftext_policy() {  # key -> extra generate_omni.py args
 
 # How the clone reference wav is delivered: 'url' = a file:// path the server opens
 # locally (needs --allowed-local-media-path); 'base64' = inline data: URI. OmniVoice
-# and IndexTTS-2 route ref_audio through vLLM's generic multimodal connector, which
-# rejects file://, so they need base64.
+# routes ref_audio through vLLM's generic multimodal connector, which rejects
+# file://, so it needs base64.
 refaudio_mode() {  # key -> url | base64
     case "$1" in
         omnivoice|omnivoice-reftext) echo "base64" ;;
-        indextts2)                   echo "base64" ;;
         higgs-audio-v3)              echo "base64" ;;   # qwen3 multimodal connector
         *)                           echo "url" ;;
     esac
@@ -122,15 +112,15 @@ extra_pythonpath() {  # key -> path to prepend to PYTHONPATH (or empty)
     esac
 }
 
-# Extra `vllm-omni serve` flags a model needs (from the vllm-omni recipes/). GLM-TTS,
-# IndexTTS-2 and VoxCPM2 require --trust-remote-code: the model weights load fine, but
+# Extra `vllm-omni serve` flags a model needs (from the vllm-omni recipes/). GLM-TTS
+# and VoxCPM2 require --trust-remote-code: the model weights load fine, but
 # engine-core init builds the guided-decoding tokenizer via AutoTokenizer, which
 # re-resolves trust_remote_code and rejects their custom tokenizer code. The
 # deploy-config's trust_remote_code:true covers model loading but NOT that path.
 # Higgs-Audio V3's README also prescribes --trust-remote-code.
 extra_serve_args() {  # key -> extra serve flags (or empty)
     case "$1" in
-        glm-tts|indextts2|voxcpm2|voxcpm2-reftext|higgs-audio-v3) echo "--trust-remote-code" ;;
+        glm-tts|voxcpm2|voxcpm2-reftext|higgs-audio-v3) echo "--trust-remote-code" ;;
         *)                                        echo "" ;;
     esac
 }

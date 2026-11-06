@@ -55,7 +55,7 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
     apply_limit, benchmark_lang, bytes_to_wav, format_error, load_test_set,
-    pick_voice, run_generate_loop, with_retry, write_gen_meta)
+    pick_voice, run_generate_loop, with_retry, write_gen_meta_once)
 
 
 # --- model ids ---------------------------------------------------------------
@@ -299,21 +299,18 @@ def main():
               f"(those utterances will fail to clone)")
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(args.out_dir, provider="cartesia", model=model_id,
-                       endpoint=TTS_URL, voice_mode=args.mode, language=lang,
-                       language_sent=CARTESIA_LANG.get(lang),
-                       output_format={"container": CONTAINER, "encoding": ENCODING,
-                                      "sample_rate": SAMPLE_RATE},
-                       api_version=CARTESIA_VERSION)
+    write_gen_meta_once(args.out_dir, args.overwrite, provider="cartesia", model=model_id,
+                        endpoint=TTS_URL, voice_mode=args.mode, language=lang,
+                        language_sent=CARTESIA_LANG.get(lang),
+                        output_format={"container": CONTAINER, "encoding": ENCODING,
+                                       "sample_rate": SAMPLE_RATE},
+                        api_version=CARTESIA_VERSION, seed=None)
 
     if args.mode == "clone" and not args.no_purge:
         purge_stale_clones(auth_headers, args.timeout)  # sweep prior crashes
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         try:
             if args.mode == "clone":
                 clip = clip_for[uid]
@@ -339,7 +336,8 @@ def main():
             return uid, format_error(e), 0.0
 
     run_generate_loop(uids, generate, args.workers,
-                      desc=f"cartesia:{args.model}", wav_dir=wav_dir)
+                      desc=f"cartesia:{args.model}", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
     if args.mode == "clone" and not args.no_purge:
         purge_stale_clones(auth_headers, args.timeout)  # final sweep
 

@@ -28,8 +28,8 @@ _VV = Path(REPO) / "third_party" / "VibeVoice"
 if _VV.is_dir() and str(_VV) not in sys.path:
     sys.path.insert(0, str(_VV))
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, pick_index, run_generate_loop)
-from utils.scp import load_scp  # noqa: E402
+    apply_limit, format_error, load_test_set, pick_index, run_generate_loop,
+    seed_everything, write_gen_meta_once)
 
 MODEL_ID = os.environ.get("VIBEVOICE_DIR", "microsoft/VibeVoice-Realtime-0.5B")
 VOICE_DIR = os.environ.get("VIBEVOICE_VOICE_DIR", str(_VV / "demo" / "voices" / "streaming_model"))
@@ -52,11 +52,14 @@ def main():
     ap.add_argument("--ddpm-steps", type=int, default=5)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--stratified-bins", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed every RNG before each utterance (default: unseeded)")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
-    texts = load_scp(os.path.join(args.data_dir, "text"))
-    uids = list(texts.keys())            # preset voice -> every utterance in `text`
+    # preset voice -> every utterance in `text`
+    texts, _, _, uids = load_test_set(args.data_dir, need_prompt_wav=False,
+                                      need_prompt_text=False)
     uids = apply_limit(uids, args.limit, args.stratified_bins)
 
     wav_dir = os.path.join(args.out_dir, "wavs")
@@ -110,6 +113,10 @@ def main():
             f.write(f"{uid}\t{names[speaker_idx(uid)]}\n")
     print(f"[vibevoice] voice assignments -> {vpath}", flush=True)
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model_dir, seed=args.seed,
+                        voice_lang=args.voice_lang, speaker=args.speaker,
+                        cfg_scale=args.cfg_scale, ddpm_steps=args.ddpm_steps)
+
     def synth(text, prompt):
         inputs = processor.process_input_with_cached_prompt(
             text=text, cached_prompt=prompt, padding=True,
@@ -126,8 +133,8 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
+        if args.seed is not None:
+            seed_everything(args.seed)
         try:
             audio = synth(texts[uid], prompts[speaker_idx(uid)])
             if audio is None:
@@ -144,7 +151,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

@@ -91,10 +91,10 @@ class EntryPointValidationTest(unittest.TestCase):
     def test_run_score_requires_decode_dir(self):
         proc, _ = self._run("bash", "scripts/score/run_score.sh")
         self.assertEqual(proc.returncode, 1)
-        self.assertIn("--decode_dir is required", proc.stderr)
+        self.assertIn("--decode-dir is required", proc.stderr)
 
     def test_run_score_unknown_task_fails_fast(self):
-        proc, dt = self._run("bash", "scripts/score/run_score.sh", "--decode_dir", "/tmp/x/bogus")
+        proc, dt = self._run("bash", "scripts/score/run_score.sh", "--decode-dir", "/tmp/x/bogus")
         self.assertEqual(proc.returncode, 1)
         self.assertIn("unknown task 'bogus'", proc.stderr)
         self.assertLess(dt, 5.0)  # the ASR servers never started
@@ -107,6 +107,20 @@ class EntryPointValidationTest(unittest.TestCase):
         proc, _ = self._run("bash", "-c", '. scripts/gen/lib_gen.sh; gen_langs nosuch ""')
         self.assertEqual(proc.returncode, 1)
         self.assertIn("unknown task 'nosuch'", proc.stderr)
+
+    def test_driver_lists_and_skips_languages_before_its_venv_check(self):
+        # KOKORO_VENV points nowhere: both answers must come before the venv check.
+        env = {**os.environ, "KOKORO_VENV": "/nonexistent"}
+        proc = subprocess.run(["bash", "scripts/gen/run_kokoro.sh", "--task", "clean",
+                               "--list-langs", "true"],
+                              cwd=REPO, capture_output=True, text=True, timeout=60, env=env)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.split(), "en zh es fr it ja pt hi".split())
+        proc = subprocess.run(["bash", "scripts/gen/run_kokoro.sh", "--task", "clean",
+                               "--test-set", "de ru"],
+                              cwd=REPO, capture_output=True, text=True, timeout=60, env=env)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("nothing to generate", proc.stdout)
 
 
 class SlurmPortWindowTest(unittest.TestCase):

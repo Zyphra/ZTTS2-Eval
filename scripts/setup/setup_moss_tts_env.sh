@@ -12,47 +12,38 @@
 # Idempotent; pass --force to nuke the venv.
 #
 #   bash scripts/setup/setup_moss_tts_env.sh
-#   VENV=/some/path bash scripts/setup/setup_moss_tts_env.sh
+#   MOSS_TTS_VENV=/some/path bash scripts/setup/setup_moss_tts_env.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VENV="${VENV:-$HOME/.venvs/moss-tts}"
+MOSS_TTS_VENV="${MOSS_TTS_VENV:-$HOME/.venvs/moss-tts}"
 SRC="${MOSS_TTS_SRC:-${REPO_ROOT}/third_party/MOSS-TTS}"
 PY_VER="${PY_VER:-3.11}"
 CUDA_TAG="${CUDA_TAG:-cu128}"
-MOSS_REPO="${MOSS_REPO:-https://github.com/OpenMOSS/MOSS-TTS}"
+MOSS_TTS_REPO="${MOSS_TTS_REPO:-https://github.com/OpenMOSS/MOSS-TTS}"
+MOSS_TTS_COMMIT="${MOSS_TTS_COMMIT:-934d6826b084c46a0d033402174d5f8ac4ed2519}"
 
-if [ "${1:-}" = "--force" ]; then
-    rm -rf "$VENV"
-fi
+. "${REPO_ROOT}/scripts/setup/lib_setup.sh"
+setup_force_from_args "$@"
 
-step() { printf "\n=== %s ===\n" "$*"; }
+setup_step "1. MOSS-TTS @ ${MOSS_TTS_COMMIT:0:10} -> ${SRC}"
+setup_checkout "${MOSS_TTS_REPO}" "${SRC}" "${MOSS_TTS_COMMIT}"
 
-step "1. clone MOSS-TTS -> ${SRC}"
-if [ ! -d "${SRC}/.git" ]; then
-    mkdir -p "$(dirname "${SRC}")"
-    git clone --depth 1 "${MOSS_REPO}" "${SRC}"
-else
-    echo "already cloned"
-fi
+setup_step "2. uv venv ${MOSS_TTS_VENV} (python ${PY_VER})"
+setup_venv "${MOSS_TTS_VENV}" "${PY_VER}"
 
-step "2. uv venv ${VENV} (python ${PY_VER})"
-if [ ! -x "${VENV}/bin/python" ]; then
-    uv venv --python "${PY_VER}" "${VENV}"
-fi
-
-step "3. install MOSS-TTS + its torch-runtime extra (${CUDA_TAG})"
+setup_step "3. install MOSS-TTS + its torch-runtime extra (${CUDA_TAG})"
 # The repo's [torch-runtime] extra pins torch==2.9.1+cu128 / transformers==5.0.0 /
 # torchcodec + the codec deps. Multiple extra-index-urls -> unsafe-best-match.
-uv pip install --python "${VENV}/bin/python" \
+uv pip install --python "${MOSS_TTS_VENV}/bin/python" \
     --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
     --index-strategy unsafe-best-match \
     "${SRC}[torch-runtime]" soundfile sentencepiece
 # sentencepiece: the MOSS-TTS-Nano variant's processor needs it (AutoProcessor fails
 # to instantiate without it). Harmless for the other variants.
 
-step "4. smoke check: import transformers + torch CUDA (custom code loads at runtime)"
-PYTHONPATH="${SRC}" "${VENV}/bin/python" - <<'PY'
+setup_step "4. smoke check: import transformers + torch CUDA (custom code loads at runtime)"
+PYTHONPATH="${SRC}" "${MOSS_TTS_VENV}/bin/python" - <<'PY'
 import torch, transformers, soundfile, librosa  # noqa: F401
 from transformers import AutoModel, AutoProcessor  # noqa: F401
 print("torch", torch.__version__, "cuda?", torch.cuda.is_available())
@@ -61,9 +52,9 @@ PY
 
 cat <<EOF
 
-MOSS-TTS venv ready at ${VENV}.
+MOSS-TTS venv ready at ${MOSS_TTS_VENV}.
 Model OpenMOSS-Team/MOSS-TTS (+ MOSS-Audio-Tokenizer) downloads to the HF cache on
 first run. Generate with:
   bash scripts/gen/run_moss_tts.sh                          # clean, all 9 langs
-  bash scripts/gen/run_moss_tts.sh --test_set en --limit 3  # smoke test
+  bash scripts/gen/run_moss_tts.sh --test-set en --limit 3  # smoke test
 EOF

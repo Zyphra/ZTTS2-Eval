@@ -22,11 +22,8 @@ Usage:
 """
 import argparse
 import base64
-import json
 import os
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -34,8 +31,8 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, benchmark_lang, format_error, load_test_set, run_generate_loop,
-    save_wav_atomic, with_retry, write_gen_meta)
+    apply_limit, benchmark_lang, format_error, get_json, http_post, load_test_set,
+    run_generate_loop, save_wav_atomic, with_retry, write_gen_meta_once)
 
 DEFAULT_SR = 44100
 
@@ -51,11 +48,6 @@ SPEAKER_MODES = ("reference", "embedding")
 POLICY = dict(temperature=0.75, topk=80, top_p=0.69, min_p=0.0,
               repetition_window=96, repetition_penalty=2.4, repetition_codebooks=6,
               prepend_silence=True, silence_prefill_frames=3, speaker_cfg_scale=1.0)
-
-
-def _get_json(url, timeout=10):
-    with urllib.request.urlopen(url, timeout=timeout) as resp:
-        return json.loads(resp.read())
 
 
 def main():
@@ -91,7 +83,7 @@ def main():
 
     server = args.server.rstrip("/")
     try:
-        caps = _get_json(server + "/tts/capabilities")
+        caps = get_json(server + "/tts/capabilities")
     except Exception as e:
         sys.exit(f"error: cannot read /tts/capabilities: {format_error(e)} (server {server})")
     problem = None
@@ -108,7 +100,7 @@ def main():
     if problem:
         sys.exit(f"error: {problem} (server {server})")
     try:
-        served_model = _get_json(server + "/v1/models")["data"][0]["id"]
+        served_model = get_json(server + "/v1/models")["data"][0]["id"]
     except Exception as e:
         sys.exit(f"error: cannot read /v1/models: {format_error(e)} (server {server})")
 
@@ -120,30 +112,28 @@ def main():
     url = server + "/tts/generate"
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(
-            args.out_dir,
-            model="zonos3-mini",
-            base_url=args.server,
-            served_model=served_model,
-            runtime_rev=os.environ.get("ZONOS3_RUNTIME_REV"),
-            speaker_mode=args.speaker_mode,
-            language=language,
-            text_normalization=tn,
-            seed=args.seed,
-            max_tokens=args.max_tokens,
-            **POLICY,
-            # Recorded only when on, so non-LACI runs keep their original gen_meta shape.
-            **({"laci": True, "laci_languages": caps.get("laci_languages")} if args.laci else {}),
-            server_caps={k: caps.get(k) for k in (
-                "audio_codec", "speaker_embedding_codec", "speaker_mode_default",
-                "silence_prefill", "max_tokens")},
-        )
+    write_gen_meta_once(
+        args.out_dir,
+        args.overwrite,
+        model="zonos3-mini",
+        base_url=args.server,
+        served_model=served_model,
+        runtime_rev=os.environ.get("ZONOS3_RUNTIME_REV"),
+        speaker_mode=args.speaker_mode,
+        language=language,
+        text_normalization=tn,
+        seed=args.seed,
+        max_tokens=args.max_tokens,
+        **POLICY,
+        # Recorded only when on, so non-LACI runs keep their original gen_meta shape.
+        **({"laci": True, "laci_languages": caps.get("laci_languages")} if args.laci else {}),
+        server_caps={k: caps.get(k) for k in (
+            "audio_codec", "speaker_embedding_codec", "speaker_mode_default",
+            "silence_prefill", "max_tokens")},
+    )
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         prompt_path = prompts[uid]
         try:
             with open(prompt_path, "rb") as pf:
@@ -162,14 +152,10 @@ def main():
             }
             if args.laci:
                 payload["laci"] = True
-            req = urllib.request.Request(
-                url, data=json.dumps(payload).encode(),
-                headers={"Content-Type": "application/json"})
 
             def _call():
-                with urllib.request.urlopen(req, timeout=args.timeout) as resp:
-                    return (resp.read(),
-                            int(resp.headers.get("X-Audio-Sample-Rate", DEFAULT_SR)))
+                body, headers = http_post(url, payload, args.timeout)
+                return body, int(headers.get("X-Audio-Sample-Rate", DEFAULT_SR))
 
             # Retried like the other network clients (transient resets must not
             # leave silent gaps in the wav set).
@@ -180,12 +166,11 @@ def main():
                 return uid, "empty response", 0.0
             dur = save_wav_atomic(pcm, sr, out_path)  # atomic: safe under preemption
             return uid, "ok", dur
-        except urllib.error.HTTPError as e:
-            return uid, f"http {e.code}: {e.read().decode(errors='replace')[:200]}", 0.0
         except Exception as e:
             return uid, format_error(e), 0.0
 
-    run_generate_loop(uids, generate, args.workers, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, args.workers, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

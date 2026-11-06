@@ -13,8 +13,6 @@ import argparse
 import base64
 import json
 import os
-import urllib.error
-import urllib.request
 
 import sys
 from pathlib import Path
@@ -24,8 +22,8 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, load_test_set, run_generate_loop,
-    save_wav_atomic, with_retry, write_gen_meta)
+    apply_limit, format_error, http_post, load_test_set, run_generate_loop,
+    save_wav_atomic, with_retry, write_gen_meta_once)
 
 DEFAULT_SR = 44100
 
@@ -174,40 +172,36 @@ def main():
     os.makedirs(wav_dir, exist_ok=True)
     url = args.server.rstrip("/") + "/tts/generate"
 
-    # Provenance for future runs: record the payload-shaping params alongside
-    # the wavs (richer than the run_generate_loop stub, so write it first; kept
-    # from the FIRST run of a resumed dir unless --overwrite regenerates).
-    if args.overwrite or not os.path.exists(
-            os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(
-            args.out_dir,
-            model="zonos2",
-            base_url=args.server,
-            language=args.language,
-            seed=args.seed,
-            temperature=args.temperature,
-            topk=args.topk,
-            top_p=args.top_p,
-            min_p=args.min_p,
-            max_tokens=args.max_tokens,
-            repetition_window=args.repetition_window,
-            repetition_penalty=args.repetition_penalty,
-            repetition_codebooks=args.repetition_codebooks,
-            silence_penalty=args.silence_penalty,
-            prepend_silence=args.prepend_silence,
-            byte_tokenize_all=args.byte_tokenize_all,
-            text_normalization=args.text_normalization,
-            speaking_rate_bucket=args.speaking_rate_bucket,
-            accurate_mode=args.accurate_mode,
-            clean_speaker_background=args.clean_speaker_background,
-            quality_buckets=quality_buckets,
-            request_extras=request_extras or None,
-        )
+    # Provenance: the payload-shaping params, kept from the FIRST run of a
+    # resumed dir unless --overwrite regenerates.
+    write_gen_meta_once(
+        args.out_dir,
+        args.overwrite,
+        model="zonos2",
+        base_url=args.server,
+        language=args.language,
+        seed=args.seed,
+        temperature=args.temperature,
+        topk=args.topk,
+        top_p=args.top_p,
+        min_p=args.min_p,
+        max_tokens=args.max_tokens,
+        repetition_window=args.repetition_window,
+        repetition_penalty=args.repetition_penalty,
+        repetition_codebooks=args.repetition_codebooks,
+        silence_penalty=args.silence_penalty,
+        prepend_silence=args.prepend_silence,
+        byte_tokenize_all=args.byte_tokenize_all,
+        text_normalization=args.text_normalization,
+        speaking_rate_bucket=args.speaking_rate_bucket,
+        accurate_mode=args.accurate_mode,
+        clean_speaker_background=args.clean_speaker_background,
+        quality_buckets=quality_buckets,
+        request_extras=request_extras or None,
+    )
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         prompt_path = prompts[uid]
         try:
             payload = {
@@ -249,14 +243,10 @@ def main():
                     payload.pop(key, None)
                 else:
                     payload[key] = value
-            req = urllib.request.Request(
-                url, data=json.dumps(payload).encode(),
-                headers={"Content-Type": "application/json"})
 
             def _call():
-                with urllib.request.urlopen(req, timeout=args.timeout) as resp:
-                    return (resp.read(),
-                            int(resp.headers.get("X-Audio-Sample-Rate", DEFAULT_SR)))
+                body, headers = http_post(url, payload, args.timeout)
+                return body, int(headers.get("X-Audio-Sample-Rate", DEFAULT_SR))
 
             # Retried like the other network clients (transient resets / server
             # restarts must not leave silent gaps in the wav set).
@@ -267,13 +257,11 @@ def main():
                 return uid, "empty response", 0.0
             dur = save_wav_atomic(pcm, sr, out_path)  # atomic: safe under preemption
             return uid, "ok", dur
-        except urllib.error.HTTPError as e:
-            return uid, f"http {e.code}: {e.read().decode(errors='replace')[:200]}", 0.0
         except Exception as e:
             return uid, format_error(e), 0.0
 
     run_generate_loop(uids, generate, args.workers, desc="generate",
-                      wav_dir=wav_dir)
+                      wav_dir=wav_dir, overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

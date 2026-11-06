@@ -42,7 +42,7 @@ sys.path.insert(0, REPO)
 from scripts.gen import generate_elevenlabs as ge  # noqa: E402
 from utils.genclient import (  # noqa: E402
     apply_limit, benchmark_lang, format_error, load_test_set, run_generate_loop,
-    write_gen_meta)
+    write_gen_meta_once)
 
 try:
     from elevenlabs.client import ElevenLabs
@@ -145,14 +145,13 @@ def main():
           f"{len(uids)} utterances | IVC per-utt, workers={args.workers}")
 
     # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
-    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
-        write_gen_meta(args.out_dir, provider="elevenlabs", model=model_id,
-                       endpoint=ge.ENDPOINT, voice_mode="clone", language=lang,
-                       language_sent=ge.ELEVEN_LANG.get(lang),
-                       output_format=ge.OUTPUT_FORMAT,
-                       seed=args.seed if args.seed >= 0 else None,
-                       ivc={"remove_background_noise": False,
-                            "deleted_after_use": not args.keep_voices})
+    write_gen_meta_once(args.out_dir, args.overwrite, provider="elevenlabs", model=model_id,
+                        endpoint=ge.ENDPOINT, voice_mode="clone", language=lang,
+                        language_sent=ge.eleven_lang(lang),
+                        output_format=ge.OUTPUT_FORMAT,
+                        seed=args.seed if args.seed >= 0 else None,
+                        ivc={"remove_background_noise": False,
+                             "deleted_after_use": not args.keep_voices})
 
     if not args.no_purge:
         purge_stale(client)
@@ -163,8 +162,6 @@ def main():
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         voice_id = None
         try:
             wav_path = prompts[uid]
@@ -186,7 +183,8 @@ def main():
                 delete_voice(client, voice_id)
 
     run_generate_loop(uids, generate, args.workers,
-                      desc=f"elevenlabs-clone:{args.model}", wav_dir=wav_dir)
+                      desc=f"elevenlabs-clone:{args.model}", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
     if not args.keep_voices:
         purge_stale(client)  # final sweep in case any delete was missed
 

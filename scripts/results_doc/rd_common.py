@@ -39,7 +39,6 @@ MODEL_LABEL = {
     "omni_qwen3-tts-0.6b": "qwen3-0.6b",
     "omni_voxcpm2": "voxcpm2",
     "omni_voxtral-tts": "voxtral",
-    "omni_moss-tts-nano": "moss-nano",
     "elevenlabs_v4_clone": "elevenlabs-v4",
     "cartesia_sonic-3.6_clone": "cartesia-sonic-3.6",
     "inworld_2_clone": "inworld-tts-2",

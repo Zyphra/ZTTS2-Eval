@@ -23,20 +23,22 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, load_test_set, run_generate_loop, save_wav_atomic)
+    apply_limit, format_error, load_test_set, run_generate_loop, save_wav_atomic,
+    write_gen_meta_once)
 
 LANGUAGE_MODEL = {"en": "english", "fr": "french", "de": "german", "pt": "portuguese",
                   "it": "italian", "es": "spanish"}
-SEED = 42
 _W = None
+_SEED = None
 
 
-def _init_worker(language, threads):
-    global _W
+def _init_worker(language, threads, seed):
+    global _W, _SEED
     import torch
     from pocket_tts import TTSModel
     torch.set_num_threads(threads)
     _W = TTSModel.load_model(language=language)
+    _SEED = seed
 
 
 def _synth(job):
@@ -45,7 +47,7 @@ def _synth(job):
     try:
         with torch.no_grad():
             state = _W.get_state_for_audio_prompt(Path(prompt))
-            torch.manual_seed(SEED)
+            torch.manual_seed(_SEED)
             # copy_state must stay True (the default): with copy_state=False every text
             # chunk after the first is lost (a two-sentence utterance comes back as its
             # first sentence only).
@@ -67,6 +69,7 @@ def main():
     ap.add_argument("--workers", type=int, default=16, help="model processes")
     ap.add_argument("--threads", type=int, default=2, help="CPU threads per process")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
+    ap.add_argument("--seed", type=int, default=42, help="torch seed set before every utterance")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
@@ -79,19 +82,20 @@ def main():
     print(f"[pocket-tts] {args.data_dir} -> {wav_dir} | {len(uids)} utterances, model "
           f"'{language}', {args.workers} x {args.threads} threads", flush=True)
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=f"kyutai/pocket-tts:{language}",
+                        seed=args.seed)
     pool = multiprocessing.get_context("spawn").Pool(
-        args.workers, initializer=_init_worker, initargs=(language, args.threads))
+        args.workers, initializer=_init_worker, initargs=(language, args.threads, args.seed))
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
         status, dur = pool.apply(_synth, ((texts[uid], prompts[uid], out_path),))
         return uid, status, dur
 
     # Threads only dispatch; the synthesis runs in the worker processes.
     with pool:
-        run_generate_loop(uids, generate, workers=args.workers, desc="generate", wav_dir=wav_dir)
+        run_generate_loop(uids, generate, workers=args.workers, desc="generate", wav_dir=wav_dir,
+                          overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

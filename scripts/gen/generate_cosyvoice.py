@@ -26,7 +26,8 @@ for p in (_COSY, _COSY / "third_party" / "Matcha-TTS"):
         sys.path.insert(0, str(p))
 
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, load_test_set, run_generate_loop)
+    apply_limit, format_error, load_test_set, run_generate_loop, seed_everything,
+    write_gen_meta_once)
 
 # CosyVoice3 requires the prompt_text to carry a system prompt terminated by the
 # special <|endofprompt|> token (it asserts token 151646 is present -- see
@@ -67,6 +68,8 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed every RNG before each utterance (default: unseeded)")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
@@ -89,10 +92,13 @@ def main():
     model = CosyVoice3(args.model_dir, load_vllm=False, fp16=args.fp16)
     sr = model.sample_rate
 
+    write_gen_meta_once(args.out_dir, args.overwrite, model=args.model_dir, seed=args.seed,
+                        fp16=args.fp16, speed=args.speed, katakana=args.katakana)
+
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
-        if os.path.exists(out_path) and not args.overwrite:
-            return uid, "skip", 0.0
+        if args.seed is not None:
+            seed_everything(args.seed)
         try:
             # CosyVoice's frontend loads/resamples the prompt itself, so pass the PATH
             # (its extractors call load_wav internally -- a pre-loaded tensor 400s with
@@ -117,7 +123,8 @@ def main():
             return uid, format_error(e), 0.0
 
     # workers=1: in-process GPU engine -> sequential loop in this thread.
-    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir)
+    run_generate_loop(uids, generate, workers=1, desc="generate", wav_dir=wav_dir,
+                      overwrite=args.overwrite)
 
 
 if __name__ == "__main__":
