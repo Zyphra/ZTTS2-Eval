@@ -127,8 +127,8 @@ def wav_duration(path):
 def voxblink_prompt_msr():
     """``{(lang, uid): prompt MSR-UTMOS}`` for the VoxBlink2 set.
 
-    The materialized prompts do not record their source clip, so recover it the way
-    ``scripts/results_doc/build_perbin.py`` does: join ``<lang>/prompt_text`` back to
+    The materialized prompts do not record their source clip, so recover it by joining
+    ``<lang>/prompt_text`` back to
     ``_stage_a/manifest.tsv`` on normalized prompt text, then look the clip up in the
     shipped ``_msr_utmos_cache.tsv``. This is the quality axis the set was stratified on
     (5 uniform bins over 1.0-4.0), so panels must keep it balanced.

@@ -355,7 +355,7 @@ def run_asr(wav_res_text_path, res_path):
     # transcript and says whether it was imputed, and average_wer.py folds
     # n_expected into the .wer N_SCORED:/N_EXPECTED: footer (failing the leaf below
     # SCORE_MIN_COVERAGE). The .raw format itself is untouched -- its parsers
-    # (per_uid, perlen/perbin builders) see rows only.
+    # (utils/per_uid.py) see rows only.
     with open(res_path + ".meta", "w") as f:
         json.dump({"benchmark_version": BENCHMARK_VERSION, "asr": ASR_STAMP,
                    "n_expected": len(params), "n_transcribed": n_scored,

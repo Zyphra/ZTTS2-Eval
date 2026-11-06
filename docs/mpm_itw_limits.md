@@ -121,8 +121,8 @@ max shift 0.45 span) for an ITW gain that leaves the metric unusable anyway.
 heterogeneity, not something intrinsic — one global anchor pools 2000 speakers over
 thousands of channels, inflating the reference variance. Per-*speaker* anchors are
 impossible here (VoxBlink2 en has 2000 speakers with a **median of 2 utterances each**),
-so the test stratified by the reference prompt's MSR-UTMOS bin — the repo's existing
-channel-quality proxy from `build_perbin.py` — with FLEURS-R random subsets at matched
+so the test stratified by the reference prompt's MSR-UTMOS bin
+(`data/in-the-wild/_msr_utmos_cache.tsv`), the repo's channel-quality proxy — with FLEURS-R random subsets at matched
 `n` as the control:
 
 | bin | n | VB floor | VB range | FL floor | FL range | ratio |

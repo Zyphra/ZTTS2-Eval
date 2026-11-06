@@ -30,24 +30,9 @@ build_capability_index.py ──►  _cache/capability_index.json  (ECI-style co
 plot_capability_time.py   ──►  assets/plots/capability_index_time.png  (index vs public release date
                                 + frontier, ECI's headline chart; dates in rd_common.RELEASES)
 
-data/in-the-wild/_stage_a/manifest.tsv + _msr_utmos_cache.tsv
-        │
-        ▼
-build_perbin.py    ──►  _cache/voxblink_uid_bin.json
-                        _cache/voxblink_perbin.json       (per-(model,lang,MSR-UTMOS-bin) WER)
-                        _cache/voxblink_bin_counts.json
-
-build_perlen.py            ──►  _cache/voxblink_perlen.json           (per-text-length bucket, simple mean)
-build_perlen_weighted.py   ──►  _cache/voxblink_perlen_weighted.json  (∑edits/∑ref_len — the right cross-length aggregate)
-build_perlen_clean.py   ──►  _cache/clean_perlen_{simple,weighted}.json   (same bucketing on the controlled-content clean set)
-
-plot_perbin.py             ──►  assets/plots/voxblink_perbin_heatmaps.png
-plot_perlen.py             ──►  assets/plots/voxblink_perlen_heatmaps.png
-plot_perlen_mean.py        ──►  assets/plots/voxblink_perlen_crosslang.png
-plot_perlen_clean.py    ──►  assets/plots/perlen_clean_vs_in-the-wild.png
 plot_tradeoff.py           ──►  assets/plots/tradeoff_{clean,in-the-wild}.png  (WER vs rhythm / pitch range)
 
-gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + voxblink_perbin.json + voxblink_bin_counts.json + emo_score.txt files)
+gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + emo_score.txt files)
 
 scripts/run_reliability.sh ──►  assets/plots/reliability_*.png + assets/reliability_gallery.html
                                 (tufte plates for the GT baselines, via scripts/build_reliability_gallery.py)
@@ -68,8 +53,6 @@ per-file copies.
 
 - **Numbers wrong** → rebuild only what changed. e.g. after a new model run:
   `build_results.py && build_capability_index.py && gen_md.py`.
-- **Voxblink bin/length analysis changed** → rerun the matching `build_*` and
-  `plot_*` pair, then `gen_md.py`.
 - **Markdown layout only** → just `gen_md.py`.
 
 ## Notes
@@ -81,13 +64,6 @@ per-file copies.
   trim threshold, so a rebuild only probes wavs that changed (VoxBlink2 `en`: 219 s cold,
   22 s warm, identical output). The WER content filter is applied after the cache, so it
   never goes stale with a rescore.
-- `build_perbin.py` reconstructs the MSR-UTMOS-bin assignment by mirroring the
-  selection algorithm in `scripts/prepare_voxblink2_eval_stage_b.py` against the
-  cached manifest. Defaults: 5 bins, MSR-UTMOS range [1.0, 4.0] (bin width 0.6).
-- The per-length voxblink trend (WER falling monotonically with REF length) is a
-  **content-selection confound** in voxblink2 — see the memory note
-  `voxblink-length-confound.md`. The real signal lives on `clean` and is a
-  U-shape, plotted by `plot_perlen_clean.py`.
 - `build_capability_index.py` fits the Epoch Capabilities Index model
   ([methodology](https://epoch.ai/data/eci-documentation/methodology)):
   `performance = sigmoid(slope_item · (capability_system − difficulty_item))`, one item per

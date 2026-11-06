@@ -141,7 +141,6 @@ def _memo_put(key, sig, value):
 JSONP_TOKEN = secrets.token_urlsafe(16)
 
 SNAPSHOT = "results_snapshot.json"
-PERLEN = "voxblink_perlen.json"
 RELIABILITY = "reliability.json"
 SPEAKING_RATE = "speaking_rate.json"
 MPM_DIST = "mpm_dist.json"
@@ -280,7 +279,7 @@ def _snapshot_files_meta():
     since the views would then quietly describe different result sets."""
     out = {}
     sources = set()
-    for name in (SNAPSHOT, PERLEN, RELIABILITY,
+    for name in (SNAPSHOT, RELIABILITY,
                  SPEAKING_RATE, MPM_DIST, PANELS, CAPABILITY_INDEX):
         _, src, mtime = cache_info(name)
         if mtime is None:
@@ -627,9 +626,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_api(res, qs, code=res.pop("_code", 200))
         if route == "/api/audio":
             return self._serve_audio(qs)
-        if route in ("/api/voxblink/perlen", "/api/reliability", "/api/speaking_rate",
+        if route in ("/api/reliability", "/api/speaking_rate",
                      "/api/mpm_dist", "/api/capability_index"):
-            fmap = {"/api/voxblink/perlen": PERLEN, "/api/reliability": RELIABILITY,
+            fmap = {"/api/reliability": RELIABILITY,
                     "/api/speaking_rate": SPEAKING_RATE, "/api/mpm_dist": MPM_DIST,
                     "/api/capability_index": CAPABILITY_INDEX}
             data, err = _load_cache_json(fmap[route])

@@ -67,7 +67,7 @@ fresh clone renders without any of the heavy private inputs:
   MSR-UTMOS cache. Never committed.
 - **`explorer/snapshot/`** — the **committed**, portable payload: only the small
   aggregate JSONs the board/grid/reliability/speaking-rate/MPM/index views need
-  (`results_snapshot.json`, `voxblink_perlen.json`, `reliability.json`, `speaking_rate.json`,
+  (`results_snapshot.json`, `reliability.json`, `speaking_rate.json`,
   `mpm_dist.json`, `capability_index.json`, `panels.json`; no host paths). This is what ships with the
   repo — the full allowlist is `PUBLISHED` in
   `scripts/results_doc/publish_snapshot.py`.
@@ -98,7 +98,6 @@ aggregate views work everywhere.
 | `GET /api/rows?offset=&limit=` | paginated snapshot rows — what the client actually loads the board from |
 | `GET /api/utterances?model=&task=&lang=[&panel=]` | per-utterance rows joined by uid; `panel` restricts to that panel's items and attaches each weight `w` |
 | `GET /api/audio?path=<repo-relative .wav>` | wav stream (206 on `Range:`, 416 past EOF) |
-| `GET /api/voxblink/perlen` | passthrough of the cache JSON |
 | `GET /api/reliability` | survival / p99 / slopegraph payload (tufte plates) |
 | `GET /api/speaking_rate` | per-(set,lang) char/s d_ref + CI + quantile function per system |
 | `GET /api/mpm_dist` | per-language MPM spans + per-system means (prosody-overlap view) |
@@ -107,9 +106,7 @@ aggregate views work everywhere.
 `/api/audio` only serves `.wav` and refuses any path that escapes `--root` (after
 resolving symlinks) unless it resolves under an `--allow-root` dir; the
 `model`/`task`/`lang`/`panel` query parameters are each constrained to a single
-plain path component. `/api/voxblink/perlen` (the per-REF-length trend built by
-`build_perlen.py`) currently has **no explorer view** — it is served and published
-for the offline `plot_perlen*.py` tooling and for a future per-length view.
+plain path component.
 
 Any API route also answers as JSONP (`?cb=<name>`) for content-inspection proxies
 that mangle large `application/json` bodies — gated on a per-process random token

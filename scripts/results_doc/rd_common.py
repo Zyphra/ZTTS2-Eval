@@ -3,12 +3,12 @@
 
 One place for the things that used to drift as per-file copies:
 
-  - the model display-label map (`MODEL_LABEL` / `label()`), previously five
-    diverging variants across gen_md.py, build_perbin.py, build_mpm_dist.py,
+  - the model display-label map (`MODEL_LABEL` / `label()`), previously
+    diverging variants across gen_md.py, build_mpm_dist.py,
     build_reliability.py, and the scripts/plot_* files;
-  - system discovery from the results tree (`discover_systems()`), mirroring
-    the rationale comment in build_perbin.py: hard-coded model lists are how
-    caches came to silently hold only stale baselines;
+  - system discovery from the results tree (`discover_systems()`):
+    hard-coded model lists are how caches came to silently hold only stale
+    baselines;
   - the language display order (`ordered_langs()`), derived from the frozen
     baskets in utils/benchmark.py, previously seven diverging hard-coded lists;
   - atomic JSON writes (`write_json_atomic()`), so a crash mid-dump can never
@@ -374,8 +374,7 @@ PARAMS = {
 def discover_systems(task, root=RESULTS_ROOT):
     """{label: results-dir} for every model with a `<root>/<model>/<task>/` leaf.
 
-    First directory wins on a label collision (sorted order), matching
-    build_perbin.py's original behavior.
+    First directory wins on a label collision (sorted order).
     """
     out = {}
     if not os.path.isdir(root):

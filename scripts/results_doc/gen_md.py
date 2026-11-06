@@ -478,15 +478,6 @@ def render(recs, dedup=None, cap_index=None):
     vox_per_lang("MSR-UTMOS (blank = not computed)", lambda r: fmt(rec_value(r, "msr_utmos"), 2))
     W(COND_LEGEND + "\n")
 
-    W("### Per-bin / per-length analysis\n")
-    W("Per-MSR-UTMOS-bin WER_CLIP heatmaps (rows = languages, columns = MSR-UTMOS")
-    W("quality bins, worst→best source audio):\n")
-    W("![Voxblink per-bin WER_CLIP heatmaps](assets/plots/voxblink_perbin_heatmaps.png)\n")
-    W("Same WER_CLIP bucketed by REF text-length quantiles per language:\n")
-    W("![Voxblink per-text-length WER_CLIP heatmaps](assets/plots/voxblink_perlen_heatmaps.png)\n")
-    W("Per-length on controlled content (`clean`) vs in-the-wild (`voxblink`):\n")
-    W("![Per-length: voxblink vs clean](assets/plots/perlen_clean_vs_in-the-wild.png)\n")
-
     # --- 6. Methodology ----------------------------------------------------------------
     qwen_l = ", ".join(sorted(QWEN_LANGS))
     W("## 6. Methodology notes\n")

@@ -198,8 +198,8 @@ aggregators silently drop a leaf. See `docs/coreset.md`.
 
 **`scripts/results_doc/`** — report pipeline: `build_results.py`
 (→ `_cache/results_snapshot.json`; refuses any input whose version/scorer stamp is
-missing or stale, except leaves listed in `excluded_leaves.txt`), `build_perbin.py`,
-`build_perlen*.py`, `plot_*.py` (incl. `plot_tradeoff.py`, the WER-vs-naturalness
+missing or stale, except leaves listed in `excluded_leaves.txt`),
+`plot_*.py` (incl. `plot_tradeoff.py`, the WER-vs-naturalness
 figure → `assets/plots/tradeoff_<task>.png`), `gen_md.py`
 (→ RESULTS_CURRENT.md, model-agnostic), `run.sh`. The pipeline reads from a
 populated `results/` tree; the `_cache/` snapshot is gitignored.

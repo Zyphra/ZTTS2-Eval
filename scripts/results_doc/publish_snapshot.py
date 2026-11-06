@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Publish the explorer's data snapshot.
 
-The build scripts (build_results.py, build_perbin.py, ...) write into
+The build scripts (build_results.py, build_speaking_rate.py, ...) write into
 scripts/results_doc/_cache/, which is gitignored *build scratch*: it mixes large
-derived intermediates (the uid->bin index, etc.) with host-specific paths and is
+derived intermediates with host-specific paths and is
 regenerated from the heavy private inputs (the full results/ tree, the 13MB
 VoxBlink manifest, the MSR-UTMOS cache).
 
 The explorer, however, only needs a handful of small, portable aggregate JSONs to
-render its board / grid / bins. This step copies exactly those — an explicit,
+render its views. This step copies exactly those — an explicit,
 reviewable allowlist — from the scratch cache into explorer/snapshot/, which IS
 committed. That directory is the shareable payload: a fresh clone serves a
 populated explorer from it with no rebuild and without the private inputs.
@@ -33,18 +33,16 @@ PUBLISH_DIR = os.path.join(REPO_ROOT, "explorer", "snapshot")
 
 # The allowlist: the only files the explorer serves, and the ONLY things that get
 # committed out of the scratch cache. Keep this in sync with serve.py's PUBLISHED
-# resolution. Bulky/derived intermediates (voxblink_uid_bin.json, ...) are absent
-# on purpose — they never ship.
+# resolution. Bulky/derived intermediates are absent on purpose — they never ship.
 PUBLISHED = [
     "results_snapshot.json",     # board + grid + per-model/lang metrics
-    "voxblink_perlen.json",      # optional: per-REF-length trend (if built)
     "reliability.json",          # reliability view: survival/p99/slopegraph (tufte plates)
     "speaking_rate.json",        # speaking-rate view: char/s d_ref + ECDF per system
     "mpm_dist.json",             # prosody-overlap view: GT-vs-system MPM distributions
     "panels.json",               # coreset panel provenance (captions the panel boards)
     "capability_index.json",     # index view: ECI-style composite score + bootstrap CI
 ]
-OPTIONAL = {"voxblink_perlen.json", "reliability.json", "speaking_rate.json",
+OPTIONAL = {"reliability.json", "speaking_rate.json",
             "mpm_dist.json", "panels.json", "capability_index.json"}  # absence is fine
 
 
