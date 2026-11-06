@@ -18,8 +18,8 @@ Two numbers are reported, deliberately:
 For a Delta panel only differences between two systems are meaningful; the tool refuses
 to print an absolute level for one.
 
-    python scripts/coreset/score_panel.py --decode_dir results/zonos2_accurate/clean_mini
-    python scripts/coreset/score_panel.py --decode_dir A --vs results/other/clean_delta
+    python scripts/coreset/score_panel.py --decode-dir results/zonos2_accurate/clean_mini
+    python scripts/coreset/score_panel.py --decode-dir A --vs results/other/clean_delta
 """
 
 import argparse
@@ -33,8 +33,8 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import CI_BOOT, CI_SEED, Matrix, weighted_boot  # noqa: E402
-from utils.per_uid import load_leaf  # noqa: E402
+from scripts.coreset.common import Matrix, weighted_boot  # noqa: E402
+from utils.per_uid import CI_BOOT, CI_SEED, load_leaf  # noqa: E402
 
 METRIC_KEY = {"wer_clip": "wer_clip", "spk": "spk", "msr": "msr"}
 # Metrics where a SMALLER value is the better one (error rates). Everything else
@@ -215,7 +215,7 @@ def report(decode_dir, task, label=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--decode_dir", required=True)
+    ap.add_argument("--decode-dir", required=True)
     ap.add_argument("--task", help="panel task name (default: basename of decode_dir)")
     ap.add_argument("--vs", help="second decode_dir for a paired comparison")
     args = ap.parse_args()

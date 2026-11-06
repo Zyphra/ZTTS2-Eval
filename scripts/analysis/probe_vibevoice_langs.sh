@@ -63,18 +63,19 @@ done
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[probe] ERROR: ASR server failed"; exit 1; }
 maybe_start_whisper || exit 1
+. scripts/score/lib_infer_scoring.sh
 
 for l in ${LANGS}; do
     dd="${ROOT}/${TASK}/${l}"
     [ -d "${dd}/wavs" ] || continue
     rm -f "${dd}/wav_res_ref_text.wer" "${dd}/wav_res_ref_text.wer.raw"
-    # run_score_wer.sh scores every utt in the ref text; our sample is the first N, so
+    # score_wer scores every utt in the ref text; our sample is the first N, so
     # restrict the reference to the uids actually generated or it counts the rest as
     # deletions and reports a meaningless ~100% WER.
     ls "${dd}/wavs" | sed 's/\.wav$//' | sort > "${dd}/.probe_uids"
     awk 'NR==FNR{k[$1];next} ($1 in k)' "${dd}/.probe_uids" "data/${TASK}/${l}/text" > "${dd}/.probe_text"
     echo "=== score ${l} ($(wc -l < "${dd}/.probe_text") utts) ==="
-    bash scripts/score/run_score_wer.sh "${dd}/.probe_text" "${dd}" "${l}" || echo "[probe] WER failed: ${l}"
+    score_wer "${dd}/.probe_text" "${dd}" "${l}" || echo "[probe] WER failed: ${l}"
 done
 
 # ---- 3. report: duration ratio vs GT, next to WER ---------------------------

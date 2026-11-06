@@ -12,8 +12,8 @@ already expects, so **no generation or scoring code has to change**:
 
 Running the benchmark on a panel is then just:
 
-    bash scripts/gen/run_omni.sh --model <m> --task clean_mini --test_set en
-    bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+    bash scripts/gen/run_omni.sh --model <m> --task clean_mini --test-set en
+    bash scripts/score/run_score.sh --decode-dir results/omni_qwen3-tts-0.6b/clean_mini --test-set en
 
 Original uids are preserved rather than renumbered, so any panel result can be traced
 back to the full set. Note the two sets differ in how they write prompt paths -- the

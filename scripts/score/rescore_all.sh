@@ -11,10 +11,10 @@
 # routed ASR, speaker similarity incl. the ITW held-out pass, MSR-UTMOS), so that every
 # score file carries the BENCHMARK_VERSION / scorer stamps build_results.py requires.
 #
-# Leaves: results/<sys>/<task>/<lang>/wavs for every sys not starting with gt_, whisper_
-# or _, every task in utils.benchmark.SOURCE_TASK (full sets and coreset panels), every
+# Leaves: results/<sys>/<task>/<lang>/wavs for every nested system (not gt_* / whisper_*
+# / _*), every task in utils.benchmark.SOURCE_TASK (full sets and coreset panels), every
 # lang in that task's frozen basket that has data/<task>/<lang>/text. Only leaves with
-# work left (scripts/score/lib_infer_scoring.sh:leaf_current) are queued, largest first.
+# a stale score kind (utils.benchmark.stale_kinds) are queued, largest first.
 #
 # Work is CLAIMED, not pre-assigned: array tasks start whenever the scheduler finds a node,
 # so a fixed split would leave the first node idle while the rest of the list waited for
@@ -63,37 +63,32 @@ export OMP_NUM_THREADS=${threads} MKL_NUM_THREADS=${threads}
 # The work list is computed ONCE per array job (first task to start, under a mkdir lock)
 # and frozen: every task and every requeue reads the same file.
 build_list() {
-    local leaves stale="" sys_name task lang n
-    leaves=$("${PY}" - <<'PYEOF' | LC_ALL=C sort
+    "${PY}" - <<'PYEOF' | LC_ALL=C sort -k1,1nr -k2 | cut -d' ' -f2-
 import os
 import sys
-from utils.benchmark import SOURCE_TASK, is_panel_alias, langs_for
+from utils.benchmark import (SOURCE_TASK, is_flat, is_panel_alias, iter_leaves, langs_for,
+                             stale_kinds)
 want = set(os.environ.get("RESCORE_SYSTEMS", "").split())
 for name in sorted(want):
     if not os.path.isdir(f"results/{name}"):
         print(f"[rescore-all] RESCORE_SYSTEMS: no results/{name}", file=sys.stderr)
-for sys_name in sorted(os.listdir("results")):
-    if want and sys_name not in want:
-        continue
-    if sys_name.startswith(("gt_", "whisper_", "_")) or not os.path.isdir(f"results/{sys_name}"):
-        continue
-    for task in SOURCE_TASK:
-        if is_panel_alias(f"results/{sys_name}", task):
-            continue   # browse-only symlink to the full set: scoring it would overwrite that leaf
-        for lang in langs_for(task):
-            if (os.path.isdir(f"results/{sys_name}/{task}/{lang}/wavs")
-                    and os.path.isfile(f"data/{task}/{lang}/text")):
-                print(sys_name, task, lang)
+n_leaves = 0
+for task in SOURCE_TASK:
+    for lang in langs_for(task):
+        data = f"data/{task}/{lang}"
+        if not os.path.isfile(f"{data}/text"):
+            continue
+        for sys_name, leaf in iter_leaves(task, lang, "wavs").items():
+            if is_flat(sys_name) or (want and sys_name not in want):
+                continue
+            if is_panel_alias(f"results/{sys_name}", task):
+                continue   # browse-only symlink to the full set: scoring it would overwrite that leaf
+            n_leaves += 1
+            if stale_kinds("system", data, leaf, lang):
+                n_wavs = sum(1 for f in os.listdir(f"{leaf}/wavs") if f.endswith(".wav"))
+                print(n_wavs, sys_name, task, lang)
+print(f"[rescore-all] {n_leaves} leaves in total", file=sys.stderr)
 PYEOF
-)
-    while read -r sys_name task lang; do
-        [ -n "${sys_name}" ] || continue
-        leaf_current "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" && continue
-        n=$(find "results/${sys_name}/${task}/${lang}/wavs/" -name '*.wav' | wc -l)
-        stale+="${n} ${sys_name} ${task} ${lang}"$'\n'
-    done <<< "${leaves}"
-    printf '%s' "${stale}" | LC_ALL=C sort -k1,1nr -k2 | cut -d' ' -f2-
-    echo "[rescore-all] $(printf '%s\n' "${leaves}" | grep -c .) leaves in total" 1>&2
 }
 slurm_list_once "${list_file}" build_list
 

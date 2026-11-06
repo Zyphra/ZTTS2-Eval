@@ -1,10 +1,14 @@
-"""ZTTS2-Eval benchmark definition: language baskets, scorer pins, version stamps.
+"""ZTTS2-Eval benchmark definition: language baskets, scorer pins, version stamps,
+score-file footer readers, resume gates and the results/ leaf layout.
 
 Stdlib only, so shell gates and light consumers (explorer/serve.py) can import it.
 
     python3 -m utils.benchmark version
     python3 -m utils.benchmark langs <task>
     python3 -m utils.benchmark problems <leaf_dir> <lang>     # exit 1 if stale
+    python3 -m utils.benchmark stale <mode> <data_dir> <leaf_dir> <lang>
+        # the score kinds (wer spk xutt msr) a leaf still needs; mode is
+        # system | gt_clean | gt_itw
 
 A score file is "current" when it carries the footer stamps written by the scorers
 (average_wer.py, eval_speaker_similarity.py, score_msr_utmos.py). build_results.py
@@ -12,6 +16,7 @@ refuses any input whose stamp does not match.
 """
 import os
 import random
+import re
 import sys
 
 BENCHMARK_VERSION = "2"
@@ -30,6 +35,8 @@ SOURCE_TASK = {
     "in-the-wild_mini": "in-the-wild",
     "in-the-wild_delta": "in-the-wild",
 }
+FULL_TASKS = ("clean", "in-the-wild")
+HF_REPO_ID = "Zyphra/ZTTS2-Eval"
 
 
 def langs_for(task):
@@ -89,54 +96,276 @@ def spk_stamp(model_name, train_type, dataset):
 EXPECTED_SPK_STAMP = spk_stamp(*SPK_VARIANT)
 
 
-# --- Footer stamps ---------------------------------------------------------------
-def footer_value(path, key, tail_bytes=4096):
-    """Value of the LAST line `<key>: <value>` in the file's tail, else None."""
+# --- Footer readers --------------------------------------------------------------
+# The footers grew (CI, N_IMPUTED, WER_TAIL50, BENCHMARK_VERSION, ASR; the speaker
+# files carry trailing `#` lines), so every footer reader looks at a 4096-byte tail and
+# takes the LAST matching line.
+FOOTER_TAIL_BYTES = 4096
+WER_RE = re.compile(r"WER:\s*([\-\d\.eN]+(?:nan|inf)?|nan|inf|[\d\.\-eE]+),\s*WER_L50:\s*([\d\.\-eEnan]+|nan),\s*WER_CLIP:\s*([\d\.\-eEnan]+|nan)")
+# 95% CI footer line emitted by average_wer.py.
+WER_CI_RE = re.compile(r"WER_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\],\s*WER_CLIP_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\]")
+MSR_CI_RE = re.compile(r"CI95\s+([\d\.\-eEnan]+)\s+([\d\.\-eEnan]+)")
+
+
+def read_tail(path, nbytes=FOOTER_TAIL_BYTES):
+    """Last `nbytes` of a file as text, or None if unreadable."""
     try:
         with open(path, "rb") as f:
-            f.seek(0, os.SEEK_END)
-            f.seek(max(0, f.tell() - tail_bytes))
-            tail = f.read().decode("utf-8", "replace")
-    except OSError:
+            try:
+                f.seek(-nbytes, os.SEEK_END)
+            except OSError:
+                f.seek(0)
+            return f.read().decode(errors="replace")
+    except Exception:
         return None
-    prefix = f"{key}: "
-    val = None
-    for line in tail.splitlines():
+
+
+def _float(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+def _last_line(path, prefix):
+    """The last tail line starting with `prefix`, or None."""
+    tail = read_tail(path)
+    if tail is None:
+        return None
+    for line in reversed(tail.splitlines()):
         if line.startswith(prefix):
-            val = line[len(prefix):].strip()
-    return val
+            return line
+    return None
 
 
-def leaf_problems(leaf_dir, lang):
-    """Why a scored leaf is not current ZTTS2-Eval <BENCHMARK_VERSION>; [] if current."""
+def footer_value(path, key):
+    """Value of the LAST line `<key>: <value>` in the file's tail, else None."""
+    line = _last_line(path, f"{key}: ")
+    return None if line is None else line[len(key) + 2:].strip()
+
+
+def wer_footer(path):
+    """(wer, wer_l50, wer_clip) of the last `WER:` footer line of a .wer file, or None."""
+    tail = read_tail(path)
+    if tail is None:
+        return None
+    for line in reversed(tail.splitlines()):
+        if line.startswith("WER:"):
+            m = WER_RE.search(line)
+            if m:
+                return _float(m.group(1)), _float(m.group(2)), _float(m.group(3))
+    return None
+
+
+def wer_ci_footer(path):
+    """(wer_lo, wer_hi, clip_lo, clip_hi) from the WER_CI95 footer, or None."""
+    tail = read_tail(path)
+    if tail is None:
+        return None
+    for line in reversed(tail.splitlines()):
+        if line.startswith("WER_CI95:"):
+            m = WER_CI_RE.search(line)
+            if m:
+                return tuple(_float(m.group(i)) for i in (1, 2, 3, 4))
+    return None
+
+
+def tail50_footer(path):
+    """Share (%) of utterances with WER > 50%, from the `WER_TAIL50:` footer, or None."""
+    line = _last_line(path, "WER_TAIL50:")
+    if line is None:
+        return None
+    v = _float(line.split(":", 1)[1].strip())
+    return v if v == v else None
+
+
+def msr_ci_footer(path):
+    """(lo, hi) from a msr_utmos_ci.txt `CI95` line, or None."""
+    try:
+        with open(path) as f:
+            m = MSR_CI_RE.search(f.read())
+        if m:
+            return float(m.group(1)), float(m.group(2))
+    except Exception:
+        return None
+    return None
+
+
+def spk_avg_footer(path):
+    """Mean hyp score (cosine x100) from the last `avg` line of a speaker-score file."""
+    line = _last_line(path, "avg")
+    if line is None:
+        return None
+    try:
+        return float(line.split()[2])
+    except (IndexError, ValueError):
+        return None
+
+
+def msr_mean(path):
+    """The MSR-UTMOS mean of msr_utmos_mean.txt, or None. A 0.0 mean is the scorer's
+    historical crash stub (MOS scale is ~1-5, a real mean cannot be 0): unscored."""
+    try:
+        with open(path) as f:
+            v = float(f.read().strip())
+    except Exception:
+        return None
+    return v if v > 0.0 else None
+
+
+# --- Resume gates ----------------------------------------------------------------
+# Score file of each kind, relative to its leaf. "msr" is stamped in its CI file.
+SCORE_FILES = {
+    "wer": "wav_res_ref_text.wer",
+    "spk": "spk_simi_scores.txt",
+    "xutt": "spk_simi_scores.xutt.txt",
+    "msr": "msr_utmos_ci.txt",
+}
+
+
+def _stamps(kind, lang):
+    """[(footer key, expected value)] a current score file of `kind` carries."""
+    if kind == "wer":
+        return [("BENCHMARK_VERSION", BENCHMARK_VERSION), ("ASR", expected_asr_stamp(lang))]
+    if kind in ("spk", "xutt"):
+        return [("#BENCHMARK_VERSION", BENCHMARK_VERSION), ("#SPK_MODEL", EXPECTED_SPK_STAMP)]
+    if kind == "msr":
+        return [("BENCHMARK_VERSION", BENCHMARK_VERSION), ("MSR_UTMOS_CKPT", MSR_UTMOS_CKPT)]
+    raise ValueError(f"unknown score kind {kind!r}")
+
+
+def stamp_problems(kind, path, lang):
+    """Stamp mismatches of one score file (`path` is the stamped file of `kind`)."""
     out = []
-    j = os.path.join
-
-    def need(path, key, want):
+    for key, want in _stamps(kind, lang):
         got = footer_value(path, key)
         if got != want:
             out.append(f"{path}: {key} is {got!r}, expected {want!r}")
+    return out
 
-    wer = j(leaf_dir, "wav_res_ref_text.wer")
-    if os.path.exists(wer):
-        need(wer, "BENCHMARK_VERSION", BENCHMARK_VERSION)
-        need(wer, "ASR", expected_asr_stamp(lang))
-    for name in ("spk_simi_scores.txt", "spk_simi_scores.xutt.txt"):
-        p = j(leaf_dir, name)
+
+def _coverage_problem(path, prefix):
+    ns, ne = footer_value(path, f"{prefix}N_SCORED"), footer_value(path, f"{prefix}N_EXPECTED")
+    if ns is None or ne is None:
+        return None
+    from utils.average_wer import MIN_COVERAGE  # lazy: average_wer needs numpy
+    try:
+        n_scored, n_expected = float(ns), float(ne)
+    except ValueError:
+        return f"{path}: unreadable coverage footer {ns!r}/{ne!r}"
+    if n_expected > 0 and n_scored < MIN_COVERAGE * n_expected:
+        return f"{path}: coverage {ns}/{ne} below {MIN_COVERAGE}"
+    return None
+
+
+def file_problems(kind, path, lang):
+    """Why the score file of `kind` at `path` cannot be resumed from; [] if current.
+
+    For "msr", `path` is the leaf's msr_utmos_ci.txt and msr_utmos_mean.txt beside it
+    must be non-empty. A missing file is a problem."""
+    if not os.path.isfile(path):
+        return [f"{path}: missing"]
+    out = stamp_problems(kind, path, lang)
+    if kind == "wer":
+        line = _last_line(path, "WER:")
+        if line is None:
+            out.append(f"{path}: no WER: line")
+        elif line.split(":", 1)[1].split(",", 1)[0].strip() == "nan":
+            out.append(f"{path}: WER is nan")
+        cov = _coverage_problem(path, "")
+    elif kind in ("spk", "xutt"):
+        line = _last_line(path, "avg ")
+        if line is None:
+            out.append(f"{path}: no avg line")
+        elif line.strip() == "avg 0.00 0.00":
+            out.append(f"{path}: avg 0.00 0.00 (nothing scored)")
+        cov = _coverage_problem(path, "#")
+    else:
+        mean = os.path.join(os.path.dirname(path), "msr_utmos_mean.txt")
+        if not (os.path.isfile(mean) and os.path.getsize(mean) > 0):
+            out.append(f"{mean}: missing or empty")
+        cov = _coverage_problem(path, "")
+    if cov:
+        out.append(cov)
+    return out
+
+
+def expected_kinds(mode, data_dir):
+    """Score kinds a leaf of `mode` (system | gt_clean | gt_itw) must carry."""
+    if mode == "system":
+        kinds = ["wer", "spk", "msr"]
+        if os.path.isfile(os.path.join(data_dir, "target_wav.scp")):
+            kinds.insert(2, "xutt")
+        return kinds
+    if mode == "gt_clean":
+        return ["wer", "msr"]
+    if mode == "gt_itw":
+        return ["wer", "spk", "msr"]
+    raise ValueError(f"unknown scoring mode {mode!r}")
+
+
+def stale_kinds(mode, data_dir, leaf, lang):
+    """The expected score kinds of a leaf whose file fails file_problems()."""
+    return [k for k in expected_kinds(mode, data_dir)
+            if file_problems(k, os.path.join(leaf, SCORE_FILES[k]), lang)]
+
+
+def leaf_problems(leaf_dir, lang):
+    """Why a scored leaf is not current ZTTS2-Eval <BENCHMARK_VERSION>; [] if current.
+    Only the score files present are checked (stamps only)."""
+    out = []
+    j = os.path.join
+    for kind in ("wer", "spk", "xutt"):
+        p = j(leaf_dir, SCORE_FILES[kind])
         if os.path.exists(p):
-            need(p, "#BENCHMARK_VERSION", BENCHMARK_VERSION)
-            need(p, "#SPK_MODEL", EXPECTED_SPK_STAMP)
+            out.extend(stamp_problems(kind, p, lang))
     if os.path.exists(j(leaf_dir, "msr_utmos_mean.txt")):
-        ci = j(leaf_dir, "msr_utmos_ci.txt")
-        need(ci, "BENCHMARK_VERSION", BENCHMARK_VERSION)
-        need(ci, "MSR_UTMOS_CKPT", MSR_UTMOS_CKPT)
+        out.extend(stamp_problems("msr", j(leaf_dir, SCORE_FILES["msr"]), lang))
+    return out
+
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+# --- results/ layout -------------------------------------------------------------
+# Systems nest the task (results/<system>/<task>/<lang>); the GT and Whisper baselines
+# are one system per task with the task folded into the name (results/gt_clean/<lang>).
+FLAT_PREFIXES = ("gt_", "whisper_")
+
+
+def is_flat(system):
+    return system.startswith(FLAT_PREFIXES)
+
+
+def leaf_dir(system, task, lang, root=_ROOT):
+    """results/<system>/<lang> for a flat baseline, else results/<system>/<task>/<lang>."""
+    if is_flat(system):
+        return os.path.join(root, "results", system, lang)
+    return os.path.join(root, "results", system, task, lang)
+
+
+def iter_leaves(task, lang, marker, root=_ROOT):
+    """{system: leaf dir} of every results/ system whose (task, lang) leaf holds
+    `marker`: nested systems (name not starting with `_`), plus the flat baselines
+    named <prefix><task>."""
+    out = {}
+    res = os.path.join(root, "results")
+    try:
+        names = sorted(os.listdir(res))
+    except OSError:
+        return out
+    for name in names:
+        if name.startswith("_"):
+            continue
+        if is_flat(name) and name not in {p + task for p in FLAT_PREFIXES}:
+            continue
+        leaf = leaf_dir(name, task, lang, root)
+        if os.path.exists(os.path.join(leaf, marker)):
+            out[name] = leaf
     return out
 
 
 # --- Data helpers ----------------------------------------------------------------
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
 def data_uids(task, lang, root=_ROOT):
     """uids of data/<task>/<lang>/text, in file order."""
     uids = []
@@ -165,6 +394,9 @@ def main(argv):
         for p in probs:
             print(p)
         return 1 if probs else 0
+    if len(argv) == 5 and argv[0] == "stale":
+        print(" ".join(stale_kinds(*argv[1:])))
+        return 0
     print(__doc__, file=sys.stderr)
     return 2
 

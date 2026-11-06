@@ -83,10 +83,10 @@ cat <<'EOF'
 === done ===
 Run a system on a panel with the unmodified pipeline, e.g.:
 
-  bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-  bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+  bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test-set en
+  bash scripts/score/run_score.sh --decode-dir results/omni_qwen3-tts-0.6b/clean_mini --test-set en
 
 Then read the weighted estimate of the FULL benchmark score:
 
-  python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
+  python scripts/coreset/score_panel.py --decode-dir results/omni_qwen3-tts-0.6b/clean_mini
 EOF

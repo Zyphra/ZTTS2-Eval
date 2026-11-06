@@ -11,7 +11,7 @@ Estimator (the published macro-average, scripts/coreset/common.py): per language
 the items where BOTH rows are finite and take the mean paired difference; macro Δ is the
 unweighted mean over languages. The bootstrap resamples items WITHIN each language --
 languages are fixed strata, not a sample -- and takes seeded percentile CI95s with the
-repo-wide CI_BOOT/CI_SEED convention (utils/average_wer.py). ``--langs-random`` adds the
+repo-wide CI_BOOT/CI_SEED convention (utils/per_uid.py). ``--langs-random`` adds the
 other view per pair: the spread of per-language deltas, in how many languages the macro
 delta's sign holds, and a CI from resampling *languages* (read it as "would this hold on
 a different language basket", not as the basket-level CI).
@@ -36,7 +36,8 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import CI_BOOT, CI_SEED, Matrix  # noqa: E402
+from scripts.coreset.common import Matrix  # noqa: E402
+from utils.per_uid import CI_BOOT, CI_SEED  # noqa: E402
 
 # Clean scope of the published ranking tables = the FLEURS-R tail; must match build_matrix.py verify().
 BASE9 = {"en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru"}

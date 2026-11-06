@@ -1,29 +1,42 @@
 #!/usr/bin/env bash
-# Submit the retained distributional metrics for every populated system leaf:
+# Submit the retained distributional metrics, for every populated system leaf and for
+# reproducible random 50/50 splits of every ground-truth language:
 #   speaking     char/s distribution (both sets)
 #   mpm          MPM span (Clean set ONLY, see below)
 #   rhythm       mHuBERT rhythm distribution (both sets, GPU)
 #   pitch_range  register-normalized pitch range (both sets, CPU); on the ITW set the
 #                same job also runs scripts/prosody/paired_itw.py so the shared pitch caches
 #                never race
+#   speaking_gt  char/s of the ground-truth split halves (both sets)
+#   mpm_gt       MPM of the ground-truth split halves (Clean set only), written to
+#                results/_mpm_ground_truth/
 # Walltimes stay <= 10 h: single-node jobs with < 5 GPUs are capped at that on the dev
 # partition at the site this was run on (job_submit policy), and 10 h also fits every
-# array element measured so far (MPM ~1-5 h). Packs efficiently: CPU arrays share the node while MPM/rhythm use one GPU each. A
-# dependent finalizer merges and publishes all outputs.
+# array element measured so far (MPM ~1-5 h). Packs efficiently: CPU arrays share the
+# node while MPM/rhythm use one GPU each. A dependent finalizer merges and publishes all
+# outputs.
 #
 # Environment (all optional; unset = today's standalone behaviour):
 #   METRICS_PARTITION / METRICS_ACCOUNT / METRICS_QOS   sbatch --partition/--account/--qos
-#   METRICS_KINDS       arrays to submit (default "speaking mpm rhythm pitch_range")
+#   METRICS_KINDS       arrays to submit (default "speaking mpm rhythm pitch_range"); the
+#                       ground-truth kinds speaking_gt / mpm_gt are opt-in
 #   METRICS_DEPENDENCY  sbatch --dependency string applied to every array
-#   METRICS_FINALIZE    1 (default) submits the finalizer; 0 skips it
-#   METRICS_NODES       N > 0: instead of one array per kind, ONE array of N whole-node tasks
-#                       (slurm/metrics_node_job.sh) runs every selected kind's rows, GPU rows
-#                       one per GPU; also takes METRICS_CPU_LANES, METRICS_WAIT_JOBS and
-#                       METRICS_WAIT_SYSTEMS (see that script). Default 0 = per-kind arrays
+#   METRICS_FINALIZE    1 (default) submits the finalizer; 0 skips it. When every
+#                       requested kind is a ground-truth kind the finalizer overlays the
+#                       GT speaking-rate shards onto the published payload
+#                       (METRICS_FINALIZE_MODE=gt)
+#   METRICS_NODES       N > 0: instead of one array per SYSTEM kind, ONE array of N
+#                       whole-node tasks (slurm/metrics_node_job.sh) runs every selected
+#                       system kind's rows, GPU rows one per GPU; also takes
+#                       METRICS_CPU_LANES, METRICS_WAIT_JOBS and METRICS_WAIT_SYSTEMS (see
+#                       that script). Ground-truth kinds are always arrays. Default 0
 #   METRICS_RESERVATION sbatch --reservation
 #   METRICS_EXCLUDE     sbatch --exclude node list for the GPU/CPU arrays (e.g. a node whose
 #                       GPUs fail CUDA init)
 #   METRICS_LANGS       only these languages (space-separated), in every task; empty = all
+#   GT_SPLIT_SEED       ground-truth split seed (default 0)
+#   GT_SPEAKING_THROTTLE / GT_MPM_THROTTLE / GT_MPM_TIME   GT array throttles (4 / 8) and
+#                       the mpm_gt walltime (10:00:00)
 # The last stdout line is always METRICS_JOBS=<id>[:<id>...]: the array job ids, plus the
 # finalizer's when one is submitted.
 set -euo pipefail
@@ -59,10 +72,14 @@ speaking_manifest="${run_dir}/speaking.tsv"
 mpm_manifest="${run_dir}/mpm.tsv"
 rhythm_manifest="${run_dir}/rhythm.tsv"
 pitch_range_manifest="${run_dir}/pitch_range.tsv"
+speaking_gt_manifest="${run_dir}/speaking_gt.tsv"
+mpm_gt_manifest="${run_dir}/mpm_gt.tsv"
 : > "${speaking_manifest}"
 : > "${mpm_manifest}"
 : > "${rhythm_manifest}"
 : > "${pitch_range_manifest}"
+: > "${speaking_gt_manifest}"
+: > "${mpm_gt_manifest}"
 
 shopt -s nullglob
 for task in clean in-the-wild; do
@@ -71,6 +88,13 @@ for task in clean in-the-wild; do
         lang="${lang_dir##*/}"
         if [ -n "${METRICS_LANGS:-}" ]; then
             case " ${METRICS_LANGS} " in *" ${lang} "*) ;; *) continue ;; esac
+        fi
+        # Ground-truth split rows need only the reference audio. MPM is FLEURS-R only,
+        # matching the systems' own gate below: the GT row has to be scored on the same
+        # item set as the systems it is the floor for.
+        printf '%s\t%s\n' "${task}" "${lang}" >> "${speaking_gt_manifest}"
+        if [ "${task}" = clean ]; then
+            printf '%s\t%s\n' "${task}" "${lang}" >> "${mpm_gt_manifest}"
         fi
         wav_dirs=(results/*/"${task}"/"${lang}"/wavs)
         [ "${#wav_dirs[@]}" -gt 0 ] || continue
@@ -92,6 +116,7 @@ done
 
 export METRICS_REPO="$(pwd -P)"
 export METRICS_SHARD_DIR="${shard_dir}"
+export GT_SPLIT_SEED="${GT_SPLIT_SEED:-0}"
 
 submit_array() {
     local kind="$1" manifest="$2" throttle="$3" cpus="$4" mem="$5" time="$6" gpus="$7"
@@ -127,14 +152,17 @@ submit_array() {
 
 jobs=()
 speaking_job=""; mpm_job=""; rhythm_job=""; pitch_range_job=""; node_job=""
+speaking_gt_job=""; mpm_gt_job=""
+system_kinds=""; all_gt=1
 for kind in ${kinds}; do
     case "${kind}" in
-        speaking|mpm|rhythm|pitch_range) ;;
+        speaking|mpm|rhythm|pitch_range) system_kinds="${system_kinds:+${system_kinds} }${kind}"; all_gt=0 ;;
+        speaking_gt|mpm_gt) ;;
         *) echo "unknown METRICS_KINDS entry '${kind}'" >&2; exit 1 ;;
     esac
 done
-if [ "${nodes}" -gt 0 ]; then
-    export METRICS_RUN_DIR="${run_dir}" METRICS_NODE_KINDS="${kinds}"
+if [ "${nodes}" -gt 0 ] && [ -n "${system_kinds}" ]; then
+    export METRICS_RUN_DIR="${run_dir}" METRICS_NODE_KINDS="${system_kinds}"
     cmd=(sbatch --parsable ${site_args[@]+"${site_args[@]}"}
         --array="0-$((nodes - 1))"
         --chdir="${METRICS_REPO}"
@@ -145,20 +173,28 @@ if [ "${nodes}" -gt 0 ]; then
     fi
     node_job=$("${cmd[@]}" slurm/metrics_node_job.sh)
     jobs+=("${node_job}")
-else
-    for kind in ${kinds}; do
-        case "${kind}" in
-            speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
-                         jobs+=("${speaking_job}") ;;
-            mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 10:00:00 1)
-                         jobs+=("${mpm_job}") ;;
-            rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 10:00:00 1)
-                         jobs+=("${rhythm_job}") ;;
-            pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
-                         jobs+=("${pitch_range_job}") ;;
-        esac
-    done
 fi
+for kind in ${kinds}; do
+    if [ "${nodes}" -gt 0 ]; then
+        case "${kind}" in speaking|mpm|rhythm|pitch_range) continue ;; esac
+    fi
+    case "${kind}" in
+        speaking)    speaking_job=$(submit_array speaking "${speaking_manifest}" 4 28 32G 10:00:00 0)
+                     jobs+=("${speaking_job}") ;;
+        mpm)         mpm_job=$(submit_array mpm "${mpm_manifest}" 6 28 64G 10:00:00 1)
+                     jobs+=("${mpm_job}") ;;
+        rhythm)      rhythm_job=$(submit_array rhythm "${rhythm_manifest}" 8 16 64G 10:00:00 1)
+                     jobs+=("${rhythm_job}") ;;
+        pitch_range) pitch_range_job=$(submit_array pitch_range "${pitch_range_manifest}" 8 28 32G 10:00:00 0)
+                     jobs+=("${pitch_range_job}") ;;
+        speaking_gt) speaking_gt_job=$(submit_array speaking_gt "${speaking_gt_manifest}" \
+                         "${GT_SPEAKING_THROTTLE:-4}" 28 32G 10:00:00 0)
+                     jobs+=("${speaking_gt_job}") ;;
+        mpm_gt)      mpm_gt_job=$(submit_array mpm_gt "${mpm_gt_manifest}" \
+                         "${GT_MPM_THROTTLE:-8}" 24 48G "${GT_MPM_TIME:-10:00:00}" 1)
+                     jobs+=("${mpm_gt_job}") ;;
+    esac
+done
 if [ "${#jobs[@]}" -eq 0 ]; then
     echo "METRICS_KINDS selects nothing" >&2
     exit 1
@@ -168,6 +204,7 @@ finalize_job=""
 if [ "${finalize}" != "0" ]; then
     dep_ids=$(IFS=:; printf '%s' "${jobs[*]}")
     export METRICS_KIND=finalize
+    if [ "${all_gt}" = 1 ]; then export METRICS_FINALIZE_MODE=gt; else export METRICS_FINALIZE_MODE=system; fi
     finalize_job=$(sbatch --parsable \
         --job-name=ztts-metrics-finalize \
         ${finalize_site_args[@]+"${finalize_site_args[@]}"} \
@@ -182,10 +219,13 @@ fi
 
 cat > "${run_dir}/jobs.env" <<EOF
 METRICS_RUN_DIR=${run_dir}
+GT_SPLIT_SEED=${GT_SPLIT_SEED}
 SPEAKING_JOB=${speaking_job}
 MPM_JOB=${mpm_job}
 RHYTHM_JOB=${rhythm_job}
 PITCH_RANGE_JOB=${pitch_range_job}
+SPEAKING_GT_JOB=${speaking_gt_job}
+MPM_GT_JOB=${mpm_gt_job}
 NODE_JOB=${node_job}
 FINALIZE_JOB=${finalize_job}
 EOF

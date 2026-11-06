@@ -25,7 +25,8 @@ from utils.prefetch import prefetch  # noqa: E402
 # 95% CI on the mean MOS via a seeded percentile bootstrap. The canonical
 # implementation lives in utils/average_wer.py (memory-chunked, same B/seed);
 # ndigits=4 reproduces this scorer's historical rounding bit-for-bit.
-from utils.average_wer import CI_BOOT, CI_SEED, boot_ci95  # noqa: E402
+from utils.per_uid import CI_BOOT, CI_SEED  # noqa: E402
+from utils.average_wer import MIN_COVERAGE, boot_ci95  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION, MSR_UTMOS_CKPT  # noqa: E402
 
 # Pinned to a commit of the checkpoint repo (utils/benchmark.py).
@@ -115,10 +116,10 @@ def _ssl_hidden(model, waves, srs, is_sfi):
 
 def main():
     ap = argparse.ArgumentParser(description="Score audio quality with MSR-UTMOS.")
-    ap.add_argument("-t", "--wav_scp", required=True)
+    ap.add_argument("-t", "--wav-scp", required=True)
     ap.add_argument("-o", "--out", required=True)
-    ap.add_argument("-m", "--mean_out", required=True)
-    ap.add_argument("--ci_out", default=None,
+    ap.add_argument("-m", "--mean-out", required=True)
+    ap.add_argument("--ci-out", default=None,
                     help="95%% CI file (default: sibling msr_utmos_ci.txt). The mean "
                          "file stays a bare float for backward compatibility.")
     ap.add_argument("--ckpt", default=DEFAULT_CKPT)
@@ -194,9 +195,8 @@ def main():
         f.write(f"MSR_UTMOS_CKPT: {args.ckpt}\n")
     print(f"MSR-UTMOS mean: {mean:.4f}  95%CI [{lo}, {hi}]  (n={len(scores)}/{len(items)})")
 
-    min_cov = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))
-    if not items or len(scores) / len(items) < min_cov:
-        sys.exit(f"error: MSR-UTMOS coverage {len(scores)}/{len(items)} < {min_cov} "
+    if not items or len(scores) / len(items) < MIN_COVERAGE:
+        sys.exit(f"error: MSR-UTMOS coverage {len(scores)}/{len(items)} < {MIN_COVERAGE} "
                  f"(SCORE_MIN_COVERAGE) -- outputs written but the leaf is not trustworthy")
 
 

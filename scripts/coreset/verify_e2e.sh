@@ -108,7 +108,7 @@ for sys in ${E2E_SYSTEMS}; do
     done
     [ -n "${have}" ] || { echo "[e2e] ${sys}: nothing to score"; continue; }
     echo "=== [e2e] scoring ${sys} on ${E2E_TASK} ==="
-    bash scripts/score/run_score.sh --decode_dir "results/${sys}/${E2E_TASK}" --test_set "${have}"
+    bash scripts/score/run_score.sh --decode-dir "results/${sys}/${E2E_TASK}" --test-set "${have}"
 done
 stop_asr_server || true
 stop_whisper_server || true
@@ -119,7 +119,7 @@ trap - EXIT INT TERM
 # leaves, which fails this job — the gate has teeth on purpose.
 for sys in ${E2E_SYSTEMS}; do
     echo
-    "${PY}" scripts/coreset/score_panel.py --decode_dir "results/${sys}/${E2E_TASK}" \
+    "${PY}" scripts/coreset/score_panel.py --decode-dir "results/${sys}/${E2E_TASK}" \
             --task "${E2E_TASK}"
 done
 

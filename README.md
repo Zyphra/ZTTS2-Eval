@@ -259,8 +259,8 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
 
 The `gt_clean` and `gt_in-the-wild` rows use a reproducible, disjoint random 50/50 split of each
 reference corpus rather than comparing ground truth with itself. Seed and
-language determine the split; `slurm/submit_ground_truth_metrics.sh` refreshes
-the char/s and MPM halves. For rhythm and pitch range the split-half ceiling is the
+language determine the split; `METRICS_KINDS="speaking_gt mpm_gt" bash slurm/submit_metrics.sh`
+refreshes the char/s and MPM halves. For rhythm and pitch range the split-half ceiling is the
 1× line that systems are measured against.
 
 ## Provenance & known confounds

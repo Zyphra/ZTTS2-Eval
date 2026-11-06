@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the explorer snapshot from core scores, MPM span, rhythm, pitch range and
 paired ITW prosody; refuse inputs that are not ZTTS2-Eval <BENCHMARK_VERSION>."""
-import collections, csv, os, re, json, sys
+import collections, csv, os, json, sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 from pathlib import Path
@@ -15,9 +15,10 @@ DATA = os.path.join(REPO, "data")
 OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 from utils.per_uid import (CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf,  # noqa: E402
-                           parse_tsv, parse_wer as parse_wer_rows)
+                           parse_tsv, parse_wer)
 from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_panel_alias,  # noqa: E402
-                             langs_for, leaf_problems)
+                             langs_for, leaf_problems, msr_ci_footer, msr_mean,
+                             spk_avg_footer, tail50_footer, wer_ci_footer, wer_footer)
 from scripts.results_doc.rd_common import write_json_atomic  # noqa: E402
 
 try:                      # only the coreset bootstrap needs it; the rest is stdlib
@@ -366,112 +367,8 @@ def collect_panel_leaf(model, task, setname, leaf_dir, panel):
     return rec if rec["n"] is not None else None
 
 
-# The footers grew (CI, N_IMPUTED, WER_TAIL50, BENCHMARK_VERSION, ASR; the speaker
-# files carry four trailing `#` lines), so every footer parser reads a 4096-byte tail.
-TAIL_BYTES = 4096
-WER_RE = re.compile(r"WER:\s*([\-\d\.eN]+(?:nan|inf)?|nan|inf|[\d\.\-eE]+),\s*WER_L50:\s*([\d\.\-eEnan]+|nan),\s*WER_CLIP:\s*([\d\.\-eEnan]+|nan)")
-# 95% CI footer line emitted by average_wer.py (optional; absent on pre-CI results).
-WER_CI_RE = re.compile(r"WER_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\],\s*WER_CLIP_CI95:\s*\[([\d\.\-eEnan]+),\s*([\d\.\-eEnan]+)\]")
-MSR_CI_RE = re.compile(r"CI95\s+([\d\.\-eEnan]+)\s+([\d\.\-eEnan]+)")
-
-
-def read_tail(path, nbytes=TAIL_BYTES):
-    """Last `nbytes` of a file as text, or None if unreadable."""
-    try:
-        with open(path, "rb") as f:
-            try:
-                f.seek(-nbytes, os.SEEK_END)
-            except OSError:
-                f.seek(0)
-            return f.read().decode(errors="replace")
-    except Exception:
-        return None
-
-
-def _float(x):
-    try:
-        return float(x)
-    except (TypeError, ValueError):
-        return float("nan")
-
-
-def parse_wer(path):
-    """Last `WER:` footer line of a .wer file; return (wer, l50, clip) or None."""
-    tail = read_tail(path)
-    if tail is None:
-        return None
-    for line in reversed(tail.splitlines()):
-        if line.startswith("WER:"):
-            m = WER_RE.search(line)
-            if m:
-                return _float(m.group(1)), _float(m.group(2)), _float(m.group(3))
-    return None
-
-
-def parse_wer_ci(path):
-    """(wer_lo, wer_hi, clip_lo, clip_hi) from the WER_CI95 footer, or None."""
-    tail = read_tail(path)
-    if tail is None:
-        return None
-    for line in reversed(tail.splitlines()):
-        if line.startswith("WER_CI95:"):
-            m = WER_CI_RE.search(line)
-            if m:
-                return tuple(_float(m.group(i)) for i in (1, 2, 3, 4))
-    return None
-
-
-def parse_tail50(path):
-    """Share (%) of utterances with WER > 50%, from the `WER_TAIL50:` footer, or None."""
-    tail = read_tail(path)
-    if tail is None:
-        return None
-    for line in reversed(tail.splitlines()):
-        if line.startswith("WER_TAIL50:"):
-            v = _float(line.split(":", 1)[1].strip())
-            return v if v == v else None
-    return None
-
-
-def parse_msr_ci(path):
-    """(lo, hi) from a msr_utmos_ci.txt line, or None."""
-    try:
-        with open(path) as f:
-            m = MSR_CI_RE.search(f.read())
-        if m:
-            return float(m.group(1)), float(m.group(2))
-    except Exception:
-        return None
-    return None
-
-
-def parse_spk(path):
-    """Mean hyp score (cosine x100) from the `avg` line of a speaker-score file."""
-    tail = read_tail(path)
-    if tail is None:
-        return None
-    for line in reversed(tail.splitlines()):
-        if line.startswith("avg"):
-            parts = line.split()
-            try:
-                return float(parts[2])
-            except (IndexError, ValueError):
-                return None
-    return None
-
-
-def parse_msr_utmos(path):
-    try:
-        with open(path) as f:
-            v = float(f.read().strip())
-    except Exception:
-        return None
-    # A 0.0 mean is the scorer's historical crash stub (MOS scale is ~1-5, a real
-    # mean cannot be 0) -- treat as unscored rather than folding it into averages.
-    return v if v > 0.0 else None
-
 def count_n(wer_raw_path):
-    return len(parse_wer_rows(wer_raw_path))
+    return len(parse_wer(wer_raw_path))
 
 # A full-set leaf counts only when its system generated (nearly) every item of the
 # language: same bar as the scorers' SCORE_MIN_COVERAGE.
@@ -505,22 +402,22 @@ def collect_leaf(model, task, setname, leaf_dir):
         m = MPM.get((mpm_model, setname))
         if m:
             rec["mpm_span"] = m["span"]
-    rec["wer"] = parse_wer(wer_path)
-    rec["wer_ci"] = parse_wer_ci(wer_path)
-    rec["tail50"] = parse_tail50(wer_path)
+    rec["wer"] = wer_footer(wer_path)
+    rec["wer_ci"] = wer_ci_footer(wer_path)
+    rec["tail50"] = tail50_footer(wer_path)
     sp = os.path.join(leaf_dir, "spk_simi_scores.txt")
-    if os.path.isfile(sp): rec["spk"] = parse_spk(sp)
+    if os.path.isfile(sp): rec["spk"] = spk_avg_footer(sp)
     if model == "gt_in-the-wild" and not task:
         # The GT leaf scores the prompt against the real target recording: that
         # score IS the held-out ceiling, so there is no separate xutt file.
         rec["spk_xutt"] = rec["spk"]
     else:
         xp = os.path.join(leaf_dir, "spk_simi_scores.xutt.txt")
-        if os.path.isfile(xp): rec["spk_xutt"] = parse_spk(xp)
+        if os.path.isfile(xp): rec["spk_xutt"] = spk_avg_footer(xp)
     mup = os.path.join(leaf_dir, "msr_utmos_mean.txt")
-    if os.path.isfile(mup): rec["msr_utmos"] = parse_msr_utmos(mup)
+    if os.path.isfile(mup): rec["msr_utmos"] = msr_mean(mup)
     mci = os.path.join(leaf_dir, "msr_utmos_ci.txt")
-    if os.path.isfile(mci): rec["msr_utmos_ci"] = parse_msr_ci(mci)
+    if os.path.isfile(mci): rec["msr_utmos_ci"] = msr_ci_footer(mci)
     rec.update(PROSODY.get((model, task, setname), {}))
     rp = os.path.join(leaf_dir, "wav_res_ref_text.wer.raw")
     if os.path.isfile(rp): rec["n"] = count_n(rp)
@@ -792,7 +689,7 @@ def jsonable(x):
     null rather than repaired."""
     if isinstance(x, float) and (x != x or x in (float("inf"), float("-inf"))):
         return None
-    if isinstance(x, (list, tuple)):  # parse_wer/parse_wer_ci hand back tuples
+    if isinstance(x, (list, tuple)):  # wer_footer/wer_ci_footer hand back tuples
         return [jsonable(v) for v in x]
     if isinstance(x, dict):
         return {k: jsonable(v) for k, v in x.items()}

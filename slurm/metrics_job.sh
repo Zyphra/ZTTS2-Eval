@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Array worker for the retained distributional metrics.
+# Array worker for the retained distributional metrics (system kinds: speaking, mpm,
+# rhythm, pitch_range; ground-truth split kinds: speaking_gt, mpm_gt).
 set -euo pipefail
 
 : "${METRICS_REPO:?METRICS_REPO is required}"
@@ -113,6 +114,35 @@ PYEOF
             .venv/bin/python scripts/prosody/paired_itw.py --lang "${lang}" \
                 --workers "${SLURM_CPUS_PER_TASK:-28}"
         fi
+        ;;
+
+    speaking_gt)
+        : "${METRICS_SHARD_DIR:?METRICS_SHARD_DIR is required for speaking_gt}"
+        mkdir -p "${METRICS_SHARD_DIR}"
+        .venv/bin/python scripts/results_doc/build_speaking_rate.py \
+            --sets "${task}" --langs "${lang}" --ground-truth-only --seed "${GT_SPLIT_SEED:-0}" \
+            --workers "${SLURM_CPUS_PER_TASK:-28}" --n-boot 400 \
+            --out "${METRICS_SHARD_DIR}/${task}_${lang}.json"
+        ;;
+
+    mpm_gt)
+        seed="${GT_SPLIT_SEED:-0}"
+        py="${TTSDS_VENV:-$HOME/.venvs/ttsds}/bin/python"
+        if [ ! -x "${py}" ]; then
+            echo "missing TTSDS interpreter ${py}" >&2
+            exit 1
+        fi
+        work=$(mktemp -d "${TMPDIR:-/tmp}/ztts-gt-split.XXXXXX")
+        trap 'rm -rf "${work}"' EXIT
+        "${py}" utils/ground_truth_split.py \
+            --src "${ref_dir}" --left "${work}/left" --right "${work}/right" \
+            --seed "${seed}" --key "${task}/${lang}"
+        out="results/_mpm_ground_truth/${task}_${lang}.tsv"
+        mkdir -p "${out%/*}"
+        "${py}" scripts/prosody/score_mpm_shuffle_floor.py \
+            --ref-dir "${work}/right" \
+            --synth-dir "${work}/left" --label "gt_${task}" \
+            --out "${out}" --seed "${seed}"
         ;;
 
     *)

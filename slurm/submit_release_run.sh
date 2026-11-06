@@ -69,7 +69,7 @@ out=$(METRICS_KINDS="mpm rhythm pitch_range" METRICS_FINALIZE=0 \
       METRICS_DEPENDENCY="afterok:${J_rs}:${J_gc}:${J_gi}" bash slurm/submit_metrics.sh)
 printf '%s\n' "${out}"
 J_m=$(printf '%s\n' "${out}" | sed -n 's/^METRICS_JOBS=//p' | tail -n1)
-out=$(METRICS_KINDS="mpm_gt" METRICS_FINALIZE=0 bash slurm/submit_ground_truth_metrics.sh)
+out=$(METRICS_KINDS="mpm_gt" METRICS_FINALIZE=0 bash slurm/submit_metrics.sh)
 printf '%s\n' "${out}"
 J_g=$(printf '%s\n' "${out}" | sed -n 's/^METRICS_JOBS=//p' | tail -n1)
 if [ -z "${J_m}" ] || [ -z "${J_g}" ]; then

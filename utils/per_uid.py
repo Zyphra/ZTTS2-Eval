@@ -21,8 +21,8 @@ Stdlib only -- ``explorer/serve.py`` is a zero-dependency server and imports fro
 
 import os
 
-# Aggregation constants, mirrored from utils/average_wer.py so subset re-aggregation
-# is byte-comparable with the pipeline's own numbers.
+# Bootstrap constants of every 95% CI in the pipeline (utils/average_wer.py,
+# scripts/score/score_msr_utmos.py, the reports and the coreset estimators).
 CI_BOOT = 10000
 CI_SEED = 20260717
 # average_wer.py buckets an utterance into WER_L50 when `wer <= 0.5` (it tests
@@ -107,7 +107,7 @@ def parse_spk(path):
     """``<uid> <ref_score> <hyp_score>`` -> ``{uid: hyp_score}`` (cosine x100).
 
     Takes the LAST field: column 2 is the reference-vs-reference score, which is
-    ``0.00`` unless the scorer ran with ``--ref_wavs``. The trailing ``avg`` row is
+    ``0.00`` unless the scorer ran with ``--ref-wavs``. The trailing ``avg`` row is
     skipped.
     """
     out = {}

@@ -6,7 +6,7 @@ MPM span is computed for `clean` (FLEURS-R) and **not** for `in-the-wild`
 | file | gate |
 |---|---|
 | `slurm/submit_metrics.sh` | only `clean` rows enter `mpm.tsv` |
-| `slurm/submit_ground_truth_metrics.sh` | same gate on the GT 50/50 split |
+| `slurm/submit_metrics.sh` (`mpm_gt`) | same gate on the GT 50/50 split (`mpm_gt.tsv`) |
 | `scripts/results_doc/build_results.py` | `mpm_model` is set only for `clean` |
 
 This page records the measurements behind it, because "we didn't run it" and "it does

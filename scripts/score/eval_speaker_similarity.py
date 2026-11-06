@@ -7,16 +7,16 @@ published variant.
 
 Usage:
     python eval_speaker_similarity.py \\
-        --prompt_wavs prompt_wav.scp --hyp_wavs wav.scp \\
-        --log_file spk_simi_scores.txt
+        --prompt-wavs prompt_wav.scp --hyp-wavs wav.scp \\
+        --log-file spk_simi_scores.txt
 
 Several systems scored against the same prompts can share one run: pass the
-hyp scps after --hyp_wavs and their log files after --log_file, in the same
+hyp scps after --hyp-wavs and their log files after --log-file, in the same
 order. The model then loads once and each prompt is embedded once and reused
 for every system, instead of once per system per process.
 
 The .scp files have '<uttid> <wav_path>' per line. Output: '<uttid> <ref> <hyp>' per
-line (cosine similarity x100) plus a final 'avg' line; <ref> is 0 unless --ref_wavs
+line (cosine similarity x100) plus a final 'avg' line; <ref> is 0 unless --ref-wavs
 is given. Two trailing coverage lines ('#N_SCORED: <n>' / '#N_EXPECTED: <n>', shaped
 so per-uid parsers skip them) record how many of the given hyp wavs actually scored,
 and the exit code is non-zero when coverage falls below SCORE_MIN_COVERAGE (default
@@ -40,6 +40,7 @@ from utils.scp import load_scp_items as load_scp  # noqa: E402
 from utils.benchmark import (BENCHMARK_VERSION, SPK_HUB_REF, SPK_HUB_REPO,  # noqa: E402
                              spk_stamp)
 from utils.prefetch import prefetch  # noqa: E402
+from utils.average_wer import MIN_COVERAGE  # noqa: E402
 
 TARGET_SR = 16000
 
@@ -128,19 +129,19 @@ def score_system(hyp_scp, log_file, prompt_wavs, ref_wavs, embed, prompt_cache, 
 
 
 def add_common_arguments(ap):
-    ap.add_argument("--prompt_wavs", required=True, help="scp of prompt (reference) wavs")
-    ap.add_argument("--hyp_wavs", required=True, nargs="+",
+    ap.add_argument("--prompt-wavs", required=True, help="scp of prompt (reference) wavs")
+    ap.add_argument("--hyp-wavs", required=True, nargs="+",
                     help="scp of generated wavs; several systems may be given")
-    ap.add_argument("--ref_wavs", default="", help="optional scp of ground-truth wavs")
-    ap.add_argument("--log_file", required=True, nargs="+",
-                    help="output score file, one per --hyp_wavs entry in the same order")
+    ap.add_argument("--ref-wavs", default="", help="optional scp of ground-truth wavs")
+    ap.add_argument("--log-file", required=True, nargs="+",
+                    help="output score file, one per --hyp-wavs entry in the same order")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
 
 
 def parse_args(ap):
     args = ap.parse_args()
     if len(args.hyp_wavs) != len(args.log_file):
-        ap.error(f"{len(args.hyp_wavs)} --hyp_wavs but {len(args.log_file)} --log_file; "
+        ap.error(f"{len(args.hyp_wavs)} --hyp-wavs but {len(args.log_file)} --log-file; "
                  "pass one log file per hyp scp, in the same order")
     return args
 
@@ -195,12 +196,11 @@ def main():
 
 
 def run(args, embed, stamp):
-    """Score every --hyp_wavs scp into its --log_file; exits non-zero on low coverage."""
+    """Score every --hyp-wavs scp into its --log-file; exits non-zero on low coverage."""
     prompt_wavs = dict(load_scp(args.prompt_wavs))
     ref_wavs = (dict(load_scp(args.ref_wavs))
                 if args.ref_wavs and os.path.exists(args.ref_wavs) else {})
     prompt_cache, ref_cache = {}, {}
-    min_cov = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))
     multi = len(args.hyp_wavs) > 1
     failed = []
     for hyp_scp, log_file in zip(args.hyp_wavs, args.log_file):
@@ -210,8 +210,8 @@ def run(args, embed, stamp):
         print(f"speaker similarity: avg hyp = {avg_hyp * 100.0:.2f}  "
               f"(n={n_scored}/{n_expected})"
               + (f"  -> {log_file} ({time.time() - start:.0f}s)" if multi else ""), flush=True)
-        if n_expected == 0 or n_scored / n_expected < min_cov:
-            failed.append(f"speaker-sim coverage {n_scored}/{n_expected} < {min_cov} "
+        if n_expected == 0 or n_scored / n_expected < MIN_COVERAGE:
+            failed.append(f"speaker-sim coverage {n_scored}/{n_expected} < {MIN_COVERAGE} "
                           f"(SCORE_MIN_COVERAGE) -- {log_file} written but the leaf is "
                           f"not trustworthy")
     if failed:

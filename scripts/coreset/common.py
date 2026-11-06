@@ -29,14 +29,14 @@ import sys
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from utils.per_uid import CI_BOOT, CI_SEED  # noqa: E402
+
 OUT_DIR = os.path.join(REPO, "assets", "coreset")
 PANEL_DIR = os.path.join(OUT_DIR, "panels")
 
 METRICS = ("wer", "wer_clip", "spk", "msr")
 # Reported units, used for stating errors in the same numbers the RESULTS tables show.
 METRIC_UNITS = {"wer": "pct", "wer_clip": "pct", "spk": "x100", "msr": "MOS"}
-CI_BOOT = 10000
-CI_SEED = 20260717
 
 
 def weighted_boot(pieces, boot=CI_BOOT, seed=CI_SEED):

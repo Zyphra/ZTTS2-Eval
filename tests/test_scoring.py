@@ -272,5 +272,90 @@ class LeafProblemsTest(unittest.TestCase):
             self.assertEqual(benchmark.leaf_problems(d, "en"), [])
 
 
+class FooterReadersTest(unittest.TestCase):
+    WER = ("u1\t0.1\tref\thyp\t0\t0\t0.1\n"
+           "WER: 9.000, WER_L50: 1.000, WER_CLIP: 8.000\n"         # an earlier run's footer
+           "WER: 2.104, WER_L50: 1.950, WER_CLIP: 2.050\n"
+           "WER_CI95: [1.799, 2.43], WER_CLIP_CI95: [1.7, 2.4], n: 1279, boot: 10000, seed: 1\n"
+           "WER_TAIL50: 0.250\n")
+
+    def test_last_footer_line_wins(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "x.wer"
+            p.write_text(self.WER, encoding="utf-8")
+            self.assertEqual(benchmark.wer_footer(p), (2.104, 1.95, 2.05))
+            self.assertEqual(benchmark.wer_ci_footer(p), (1.799, 2.43, 1.7, 2.4))
+            self.assertEqual(benchmark.tail50_footer(p), 0.25)
+            self.assertIsNone(benchmark.wer_footer(Path(d) / "missing.wer"))
+
+    def test_nan_wer_parses_as_nan_and_tail50_nan_is_none(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "x.wer"
+            p.write_text("WER: nan, WER_L50: nan, WER_CLIP: nan\nWER_TAIL50: nan\n")
+            wer = benchmark.wer_footer(p)
+            self.assertTrue(all(v != v for v in wer))
+            self.assertIsNone(benchmark.tail50_footer(p))
+
+
+class StaleKindsTest(unittest.TestCase):
+    """utils.benchmark.stale_kinds: the per-kind resume gate of every scoring loop."""
+
+    def _write_current(self, leaf, kinds):
+        v = benchmark.BENCHMARK_VERSION
+        files = {
+            "wer": ("wav_res_ref_text.wer",
+                    "WER: 2.1, WER_L50: 2.1, WER_CLIP: 2.1\nN_SCORED: 100\nN_EXPECTED: 100\n"
+                    f"BENCHMARK_VERSION: {v}\nASR: {benchmark.expected_asr_stamp('en')}\n"),
+            "spk": ("spk_simi_scores.txt",
+                    f"avg 0.00 61.00\n#N_SCORED: 100\n#N_EXPECTED: 100\n#BENCHMARK_VERSION: {v}\n"
+                    f"#SPK_MODEL: {benchmark.EXPECTED_SPK_STAMP}\n"),
+            "xutt": ("spk_simi_scores.xutt.txt",
+                     f"avg 0.00 55.00\n#BENCHMARK_VERSION: {v}\n"
+                     f"#SPK_MODEL: {benchmark.EXPECTED_SPK_STAMP}\n"),
+            "msr": ("msr_utmos_ci.txt",
+                    f"CI95 3.8 3.9 n 100\nN_SCORED: 100\nN_EXPECTED: 100\n"
+                    f"BENCHMARK_VERSION: {v}\nMSR_UTMOS_CKPT: {benchmark.MSR_UTMOS_CKPT}\n"),
+        }
+        for k in kinds:
+            name, text = files[k]
+            (Path(leaf) / name).write_text(text, encoding="utf-8")
+        if "msr" in kinds:
+            (Path(leaf) / "msr_utmos_mean.txt").write_text("3.85\n")
+
+    def _replace(self, path, old, new):
+        path.write_text(path.read_text().replace(old, new))
+
+    def test_current_leaf_in_each_mode(self):
+        for mode, kinds, target in (("system", ["wer", "spk", "xutt", "msr"], True),
+                                    ("gt_clean", ["wer", "msr"], False),
+                                    ("gt_itw", ["wer", "spk", "msr"], False)):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as data, \
+                    tempfile.TemporaryDirectory() as leaf:
+                if target:
+                    (Path(data) / "target_wav.scp").write_text("u1 /x.wav\n")
+                self._write_current(leaf, kinds)
+                self.assertEqual(benchmark.stale_kinds(mode, data, leaf, "en"), [])
+
+    def test_each_broken_kind_is_reported_alone(self):
+        with tempfile.TemporaryDirectory() as data, tempfile.TemporaryDirectory() as leaf:
+            self._write_current(leaf, ["wer", "spk", "msr"])
+            wer = Path(leaf) / "wav_res_ref_text.wer"
+            self._replace(wer, "WER: 2.1,", "WER: nan,")
+            self.assertEqual(benchmark.stale_kinds("system", data, leaf, "en"), ["wer"])
+            self._write_current(leaf, ["wer"])
+            self._replace(Path(leaf) / "spk_simi_scores.txt", "avg 0.00 61.00", "avg 0.00 0.00")
+            self.assertEqual(benchmark.stale_kinds("system", data, leaf, "en"), ["spk"])
+            self._write_current(leaf, ["spk"])
+            self._replace(Path(leaf) / "msr_utmos_ci.txt", "N_SCORED: 100", "N_SCORED: 97")
+            self.assertEqual(benchmark.stale_kinds("system", data, leaf, "en"), ["msr"])
+
+    def test_gt_clean_never_asks_for_speaker_scores(self):
+        with tempfile.TemporaryDirectory() as data, tempfile.TemporaryDirectory() as leaf:
+            (Path(data) / "target_wav.scp").write_text("u1 /x.wav\n")
+            self.assertEqual(benchmark.stale_kinds("gt_clean", data, leaf, "en"), ["wer", "msr"])
+            self.assertEqual(benchmark.stale_kinds("system", data, leaf, "en"),
+                             ["wer", "spk", "xutt", "msr"])
+
+
 if __name__ == "__main__":
     unittest.main()

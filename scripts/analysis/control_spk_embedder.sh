@@ -37,8 +37,8 @@ for lg in ${LANGS}; do
     fi
     echo "=== ctl-spk ${d} ==="
     if "${PY}" scripts/score/eval_speaker_similarity.py \
-        --prompt_wavs "${pscp}" --hyp_wavs "${d}/wav.scp" \
-        --log_file "${out}" --device cuda --dataset vox2; then
+        --prompt-wavs "${pscp}" --hyp-wavs "${d}/wav.scp" \
+        --log-file "${out}" --device cuda --dataset vox2; then
       n_ok=$((n_ok+1))
     else
       echo "[ctl-spk] FAIL ${d}"; n_fail=$((n_fail+1))

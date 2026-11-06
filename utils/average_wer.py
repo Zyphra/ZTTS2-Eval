@@ -9,20 +9,18 @@ import numpy as np
 REPO = str(Path(__file__).resolve().parents[1])
 sys.path.insert(0, REPO)
 from utils.text_norm import text_key  # noqa: E402
-
 # 95% CI on the per-utterance mean via a seeded percentile bootstrap. Per-utt WER
 # is bounded-below, skewed and heavy-tailed (a few >1.0 utts), so a normal-approx
 # SE understates the interval; the bootstrap needs no distributional assumption.
 # The seed is fixed so re-aggregating the same .raw file is byte-reproducible.
-# This module is import-safe: scripts/score/score_msr_utmos.py imports boot_ci95/CI_BOOT/
-# CI_SEED from here (the canonical copy) instead of keeping its own.
-CI_BOOT = 10000
-CI_SEED = 20260717
+# The bootstrap size and seed (CI_BOOT, CI_SEED) live in utils/per_uid.py;
+# scripts/score/score_msr_utmos.py reuses boot_ci95 from here.
+from utils.per_uid import CI_BOOT, CI_SEED  # noqa: E402
 
 # Minimum scored/expected coverage before the aggregate is trusted. Below it the
 # .wer is still written in full (so the partial artifact stays inspectable) but
-# the exit code is non-zero, so scripts/score/run_score_wer.sh / resume gates see the failure instead
-# of a success-looking stub.
+# the exit code is non-zero, so lib_infer_scoring.sh score_wer / the resume gates see
+# the failure instead of a success-looking stub.
 MIN_COVERAGE = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))
 
 # Rows whose hypothesis is this sentinel were not transcribed at all: the reference
