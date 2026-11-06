@@ -38,13 +38,13 @@ A stdlib web explorer browses the resulting scores.
   and prefer `.venv/bin/python` when present (`PY=.venv/bin/python` else `python`).
 
 ### Git tracking state
-- All source is tracked: `pyproject.toml`, `uv.lock`, the `run_generate_*.sh` /
-  `run_score.sh` entry points, `scripts/**` (`.py` + `.sh`, incl. `results_doc/`),
+- All source is tracked: `pyproject.toml`, `uv.lock`, the `scripts/gen/run_*.sh` /
+  `scripts/score/run_score.sh` entry points, `scripts/**` (`.py` + `.sh`, incl. `results_doc/`),
   `utils/*.py` + `*.sh`, `explorer/`, `docs/`, `assets/`, and the top-level reports.
 - The `data/` metadata is tracked; the prompt wavs (`data/{clean,in-the-wild}/<lang>/waveform/`)
   and the ITW held-out target recordings (`data/in-the-wild/<lang>/target_wav/`)
   are gitignored and fetched from the Hugging Face dataset `Zyphra/ZTTS2-Eval` by
-  `scripts/download_data.py`; `target_wav.scp` and `target_provenance.json` are
+  `scripts/prep/download_data.py`; `target_wav.scp` and `target_provenance.json` are
   tracked, as is `data/near_duplicates_removed.json` (the prompt/target
   near-duplicates dropped from both sets and the panels). The VoxBlink2 selection
   provenance is kept (`data/in-the-wild/_stage_a/manifest.tsv`), and
@@ -62,8 +62,8 @@ A stdlib web explorer browses the resulting scores.
 
 ```
 ZTTS2-Eval/
-├── run_generate_*.sh            # TTS generation orchestrators (entry points)
-├── run_score.sh                 # evaluation/scoring orchestrator (entry point)
+├── scripts/gen/run_*.sh         # TTS generation orchestrators (entry points)
+├── scripts/score/run_score.sh                 # evaluation/scoring orchestrator (entry point)
 ├── scripts/                     # generation, scoring, data-prep, plotting, servers
 ├── utils/                       # reusable metric + text-norm modules
 ├── explorer/                    # stdlib HTTP web UI for browsing results
@@ -84,38 +84,38 @@ ZTTS2-Eval/
 ## Entry points (root `*.sh`)
 
 ### Generation → `results/<model>/<task>/<lang>/wavs/`
-- **`run_generate_zonos2.sh`** → starts/stops a Zonos2 Mini-SGLang server via
-  `scripts/serve_zonos2.sh` (`python -m zonos2`, from the `ZONOS2_HOME` checkout),
-  then runs `scripts/generate_zonos2.py` (`POST /tts/generate`). Pass `--server URL`
+- **`scripts/gen/run_zonos2.sh`** → starts/stops a Zonos2 Mini-SGLang server via
+  `scripts/gen/serve_zonos2.sh` (`python -m zonos2`, from the `ZONOS2_HOME` checkout),
+  then runs `scripts/gen/generate_zonos2.py` (`POST /tts/generate`). Pass `--server URL`
   to reuse an external server instead. `--accurate_mode {true|false}` = stable vs
   expressive.
-- **`run_generate_zonos3.sh`** → starts/stops a ZONOS3 Mini release minisgl server via
-  `scripts/serve_zonos3.sh` (`python -m zonos2`, from the `ZONOS3_HOME` checkout, never
+- **`scripts/gen/run_zonos3.sh`** → starts/stops a ZONOS3 Mini release minisgl server via
+  `scripts/gen/serve_zonos3.sh` (`python -m zonos2`, from the `ZONOS3_HOME` checkout, never
   reusing a server already on the port; three startup attempts on fresh port pairs), then
-  runs `scripts/generate_zonos3.py` (`POST /tts/generate`). `--speaker_mode
+  runs `scripts/gen/generate_zonos3.py` (`POST /tts/generate`). `--speaker_mode
   {reference|embedding}` selects the conditioning, `--laci true` LACI decoding; `--server
   URL` reuses an external server. `slurm/zonos3_gen_job.sh` is the 8-GPU node job.
-- **`run_generate_omni.sh`** → starts/stops a vLLM-Omni server via
-  `scripts/serve_omni.sh`, then runs `scripts/generate_omni.py`
+- **`scripts/gen/run_omni.sh`** → starts/stops a vLLM-Omni server via
+  `scripts/gen/serve_omni.sh`, then runs `scripts/gen/generate_omni.py`
   (`POST /v1/audio/speech`). Inline model registry: qwen3-tts, cosyvoice3, voxcpm2,
   voxtral-tts, moss-tts-nano, fish-s2-pro, etc. `OMNI_VENV` names a venv with the omni
   extra other than `.venv`; `--out_root` redirects a single model's leaves.
   `slurm/gen_job.sh` (`GEN_SERVER=1`) is the 8-GPU node job.
-- **Hosted providers**: `run_generate_gemini.sh`, `run_generate_elevenlabs.sh`
-  (+ `_clone`), `run_generate_cartesia.sh`, `run_generate_inworld.sh` →
-  `scripts/generate_<provider>.py`. Each reads its API key from an env var, takes
-  `--task`/`--test_set` like `run_generate_zonos3.sh` (language = data-dir basename,
+- **Hosted providers**: `scripts/gen/run_gemini.sh`, `scripts/gen/run_elevenlabs.sh`
+  (+ `_clone`), `scripts/gen/run_cartesia.sh`, `scripts/gen/run_inworld.sh` →
+  `scripts/gen/generate_<provider>.py`. Each reads its API key from an env var, takes
+  `--task`/`--test_set` like `scripts/gen/run_zonos3.sh` (language = data-dir basename,
   validated by `utils.genclient.benchmark_lang`) and writes `gen_meta.json`. One
   instance per provider account at a time (the clone purges are account-wide).
 
 ### Evaluation → scores written next to the wavs
-- **`run_score.sh --decode_dir <system results>/<task>`** → starts Qwen3-ASR and
-  Whisper-large-v3 via `scripts/serve_asr.sh` (routing is on by default;
+- **`scripts/score/run_score.sh --decode_dir <system results>/<task>`** → starts Qwen3-ASR and
+  Whisper-large-v3 via `scripts/score/serve_asr.sh` (routing is on by default;
   `ASR_ROUTING=0` is a diagnostic all-Qwen mode that `build_results.py` refuses), then
-  runs WER (`scripts/run_score_wer.sh` → `utils/run_wer.py`), speaker
-  similarity (`scripts/eval_speaker_similarity.py`), and MSR-UTMOS
-  (`utils/score_msr_utmos.py`) through the shared, version-aware loop in
-  `scripts/lib_infer_scoring.sh`; on `in-the-wild` also the held-out speaker-similarity
+  runs WER (`scripts/score/run_score_wer.sh` → `scripts/score/run_wer.py`), speaker
+  similarity (`scripts/score/eval_speaker_similarity.py`), and MSR-UTMOS
+  (`scripts/score/score_msr_utmos.py`) through the shared, version-aware loop in
+  `scripts/score/lib_infer_scoring.sh`; on `in-the-wild` also the held-out speaker-similarity
   pass against `target_wav.scp`. The task is the `--decode_dir` basename (or `--task`);
   `--test_set` defaults to its frozen basket (`python3 -m utils.benchmark langs <task>`).
 
@@ -131,8 +131,8 @@ ZTTS2-Eval/
 - `eval_speaker_similarity.py` — ReDimNet2 via torch.hub (pinned commit); cosine sim →
   `spk_simi_scores.txt` (vs the prompt) and, on ITW, `spk_simi_scores.xutt.txt` (vs the
   held-out target recording).
-- `utils/score_msr_utmos.py` — MSR-UTMOS MOS predictor → `msr_utmos_scores.txt` (the
-  canonical scorer wired into `run_score.sh` and `run_gt.sh`).
+- `scripts/score/score_msr_utmos.py` — MSR-UTMOS MOS predictor → `msr_utmos_scores.txt` (the
+  canonical scorer wired into `scripts/score/run_score.sh` and `run_gt.sh`).
 - `lib_infer_scoring.sh` — `score_lang_dir` and the version-aware resume gates (a leaf
   whose stamps are missing or stale is rescored).
 - `rescore_all.sh` — full rescore of every `results/<sys>/<task>/<lang>` leaf over
@@ -189,7 +189,7 @@ published RESULTS tables from it), `denoise.py` low-rank-shrinks item fingerprin
 `validate_delta.py` run leave-family-out and matched-pair power validation,
 `export_panel.py` writes a panel as a runnable `data/<task>/` directory, `score_panel.py`
 turns a panel run into a weighted estimate of the full score, `run.sh` drives the lot.
-`scripts/repair_wer_raw.py` (repo root of `scripts/`) repairs `.wer.raw` records split by
+`scripts/score/repair_wer_raw.py` (repo root of `scripts/`) repairs `.wer.raw` records split by
 tabs/newlines in the ASR hypothesis — the failure that leaves a footerless `.wer` and makes
 aggregators silently drop a leaf. See `docs/coreset.md`.
 
@@ -307,9 +307,9 @@ dirs); the GT/whisper baselines fold the task into the dir name and are flat —
   uniform repo-root `sys.path` bootstrap + `from utils.X import ...`.
 - **Config is distributed**, not centralized: environment variables (`ASR_*`,
   `OMNI_*`, `ZONOS2_*`, `VOXBLINK2_AUDIO_ROOT`), inline bash constants
-  (model registries in `run_generate_omni.sh`), and Python literals.
-- **Servers are sourced, not run:** `scripts/serve_asr.sh` and
-  `scripts/serve_omni.sh` define `start_*_server` / `stop_*_server` functions;
+  (model registries in `scripts/gen/run_omni.sh`), and Python literals.
+- **Servers are sourced, not run:** `scripts/score/serve_asr.sh` and
+  `scripts/gen/serve_omni.sh` define `start_*_server` / `stop_*_server` functions;
   orchestrator scripts source them and own the PID.
 
 ---
@@ -318,7 +318,7 @@ dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 
 - Inspect tracking: `git ls-files | grep -v ^data/`, `git status --short`.
 - Smoke test (no GPU): `python tests/smoke_test.py`.
-- Full pipeline (GPU + servers): `source scripts/serve_asr.sh; start_asr_server`,
-  then `bash run_score.sh --decode_dir results/<system>/clean --test_set en` against an existing
+- Full pipeline (GPU + servers): `source scripts/score/serve_asr.sh; start_asr_server`,
+  then `bash scripts/score/run_score.sh --decode_dir results/<system>/clean --test_set en` against an existing
   `results/` dir.
 - Browse results: `python explorer/serve.py --port 8000 --root .`.

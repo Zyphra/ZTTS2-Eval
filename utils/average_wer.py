@@ -1,30 +1,32 @@
 import json
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 
 # Runs as a script from utils/ and is also imported as utils.average_wer.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = str(Path(__file__).resolve().parents[1])
+sys.path.insert(0, REPO)
 from utils.text_norm import text_key  # noqa: E402
 
 # 95% CI on the per-utterance mean via a seeded percentile bootstrap. Per-utt WER
 # is bounded-below, skewed and heavy-tailed (a few >1.0 utts), so a normal-approx
 # SE understates the interval; the bootstrap needs no distributional assumption.
 # The seed is fixed so re-aggregating the same .raw file is byte-reproducible.
-# This module is import-safe: utils/score_msr_utmos.py imports boot_ci95/CI_BOOT/
+# This module is import-safe: scripts/score/score_msr_utmos.py imports boot_ci95/CI_BOOT/
 # CI_SEED from here (the canonical copy) instead of keeping its own.
 CI_BOOT = 10000
 CI_SEED = 20260717
 
 # Minimum scored/expected coverage before the aggregate is trusted. Below it the
 # .wer is still written in full (so the partial artifact stays inspectable) but
-# the exit code is non-zero, so scripts/run_score_wer.sh / resume gates see the failure instead
+# the exit code is non-zero, so scripts/score/run_score_wer.sh / resume gates see the failure instead
 # of a success-looking stub.
 MIN_COVERAGE = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))
 
 # Rows whose hypothesis is this sentinel were not transcribed at all: the reference
-# ASR could not read the generated audio, so utils/run_wer.py scored the utterance
+# ASR could not read the generated audio, so scripts/score/run_wer.py scored the utterance
 # as maximum error instead of dropping it (see the long note there). They are real
 # rows and belong in the mean -- excluding them is the survivor bias the imputation
 # exists to remove -- but the footer reports them separately so a leaf that is

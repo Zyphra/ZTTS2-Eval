@@ -20,10 +20,11 @@ import sys
 import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-RESULTS_ROOT = os.path.join(REPO_ROOT, "results")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+RESULTS_ROOT = os.path.join(REPO, "results")
 
-sys.path.insert(0, REPO_ROOT)
 from utils.benchmark import CLEAN_LANGS, ITW_LANGS  # noqa: E402
 
 # --- model labels -----------------------------------------------------------
@@ -64,11 +65,11 @@ def label(model_dir):
 # What each system is actually conditioned on. This is HARNESS POLICY, not a
 # model property alone, and it differs per system — derived from the generation
 # code, not from model cards:
-#   - scripts/omni_models.sh reftext_policy(): which vLLM-Omni clone models get
+#   - scripts/gen/omni_models.sh reftext_policy(): which vLLM-Omni clone models get
 #     `--no-ref-text` (audio-only) vs keep the reference transcript;
-#   - scripts/generate_omni.py: `--x-vector-only` sets x_vector_only_mode=True
+#   - scripts/gen/generate_omni.py: `--x-vector-only` sets x_vector_only_mode=True
 #     (the qwen3-tts Base task requires it to accept --no-ref-text);
-#   - scripts/generate_zonos2.py: audio-only clone via speaker_audio_base64,
+#   - scripts/gen/generate_zonos2.py: audio-only clone via speaker_audio_base64,
 #     fixed --seed 0, vendor sampling temperature 1.15;
 #   - the native generate_*.py recipes (kokoro/neutts/vibevoice/moss/cosyvoice).
 #
@@ -83,12 +84,12 @@ def label(model_dir):
 # unseeded server-default sampling; native recipes note their own defaults. Hosted APIs:
 # elevenlabs_* send seed 0 (provider best-effort); the other hosted APIs expose no seed.
 CONDITIONS = {
-    # zonos2 server (scripts/generate_zonos2.py): audio-only clone.
+    # zonos2 server (scripts/gen/generate_zonos2.py): audio-only clone.
     "zonos2_accurate": ("no-transcript",
                         "audio-only clone; accurate_mode=true; seed 0, temp 1.15 vendor sampling"),
     "zonos2_expressive": ("no-transcript",
                           "audio-only clone; accurate_mode=false; seed 0, temp 1.15 vendor sampling"),
-    # ZONOS3 Mini via the release minisgl server (scripts/generate_zonos3.py -> /tts/generate): audio-only clone.
+    # ZONOS3 Mini via the release minisgl server (scripts/gen/generate_zonos3.py -> /tts/generate): audio-only clone.
     "zonos3-mini_reference": ("no-transcript",
                               "release server, raw reference prefix (speaker_mode=reference), no transcript; seed 0, "
                               "T 0.75 top-k 80 top-p 0.69, rep 96×2.4, CFG 1, 0.2 s silence prefill, "
@@ -119,7 +120,7 @@ CONDITIONS = {
                                            "zonos3-mini_embedding otherwise"),
     # Continuation in-process (no server: /tts/generate cannot prefill the prompt's frames), gabriel's minisgl @ 2c78070.
     "zonos3-rate30-20k-r2grpo-reftext_embedding": ("with-transcript",
-                                                   "in-process TTSLLM (scripts/generate_zonos3_reftext.py): prompt "
+                                                   "in-process TTSLLM (scripts/gen/generate_zonos3_reftext.py): prompt "
                                                    "transcript + target text, the prompt's codec frames (edge "
                                                    "silence trimmed, top_db 35; last 2 frames, the clip's end-of-file "
                                                    "edge, dropped) prefilled after the 0.2 s silence "
@@ -127,7 +128,7 @@ CONDITIONS = {
                                                    "speaker embedding of the untrimmed prompt; checkpoint as "
                                                    "zonos3-rate30-20k-r2grpo_reference; sampling as "
                                                    "zonos3-mini_reference"),
-    # vLLM-Omni served (scripts/omni_models.sh reftext_policy + generate_omni.py);
+    # vLLM-Omni served (scripts/gen/omni_models.sh reftext_policy + generate_omni.py);
     # all unseeded, server-default sampling.
     "omni_voxcpm2": ("no-transcript", "--no-ref-text (reftext_policy); unseeded server defaults"),
     "omni_omnivoice": ("no-transcript", "--no-ref-text (reftext_policy); unseeded server defaults"),
@@ -157,7 +158,7 @@ CONDITIONS = {
                           "profile (32 concurrent); server sampling T 0.9 top-k 50 rep 1.1, CFG 1, seed 42 "
                           "per request; en zh only"),
     "omni_voxtral-tts": ("preset", "preset mode (task_type=CustomVoice); unseeded server defaults"),
-    # Upstream SGLang-Omni adapter server (scripts/generate_audio8.py -> /v1/audio/speech).
+    # Upstream SGLang-Omni adapter server (scripts/gen/generate_audio8.py -> /v1/audio/speech).
     "audio8-tts-realistic-0.6b": ("with-transcript",
                                   "SGLang-Omni adapter (Audio8_TTS@4eb54a6, sglang-omni@68a5723); prompt wav + "
                                   "transcript; T 0.8 top-p 0.95 top-k 50, ≤1024 frames; unseeded server sampling"),
@@ -204,7 +205,7 @@ CONDITIONS = {
                                 "runtime text normalization; temp 0.3, default seed; en fr de es pt only"),
     "neutts-2e": ("preset", "4 fixed speakers, deterministic per-utt rotation; prompt wav ignored"),
     "vibevoice-rt-0.5b": ("preset", "preset speaker embeddings, per-utt rotation; prompt wav ignored"),
-    # Hosted APIs (scripts/generate_{elevenlabs_clone,cartesia,inworld,gemini}.py)
+    # Hosted APIs (scripts/gen/generate_{elevenlabs_clone,cartesia,inworld,gemini}.py)
     "elevenlabs_v4_clone": ("no-transcript",
                             "hosted API eleven_v4 via /v1/text-to-dialogue; per-utterance instant voice clone "
                             "of the prompt wav (no transcript, no denoise), deleted after use; language_code "

@@ -20,7 +20,9 @@ from jiwer import process_words  # noqa: E402
 
 # Tokenize with the scorer's OWN prepare() (incl. normalize_ortho for ar/fa/he and
 # the zh trad->simplified fold) so edit boundaries match the scored WER exactly.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 from utils.per_uid import parse_wer  # noqa: E402
 from utils.text_norm import CHAR_LANGS, base_lang, prepare  # noqa: E402
 
@@ -98,7 +100,7 @@ def run(root):
                 continue
             # Rows the reference ASR never transcribed carry an <UNSCOREABLE:Reason>
             # sentinel instead of a hypothesis and a synthetic all-deletions edit
-            # decomposition (utils/run_wer.py). They are a real maximum-error score
+            # decomposition (scripts/score/run_wer.py). They are a real maximum-error score
             # but there is no transcript to classify, so they are not edits.
             if d["hyp_text"].startswith("<UNSCOREABLE"):
                 continue

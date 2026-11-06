@@ -29,8 +29,8 @@ speaker-recognition corpus of YouTube-derived clips.
   distributes *annotations only* (YouTube IDs, timestamps, speaker labels) and
   leaves audio retrieval to the user. The selection manifest for this subset lives
   at `data/in-the-wild/_stage_a/manifest.tsv`; the prepared audio can be
-  rebuilt from your own VoxBlink2 copy via `scripts/prepare_voxblink2_eval_stage_a.py`
-  and `scripts/prepare_voxblink2_eval_stage_b.py` (see the README). For takedown or
+  rebuilt from your own VoxBlink2 copy via `scripts/prep/prepare_voxblink2_eval_stage_a.py`
+  and `scripts/prep/prepare_voxblink2_eval_stage_b.py` (see the README). For takedown or
   privacy requests, contact the VoxBlink2 maintainers (see their site).
 - **Target recordings:** `data/in-the-wild/<lang>/target_wav/` holds, for each
   item, the real recording behind the target text (same speaker as the prompt, a

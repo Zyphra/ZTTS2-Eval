@@ -27,8 +27,8 @@
 # Env: PROBE_MODEL (1.5b|7b, default 7b), PROBE_LANGS, PROBE_N (utts per lang),
 #      PROBE_TASK, PROBE_ROOT.
 set +u
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
-[ -f scripts/serve_asr.sh ] || { echo "[probe] ERROR: not at repo root"; exit 1; }
+[ -f scripts/score/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
+[ -f scripts/score/serve_asr.sh ] || { echo "[probe] ERROR: not at repo root"; exit 1; }
 
 MODEL="${PROBE_MODEL:-7b}"
 TASK="${PROBE_TASK:-clean}"
@@ -53,13 +53,13 @@ echo "=== probe: model=${MODEL} task=${TASK} n=${N}/lang langs='${LANGS}' -> ${R
 # ---- 1. generate (small sample per language) --------------------------------
 for l in ${LANGS}; do
     [ -f "data/${TASK}/${l}/text" ] || { echo "[probe] skip ${l}: no data"; continue; }
-    bash run_generate_vibevoice15.sh --model "${MODEL}" --task "${TASK}" \
+    bash scripts/gen/run_vibevoice15.sh --model "${MODEL}" --task "${TASK}" \
         --test_set "${l}" --allow_unsupported true --limit "${N}" --out_root "${ROOT}" \
         || echo "[probe] generation failed for ${l}"
 done
 
 # ---- 2. score WER on what was generated -------------------------------------
-. scripts/serve_asr.sh
+. scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[probe] ERROR: ASR server failed"; exit 1; }
 maybe_start_whisper || exit 1
@@ -74,7 +74,7 @@ for l in ${LANGS}; do
     ls "${dd}/wavs" | sed 's/\.wav$//' | sort > "${dd}/.probe_uids"
     awk 'NR==FNR{k[$1];next} ($1 in k)' "${dd}/.probe_uids" "data/${TASK}/${l}/text" > "${dd}/.probe_text"
     echo "=== score ${l} ($(wc -l < "${dd}/.probe_text") utts) ==="
-    bash scripts/run_score_wer.sh "${dd}/.probe_text" "${dd}" "${l}" || echo "[probe] WER failed: ${l}"
+    bash scripts/score/run_score_wer.sh "${dd}/.probe_text" "${dd}" "${l}" || echo "[probe] WER failed: ${l}"
 done
 
 # ---- 3. report: duration ratio vs GT, next to WER ---------------------------

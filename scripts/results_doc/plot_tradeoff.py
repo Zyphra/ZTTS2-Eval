@@ -20,13 +20,13 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-OUT_DIR = os.path.join(REPO_ROOT, "assets", "plots")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+OUT_DIR = os.path.join(REPO, "assets", "plots")
 
-sys.path.insert(0, REPO_ROOT)
-sys.path.insert(0, SCRIPT_DIR)
 from utils.benchmark import langs_for  # noqa: E402
-from rd_common import (  # noqa: E402
+from scripts.results_doc.rd_common import (  # noqa: E402
     condition, index_records, label, load_snapshot, macro)
 
 TASKS = (("clean", "Clean (FLEURS-R)"), ("in-the-wild", "ITW (VoxBlink2)"))

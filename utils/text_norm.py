@@ -35,7 +35,7 @@ import num2words as _n2w
 import zhconv
 from jiwer import process_words
 
-# Every benchmark language code (mirrors utils/run_wer.py's WHISPER_LANG_CODE
+# Every benchmark language code (mirrors scripts/score/run_wer.py's WHISPER_LANG_CODE
 # keys, incl. the 'fil' alias for tl). base_lang() only recognizes codes listed
 # here, so a language missing from this set silently disables Whisper routing,
 # the abjad ortho fold and CER tokenization for compound leaf names.

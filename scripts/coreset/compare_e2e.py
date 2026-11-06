@@ -18,12 +18,12 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import Matrix  # noqa: E402
-from score_panel import (SET_OF_TASK, boot_ci, collect, read_panel_manifest,  # noqa: E402
+from scripts.coreset.common import Matrix  # noqa: E402
+from scripts.coreset.score_panel import (SET_OF_TASK, boot_ci, collect, read_panel_manifest,  # noqa: E402
                          weighted_macro)
 
 METRICS = ("wer_clip", "spk", "msr")
@@ -44,7 +44,7 @@ def main():
           f"{'err':>8s}{'in CI':>7s}{'langs':>7s}")
     n_cov = n_tot = n_unscored = 0
     for sysname in args.systems.split():
-        decode = os.path.join(REPO_ROOT, "results", sysname, args.task)
+        decode = os.path.join(REPO, "results", sysname, args.task)
         if not os.path.isdir(decode):
             print(f"{sysname:22s}(no panel run found)")
             n_unscored += 1

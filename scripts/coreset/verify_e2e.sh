@@ -5,7 +5,7 @@
 # The statistical claim (does the weighted estimator recover the macro-average?) is
 # already established offline by scripts/coreset/validate.py over ~9 held-out families.
 # What this script checks is the part offline validation cannot: that the exported
-# data/<task>/ directory really drives run_score.sh, that the scorers write per-uid
+# data/<task>/ directory really drives scripts/score/run_score.sh, that the scorers write per-uid
 # files the panel scorer can read, and that the weights are applied to the right items.
 #
 # To avoid paying for regeneration it reuses each system's EXISTING full-set wavs,
@@ -25,8 +25,8 @@
 #
 # This is a gate: any scoring failure, any system with no scored leaves, fails the job.
 set -euo pipefail
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
-[ -f scripts/serve_asr.sh ] || { echo "[e2e] ERROR: not at repo root"; exit 1; }
+[ -f scripts/score/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
+[ -f scripts/score/serve_asr.sh ] || { echo "[e2e] ERROR: not at repo root"; exit 1; }
 
 E2E_TASK=${E2E_TASK:-clean_mini}
 # One system that was in the selection pool, one from a family held out of it.
@@ -93,7 +93,7 @@ for sys in ${E2E_SYSTEMS}; do
 done
 
 # --- 2. score them with the unmodified pipeline ------------------------------------
-. scripts/serve_asr.sh
+. scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[e2e] ERROR: ASR server failed"; exit 1; }
 maybe_start_whisper || exit 1
@@ -108,7 +108,7 @@ for sys in ${E2E_SYSTEMS}; do
     done
     [ -n "${have}" ] || { echo "[e2e] ${sys}: nothing to score"; continue; }
     echo "=== [e2e] scoring ${sys} on ${E2E_TASK} ==="
-    bash run_score.sh --decode_dir "results/${sys}/${E2E_TASK}" --test_set "${have}"
+    bash scripts/score/run_score.sh --decode_dir "results/${sys}/${E2E_TASK}" --test_set "${have}"
 done
 stop_asr_server || true
 stop_whisper_server || true

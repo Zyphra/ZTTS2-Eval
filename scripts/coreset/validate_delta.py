@@ -29,11 +29,13 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import Fingerprints, Matrix, weighted_boot  # noqa: E402
-from panel_select import build_panel  # noqa: E402
-from validate import MIN_LEAF_COVERAGE  # noqa: E402
+from scripts.coreset.common import Fingerprints, Matrix, weighted_boot  # noqa: E402
+from scripts.coreset.panel_select import build_panel  # noqa: E402
+from scripts.coreset.validate import MIN_LEAF_COVERAGE  # noqa: E402
 
 # Pairs of systems from the same family -- the closest stand-ins this repo has for two
 # checkpoints of one model, which is what a Delta panel is meant to compare.

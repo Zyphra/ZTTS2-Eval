@@ -55,9 +55,11 @@ import sys
 import numpy as np
 from sklearn.cluster import KMeans
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import Fingerprints, Matrix, make_panel, save_panel  # noqa: E402
+from scripts.coreset.common import Fingerprints, Matrix, make_panel, save_panel  # noqa: E402
 
 MIN_PER_LANG = 12          # Mini: keep every language individually reportable
 # Delta panels are read only in aggregate as a paired difference, never per language, so

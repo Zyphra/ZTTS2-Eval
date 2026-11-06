@@ -47,7 +47,7 @@ case "${METRICS_KIND}" in
             --seed "${seed}" --key "${task}/${lang}"
         out="results/_mpm_ground_truth/${task}_${lang}.tsv"
         mkdir -p "${out%/*}"
-        "${py}" utils/score_mpm_shuffle_floor.py \
+        "${py}" scripts/prosody/score_mpm_shuffle_floor.py \
             --ref-dir "${work}/right" \
             --synth-dir "${work}/left" --label "gt_${task}" \
             --out "${out}" --seed "${seed}"

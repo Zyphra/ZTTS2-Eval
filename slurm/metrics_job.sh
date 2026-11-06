@@ -90,7 +90,7 @@ PYEOF
             exit 1
         fi
         mkdir -p results/_mpm_shuffle_floor
-        "${py}" utils/score_mpm_shuffle_floor.py \
+        "${py}" scripts/prosody/score_mpm_shuffle_floor.py \
             --ref-dir "${ref_dir}" \
             "${args[@]}" \
             --out "results/_mpm_shuffle_floor/${task}_${lang}.tsv" \
@@ -99,18 +99,18 @@ PYEOF
         ;;
 
     rhythm)
-        .venv/bin/python scripts/rhythm_dist.py \
+        .venv/bin/python scripts/prosody/rhythm_dist.py \
             --test-set "${task}" --lang "${lang}" \
             --workers "${SLURM_CPUS_PER_TASK:-16}"
         ;;
 
     pitch_range)
-        .venv/bin/python scripts/pitch_range_dist.py \
+        .venv/bin/python scripts/prosody/pitch_range_dist.py \
             --test-set "${task}" --lang "${lang}" \
             --workers "${SLURM_CPUS_PER_TASK:-28}"
         if [ "${task}" = in-the-wild ]; then
             # Same job as pitch_range_dist so the shared per-leaf pitch caches never race.
-            .venv/bin/python scripts/paired_itw.py --lang "${lang}" \
+            .venv/bin/python scripts/prosody/paired_itw.py --lang "${lang}" \
                 --workers "${SLURM_CPUS_PER_TASK:-28}"
         fi
         ;;

@@ -21,15 +21,15 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-DIST_DIR = os.path.join(REPO_ROOT, "results", "_mpm_shuffle_floor")
-GT_DIST_DIR = os.path.join(REPO_ROOT, "results", "_mpm_ground_truth")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+DIST_DIR = os.path.join(REPO, "results", "_mpm_shuffle_floor")
+GT_DIST_DIR = os.path.join(REPO, "results", "_mpm_ground_truth")
 CACHE = os.path.join(SCRIPT_DIR, "_cache")
 OUT = os.path.join(CACHE, "mpm_dist.json")
 
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import label as _clean, write_json_atomic  # noqa: E402
-sys.path.insert(0, REPO_ROOT)
+from scripts.results_doc.rd_common import label as _clean, write_json_atomic  # noqa: E402
 from utils.per_uid import parse_tsv  # noqa: E402
 
 ORDER = ["en", "de", "es", "fr", "it", "ja", "ko", "ru", "zh"]
@@ -75,7 +75,7 @@ def main():
 
     write_json_atomic(OUT, {"xmax": round(xmax + 0.05, 3), "systems": systems, "langs": langs},
                       separators=(",", ":"))
-    print(f"wrote {os.path.relpath(OUT, REPO_ROOT)} "
+    print(f"wrote {os.path.relpath(OUT, REPO)} "
           f"({len(langs)} langs, {len(systems)} systems, xmax {xmax:.2f})")
 
 

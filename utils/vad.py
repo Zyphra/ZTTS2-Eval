@@ -1,6 +1,6 @@
 """Speech segments from the pinned Silero VAD (utils.benchmark.SILERO_VAD), for metrics that
 must tell speech from non-speech regardless of level: the paired pause count
-(scripts/paired_itw.py) and the rhythm edges (scripts/rhythm_dist.py). An energy rule
+(scripts/prosody/paired_itw.py) and the rhythm edges (scripts/prosody/rhythm_dist.py). An energy rule
 relative to the peak cannot: background noise within 35 dB of the peak hides pauses, and a
 generated lead-in tone or noise burst reads as speech (docs/controls_2026-08.md C8, C9)."""
 import numpy as np

@@ -32,8 +32,9 @@ import sys
 
 import numpy as np
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
 from scripts.coreset.common import CI_BOOT, CI_SEED, Matrix  # noqa: E402
 

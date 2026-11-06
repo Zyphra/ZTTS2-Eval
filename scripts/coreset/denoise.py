@@ -34,10 +34,11 @@ import sys
 
 import numpy as np
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-OUT_DIR = os.path.join(REPO_ROOT, "assets", "coreset")
+OUT_DIR = os.path.join(REPO, "assets", "coreset")
 
 # Response metrics. spk is dropped for preset-voice engines, which do not clone the
 # prompt speaker at all -- their spk cells carry no information about the item.

@@ -16,7 +16,7 @@
 #          --cpus-per-task=14 --mem=100G --time=8:00:00 --chdir="$(pwd)" \
 #          --output=logs/slurm/ztts-ctl-spk-%j.out scripts/analysis/control_spk_embedder.sh
 set -euo pipefail
-[ -f scripts/eval_speaker_similarity.py ] || cd "$(dirname "$0")/../.." || exit 1
+[ -f scripts/score/eval_speaker_similarity.py ] || cd "$(dirname "$0")/../.." || exit 1
 
 LANGS="${CTL_LANGS:-en zh de th}"
 PY="${PY:-.venv/bin/python}"
@@ -36,7 +36,7 @@ for lg in ${LANGS}; do
       echo "[skip] ${d} (already scored)"; n_ok=$((n_ok+1)); continue
     fi
     echo "=== ctl-spk ${d} ==="
-    if "${PY}" scripts/eval_speaker_similarity.py \
+    if "${PY}" scripts/score/eval_speaker_similarity.py \
         --prompt_wavs "${pscp}" --hyp_wavs "${d}/wav.scp" \
         --log_file "${out}" --device cuda --dataset vox2; then
       n_ok=$((n_ok+1))

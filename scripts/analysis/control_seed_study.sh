@@ -20,7 +20,7 @@
 #     --time=24:00:00 --chdir="$(pwd)" --output=logs/slurm/ztts-seed-%j.out \
 #     --export=ALL,CTL_SYSTEM=voxcpm2,CTL_RUN=1 scripts/analysis/control_seed_study.sh
 set -e
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
+[ -f scripts/score/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
 
 SYSTEM="${CTL_SYSTEM:?set CTL_SYSTEM (zonos2_accurate|omnivoice-reftext|voxcpm2|fish-s2-pro)}"
 RUN="${CTL_RUN:?set CTL_RUN (1|2)}"
@@ -34,7 +34,7 @@ port=$(( 22000 + (job_id % 1000) * 20 ))
 if [ "${SYSTEM}" = zonos2_accurate ]; then
     leaf_root="${ROOT}/zonos2_accurate/${TASK}"
     # Published run used --seed 0; runs 1/2 use seeds 1/2 (same temp/topk/min_p).
-    bash run_generate_zonos2.sh --task "${TASK}" --test_set "${LANGS}" \
+    bash scripts/gen/run_zonos2.sh --task "${TASK}" --test_set "${LANGS}" \
         --out_root "${ROOT}/zonos2_accurate" --gpu 0 --port "${port}" \
         --accurate_mode true --gen_args "--seed ${RUN}"
 else
@@ -43,7 +43,7 @@ else
     # so a fresh run IS the sampling-variance probe. (If a backend turns out to be
     # deterministic, run-vs-published will be ~identical — that is a finding, not
     # a failure.)
-    bash run_generate_omni.sh --model "${SYSTEM}" --out_root "${ROOT}/omni_${SYSTEM}" \
+    bash scripts/gen/run_omni.sh --model "${SYSTEM}" --out_root "${ROOT}/omni_${SYSTEM}" \
         --task "${TASK}" --test_set "${LANGS}" --gpu 0 --port "${port}"
 fi
 
@@ -54,13 +54,13 @@ export ASR_GPU=0 WHISPER_GPU=0 SCORE_GPU=0 ASR_ROUTING=1
 export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
 srv="logs/slurm/servers/seed-${job_id}"; mkdir -p "${srv}"
 export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
-. scripts/serve_asr.sh
+. scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[seed-study] ERROR: ASR server failed"; exit 1; }
 maybe_start_whisper || exit 1
 
 PY=.venv/bin/python
-. scripts/lib_infer_scoring.sh
+. scripts/score/lib_infer_scoring.sh
 for lg in ${LANGS}; do
     score_lang_dir "data/${TASK}/${lg}" "${leaf_root}/${lg}" "${lg}"
 done

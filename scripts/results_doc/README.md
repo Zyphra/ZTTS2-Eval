@@ -34,8 +34,8 @@ plot_tradeoff.py           ──►  assets/plots/tradeoff_{clean,in-the-wild}.
 
 gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + emo_score.txt files)
 
-scripts/run_reliability.sh ──►  assets/plots/reliability_*.png + assets/reliability_gallery.html
-                                (tufte plates for the GT baselines, via scripts/build_reliability_gallery.py)
+scripts/plots/run_reliability.sh ──►  assets/plots/reliability_*.png + assets/reliability_gallery.html
+                                (tufte plates for the GT baselines, via scripts/plots/build_reliability_gallery.py)
 build_reliability.py       ──►  _cache/reliability.json     (interactive reliability payload for the explorer)
 build_speaking_rate.py     ──►  _cache/speaking_rate.json   (char/s d_ref + ECDF per system)
 build_mpm_dist.py          ──►  _cache/mpm_dist.json        (MPM GT-vs-system span per language)

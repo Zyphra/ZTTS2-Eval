@@ -11,11 +11,11 @@
 # Generate one system on 8-GPU nodes, one generator per GPU, one leaf (task x lang) per
 # driver call. The driver must take `--model M --task T --test_set LANG --out_root R
 # --limit N`:
-#   GEN_SERVER=0  in-process drivers (no server): run_generate_moss_tts.sh (MOSS-TTS
-#                 family), run_generate_ming3.sh (Ming-3.0-tts), run_generate_pocket_tts.sh,
-#                 run_generate_zonos3_reftext.sh, ... Each GPU's process sees only its GPU.
+#   GEN_SERVER=0  in-process drivers (no server): scripts/gen/run_moss_tts.sh (MOSS-TTS
+#                 family), scripts/gen/run_ming3.sh (Ming-3.0-tts), scripts/gen/run_pocket_tts.sh,
+#                 scripts/gen/run_zonos3_reftext.sh, ... Each GPU's process sees only its GPU.
 #   GEN_SERVER=1  drivers that start and stop their own server per call and also take
-#                 `--gpu N --port P --workers W`: run_generate_omni.sh (vLLM-Omni). Every
+#                 `--gpu N --port P --workers W`: scripts/gen/run_omni.sh (vLLM-Omni). Every
 #                 leaf starts its own server on its GPU (port window per GPU, server log
 #                 under logs/slurm/servers/<job>-g<gpu>/). The servers resolve the model
 #                 from the local HF cache only (HF_HUB_OFFLINE=1): pre-download it on a
@@ -23,13 +23,13 @@
 # Always submit as an ARRAY job (the %A_%a output name and the <array job>_<task> file
 # tags assume one), from the repo root:
 #
-#   GEN_DRIVER=run_generate_moss_tts.sh GEN_MODEL=moss-tts-v1.5 sbatch --parsable \
+#   GEN_DRIVER=scripts/gen/run_moss_tts.sh GEN_MODEL=moss-tts-v1.5 sbatch --parsable \
 #       --chdir="$(pwd -P)" --export=ALL --array=0-3 slurm/gen_job.sh
-#   GEN_DRIVER=run_generate_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --parsable \
+#   GEN_DRIVER=scripts/gen/run_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --parsable \
 #       --chdir="$(pwd -P)" --export=ALL --array=0-1 slurm/gen_job.sh
 #
 # Environment (--export=ALL):
-#   GEN_DRIVER     driver script in the repo root                             (required)
+#   GEN_DRIVER     driver script, scripts/gen/run_<name>.sh                   (required)
 #   GEN_MODEL      model key of the driver                                    (required)
 #   GEN_TASKS      space-separated tasks                 (default "clean in-the-wild")
 #   GEN_LANGS      only these langs; empty = each task's whole basket       (default '')
@@ -37,9 +37,9 @@
 #   GEN_SERVER     0 = in-process driver, 1 = server-launching driver        (default 0)
 #   GEN_WORKERS    concurrent requests per server (GEN_SERVER=1 only)        (default 16)
 #   GEN_OUT_ROOT   leaves land in <root>/<task>/<lang>
-#                  (default results/omni_<GEN_MODEL> for run_generate_omni.sh, else
+#                  (default results/omni_<GEN_MODEL> for scripts/gen/run_omni.sh, else
 #                  results/<GEN_MODEL>)
-#   OMNI_VENV      venv with vllm-omni installed (read by run_generate_omni.sh)
+#   OMNI_VENV      venv with vllm-omni installed (read by scripts/gen/run_omni.sh)
 #
 # Pending leaves (task x lang with a text uid lacking a wav) are listed once per array job
 # (first task to start, under a mkdir lock), largest first, and frozen. Each GPU takes the
@@ -67,7 +67,7 @@ case "${GEN_SERVER}" in
     0|1) ;;
     *) echo "[gen] ERROR: GEN_SERVER must be 0 or 1 (got '${GEN_SERVER}')" >&2; exit 1 ;;
 esac
-if [ "$(basename "${GEN_DRIVER}")" = run_generate_omni.sh ]; then
+if [ "$(basename "${GEN_DRIVER}")" = run_omni.sh ]; then
     GEN_OUT_ROOT=${GEN_OUT_ROOT:-results/omni_${GEN_MODEL}}
 else
     GEN_OUT_ROOT=${GEN_OUT_ROOT:-results/${GEN_MODEL}}
@@ -141,7 +141,7 @@ for ((s = 0; s < n_gpu; s++)); do
         export CUDA_MPS_PIPE_DIRECTORY=/tmp/nompss-${USER:-u}-${job}-${s}
         if [ "${GEN_SERVER}" = 1 ]; then
             # No CUDA_VISIBLE_DEVICES here: the driver's server script sets it from --gpu
-            # (scripts/serve_omni.sh), so exporting a device id as well would remap --gpu.
+            # (scripts/gen/serve_omni.sh), so exporting a device id as well would remap --gpu.
             export OMNI_LOG_DIR=logs/slurm/servers/${job}-g${s}
             mkdir -p "${OMNI_LOG_DIR}"
             port=$(( 20000 + (job % 1000) * 40 + s * 4 ))

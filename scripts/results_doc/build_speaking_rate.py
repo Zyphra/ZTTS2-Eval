@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build the explorer's speaking-rate payload — the interactive twin of
-scripts/speaking_rate_dist.py.
+scripts/prosody/speaking_rate_dist.py.
 
 The metric is a distributional distance between a system's per-utterance speaking
 rate (characters per second of ACTUAL SPEECH) and the reference set's, scored with
@@ -36,20 +36,18 @@ import sys
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 CACHE_DIR = os.path.join(SCRIPT_DIR, "_cache")
 OUT = os.path.join(CACHE_DIR, "speaking_rate.json")
 
 # reuse the exact metric (trim, cap, W2, ceiling, CI) — same import trick as
 # build_reliability.py reusing tufte_common.
-sys.path.insert(0, SCRIPTS_DIR)
-import speaking_rate_dist as sr  # noqa: E402
-sys.path.insert(0, REPO_ROOT)
+from scripts.prosody import speaking_rate_dist as sr  # noqa: E402
 from utils.ground_truth_split import split_indices  # noqa: E402
 from utils.scp import load_text  # noqa: E402
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import write_json_atomic  # noqa: E402
+from scripts.results_doc.rd_common import write_json_atomic  # noqa: E402
 
 # one label per test_set, mirroring build_reliability.py's dataset labels
 SET_LABEL = {
@@ -66,7 +64,7 @@ def quantiles(a):
 
 
 def langs_for(test_set, only):
-    base = os.path.join(REPO_ROOT, "data", test_set)
+    base = os.path.join(REPO, "data", test_set)
     if not os.path.isdir(base):
         return []
     out = []
@@ -79,7 +77,7 @@ def langs_for(test_set, only):
 
 
 def build_panel(test_set, lang, args):
-    base = os.path.join(REPO_ROOT, "data", test_set, lang)
+    base = os.path.join(REPO, "data", test_set, lang)
     systems = {} if args.ground_truth_only else sr.find_systems(test_set, lang)
     prompt_text = load_text(os.path.join(base, "prompt_text"))
     target_text = load_text(os.path.join(base, "text"))
@@ -193,7 +191,7 @@ def merge_shards(shard_dir, out_path, base_path=None):
     merged = {"P": P, "cap": cap, "panels": [panels[k] for k in sorted(panels)]}
     write_json_atomic(out_path, merged, separators=(",", ":"))
     print(f"merged {len(paths)} shards / {len(panels)} panels -> "
-          f"{os.path.relpath(out_path, REPO_ROOT)}")
+          f"{os.path.relpath(out_path, REPO)}")
 
 
 def main():
@@ -237,7 +235,7 @@ def main():
         print("[speaking_rate] no panels had inputs — writing empty payload", file=sys.stderr)
     out_path = os.path.abspath(args.out)
     write_json_atomic(out_path, out, separators=(",", ":"))
-    print(f"wrote {os.path.relpath(out_path, REPO_ROOT)} "
+    print(f"wrote {os.path.relpath(out_path, REPO)} "
           f"({os.path.getsize(out_path) / 1024:.0f} KB, {len(panels)} panels)")
 
 

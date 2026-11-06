@@ -411,7 +411,7 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
         if uid in pause:
             row["pause_alpha"] = pause[uid].get("effective_alpha", pause[uid].get("auto_alpha"))
         if uid in gen:
-            # Generated audio is <leaf>/wavs/<file> (scripts/lib_infer_scoring.sh). The
+            # Generated audio is <leaf>/wavs/<file> (scripts/score/lib_infer_scoring.sh). The
             # wav.scp path records where the leaf lived when it was scored (another
             # checkout, a pre-rename task dir), so only its file name is used.
             wav = os.path.join(rdir, "wavs", os.path.basename(gen[uid]))

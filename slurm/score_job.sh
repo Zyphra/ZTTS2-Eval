@@ -3,9 +3,9 @@
 # ASR/Whisper port window and the cgroup GPU pinned (the one allocated GPU is index 0).
 #
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-#          bash scripts/run_gt.sh --task clean
+#          bash scripts/score/run_gt.sh --task clean
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-#          bash run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
+#          bash scripts/score/run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
 #
 # Partition / account / QoS come from the submitter (sbatch flags or SBATCH_* env); none
 # is hard-coded here.
@@ -18,7 +18,7 @@
 #SBATCH --output=logs/slurm/%x-%j.out
 set -eo pipefail
 
-[ -f scripts/serve_asr.sh ] || { echo "submit with --chdir=<repo root>" >&2; exit 1; }
+[ -f scripts/score/serve_asr.sh ] || { echo "submit with --chdir=<repo root>" >&2; exit 1; }
 
 # Unique localhost ports per job so 1-GPU jobs packed onto one node never share a port
 # (same 4-port window as slurm/eval_job.sh).

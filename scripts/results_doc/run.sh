@@ -32,7 +32,7 @@ $PY plot_tradeoff.py
 echo "[gen_md]            write RESULTS_CURRENT.md"
 $PY gen_md.py
 echo "[run_reliability]   reliability plates + gallery from GT .wer.raw"
-PYTHON="$PY" bash "$REPO_ROOT/scripts/run_reliability.sh"
+PYTHON="$PY" bash "$REPO_ROOT/scripts/plots/run_reliability.sh"
 echo "[build_reliability] interactive reliability payload for the explorer"
 $PY build_reliability.py
 echo "[build_mpm_dist]    MPM GT-vs-system distribution overlap for the explorer"

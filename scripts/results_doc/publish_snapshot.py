@@ -27,9 +27,11 @@ import shutil
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 CACHE_DIR = os.path.join(SCRIPT_DIR, "_cache")
-PUBLISH_DIR = os.path.join(REPO_ROOT, "explorer", "snapshot")
+PUBLISH_DIR = os.path.join(REPO, "explorer", "snapshot")
 
 # The allowlist: the only files the explorer serves, and the ONLY things that get
 # committed out of the scratch cache. Keep this in sync with serve.py's PUBLISHED
@@ -76,7 +78,7 @@ def main():
             os.replace(tmp, dst)
             published.append(name)
 
-    rel = os.path.relpath(PUBLISH_DIR, REPO_ROOT)
+    rel = os.path.relpath(PUBLISH_DIR, REPO)
     if args.check:
         if missing:
             print(f"missing in _cache (build first): {', '.join(missing)}", file=sys.stderr)

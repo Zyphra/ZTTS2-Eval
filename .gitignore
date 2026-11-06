@@ -55,18 +55,18 @@ results/gt_clean/*/wav_res_ref_text.wer.raw.meta
 results/gt_in-the-wild/*/wav_res_ref_text.wer.raw.meta
 
 # Prompt audio (24 GB) is the Hugging Face dataset Zyphra/ZTTS2-Eval, fetched into
-# place by scripts/download_data.py; the coreset panels' tracked symlinks point here.
+# place by scripts/prep/download_data.py; the coreset panels' tracked symlinks point here.
 data/clean/*/waveform/
 data/in-the-wild/*/waveform/
 data/.cache/
 
 # Held-out target recordings of the ITW set ship on the HF dataset Zyphra/ZTTS2-Eval
-# (scripts/download_data.py); target_wav.scp / target_provenance.json are tracked.
+# (scripts/prep/download_data.py); target_wav.scp / target_provenance.json are tracked.
 data/in-the-wild/*/target_wav/
 
 # Per-leaf pitch-range caches (utils/pitch_range.ranges_cached) are regenerable.
 results/gt_clean/*/pitch_range.tsv
 results/gt_in-the-wild/*/pitch_range.tsv
-# Per-leaf char/s duration caches (scripts/speaking_rate_dist.durations) are regenerable.
+# Per-leaf char/s duration caches (scripts/prosody/speaking_rate_dist.durations) are regenerable.
 results/gt_clean/*/speaking_rate_durations.tsv
 results/gt_in-the-wild/*/speaking_rate_durations.tsv

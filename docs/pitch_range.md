@@ -1,6 +1,6 @@
 # Register-normalized pitch range
 
-`scripts/pitch_range_dist.py` (distribution), `scripts/paired_itw.py` (per-utterance,
+`scripts/prosody/pitch_range_dist.py` (distribution), `scripts/prosody/paired_itw.py` (per-utterance,
 In-The-Wild only) and `utils/pitch_range.py` (the F0 logic). Outputs:
 `results/pitch_range_<set>_<lang>.csv` and `results/paired_itw_<lang>.csv`.
 
@@ -72,8 +72,8 @@ nl are scored rather than skipped. Per-utterance ranges are cached as
 computed, and a cache written by another method is discarded.
 
 ```bash
-python scripts/pitch_range_dist.py --test-set in-the-wild --lang en
-python scripts/pitch_range_dist.py --test-set clean --lang de --models omni_voxcpm2
+python scripts/prosody/pitch_range_dist.py --test-set in-the-wild --lang en
+python scripts/prosody/pitch_range_dist.py --test-set clean --lang de --models omni_voxcpm2
 ```
 
 In the results report the headline column is `x_ceiling` (**Pitch range ×ceil**); the
@@ -107,7 +107,7 @@ reference.
 job, in that order (the `pitch_range` jobs of `slurm/submit_metrics.sh` do):
 
 ```bash
-python scripts/paired_itw.py --lang en
+python scripts/prosody/paired_itw.py --lang en
 ```
 
 ## Limits
@@ -129,7 +129,7 @@ python scripts/paired_itw.py --lang en
 
 ![melody carpet](../assets/plots/pitch_carpet_in-the-wild_en.png)
 
-`scripts/plot_pitch_carpet.py` — the pitch sibling of the rhythm pause carpet
+`scripts/plots/plot_pitch_carpet.py` — the pitch sibling of the rhythm pause carpet
 (`docs/rhythm.md`), showing the contour that a single number per utterance compresses.
 One panel per system, the same VoxBlink uids as the rhythm carpet (seed 0), each strip
 the utterance's pYIN F0 track from `utils/pitch_range.py` in semitones around its own

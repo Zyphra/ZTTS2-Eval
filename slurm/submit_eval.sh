@@ -57,7 +57,7 @@
 #   --dry-run     print the sbatch commands, don't submit         (default false)
 #
 # zonos2 server: by default each zonos2 job now LAUNCHES its own Zonos2 Mini-SGLang
-# server on the allocated GPU (scripts/serve_zonos2.sh), generates through it, stops
+# server on the allocated GPU (scripts/gen/serve_zonos2.sh), generates through it, stops
 # it, then reuses the GPU for scoring -- the same self-managed shape as the omni
 # engine. The server code lives in a separate checkout (set ZONOS2_HOME to a
 # ZONOS2 checkout) with its own venv; override via ZONOS2_* env or
@@ -107,17 +107,17 @@ esac
 # Resolve the list of "models" (job units) for the chosen engine.
 case "${engine}" in
     omni)
-        # Single source of truth: scripts/omni_models.sh (the registry both gen
+        # Single source of truth: scripts/gen/omni_models.sh (the registry both gen
         # drivers source) provides ALL_MODELS / NEW_MODELS / model_spec. Validate
-        # exactly like run_generate_omni.sh does: `--model all` sweeps ALL_MODELS,
+        # exactly like scripts/gen/run_omni.sh does: `--model all` sweeps ALL_MODELS,
         # and anything model_spec knows (NEW_MODELS, comparison variants like
         # omnivoice-reftext, retired keys) is submittable by explicit --model.
-        . scripts/omni_models.sh
+        . scripts/gen/omni_models.sh
         if [ "${model}" = all ]; then models="${ALL_MODELS}"; else models="${model}"; fi
         for m in ${models}; do
             if [ -z "$(model_spec "${m}")" ]; then
                 echo "error: unknown omni model '${m}'" 1>&2
-                echo "known: all ${ALL_MODELS} ${NEW_MODELS} (see scripts/omni_models.sh)" 1>&2
+                echo "known: all ${ALL_MODELS} ${NEW_MODELS} (see scripts/gen/omni_models.sh)" 1>&2
                 exit 1
             fi
         done
@@ -142,8 +142,8 @@ case "${engine}" in
         ;;
     moss-tts)
         # MOSS-TTS family (native): --model selects the variant, or "all" for every one.
-        # moss-tts-nano is RETIRED (decode bug) -- run_generate_moss_tts.sh still knows
-        # the variant, but it is out of the sweep. See scripts/omni_models.sh.
+        # moss-tts-nano is RETIRED (decode bug) -- scripts/gen/run_moss_tts.sh still knows
+        # the variant, but it is out of the sweep. See scripts/gen/omni_models.sh.
         ALL_MOSS="moss-tts moss-tts-v1.5 moss-tts-local moss-tts-local-v1.5"
         if [ "${model}" = all ]; then models="${ALL_MOSS}"; else models="${model}"; fi
         for m in ${models}; do

@@ -59,8 +59,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(SCRIPT_DIR, "_cache", "capability_index.json")
 SPEAKING_RATE = os.path.join(SCRIPT_DIR, "_cache", "speaking_rate.json")
 
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import (  # noqa: E402
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+from scripts.results_doc.rd_common import (  # noqa: E402
     PARAMS, RELEASES, SNAPSHOT_PATH, load_snapshot, rec_value, write_json_atomic)
 
 TASKS = ("clean", "in-the-wild")

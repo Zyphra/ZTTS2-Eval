@@ -14,7 +14,7 @@ were selected, how accurate they actually are, and — importantly — what they
 
 > **After the near-duplicate filter.** The ITW panels were selected at k = 2,000 / 200
 > and exported at 1,941 / 194 items (`k_actual`). Removing the prompt/target
-> near-duplicates from the full set (`scripts/drop_near_duplicates.py`,
+> near-duplicates from the full set (`scripts/prep/drop_near_duplicates.py`,
 > `data/near_duplicates_removed.json`) dropped 22 items from ITW Mini and 2 from ITW
 > Delta, so they now carry **1,919 / 192** items; the per-language weights were
 > renormalized to sum to 1 and `k_actual` decremented. No Clean panel item was
@@ -38,8 +38,8 @@ were selected, how accurate they actually are, and — importantly — what they
 A panel is an ordinary task directory, so nothing in the pipeline changes:
 
 ```bash
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
+bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
 ```
@@ -268,7 +268,7 @@ Everything is offline and CPU-only; it reads the per-utterance scores already in
 
 | Script | Does |
 |---|---|
-| `scripts/repair_wer_raw.py` | repairs `.wer.raw` records split by tabs/newlines in the ASR hypothesis |
+| `scripts/score/repair_wer_raw.py` | repairs `.wer.raw` records split by tabs/newlines in the ASR hypothesis |
 | `scripts/coreset/build_matrix.py` | assembles the system × item matrix; `--verify` reproduces the published RESULTS tables from it |
 | `scripts/coreset/denoise.py` | low-rank shrinkage of item fingerprints, rank by held-out-cell CV |
 | `scripts/coreset/panel_select.py` | the ten selectors, coverage quotas, budget allocation |
@@ -282,7 +282,7 @@ Everything is offline and CPU-only; it reads the per-utterance scores already in
 This one was found by the coreset work but is independent of it, and it matters more than
 the panels do.
 
-`utils/run_wer.py` sends a language to Whisper-large-v3 with the language forced when it
+`scripts/score/run_wer.py` sends a language to Whisper-large-v3 with the language forced when it
 is **not** in `QWEN_LANGS` (today `zh ko th vi hi fa`; at the time of this analysis `en`
 and `yo` were also on Qwen, and routing was opt-in via `ASR_ROUTING=1` — it is now the
 enforced default). The ground-truth
@@ -315,18 +315,18 @@ language-agnostic and unaffected). The In-The-Wild sweep was run after the `eval
 routing patch and appears unaffected.
 
 The benchmark-version-2 release supersedes these partial rescores:
-`scripts/rescore_all.sh` redoes every leaf (WER with routed ASR, both speaker-sim
+`scripts/score/rescore_all.sh` redoes every leaf (WER with routed ASR, both speaker-sim
 passes, MSR-UTMOS) so that all score files carry the version stamp.
 
 ## A data-integrity note
 
 Building the matrix surfaced a bug worth knowing about independently of coresets.
-`utils/run_wer.py` does not escape the ASR hypothesis, so a transcription containing a
+`scripts/score/run_wer.py` does not escape the ASR hypothesis, so a transcription containing a
 literal TAB or newline splits its own record in `wav_res_ref_text.wer.raw`;
 `utils/average_wer.py` then dies on that line and leaves a truncated `.wer` **with no
 `WER:` footer**. Anything reading the footer silently loses the entire leaf.
 
 Four leaves were affected, and three of them had silently dropped a language from
 the published 26-language clean-tail table — enough to reorder the top two systems.
-`scripts/repair_wer_raw.py` reassembles the records; it is idempotent and
+`scripts/score/repair_wer_raw.py` reassembles the records; it is idempotent and
 rewrites nothing that already parses.

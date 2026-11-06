@@ -9,7 +9,7 @@ whether a TTS model's WER in that language is interpretable at all.
 
 Source: `results/gt_clean/<lang>/wav_res_ref_text.wer` (and the in-the-wild twin).
 Per-utterance ref/hyp live in the un-committed `.wer.raw` (regenerable via
-`scripts/run_gt.sh` / `extract_voxblink_gt.py`).
+`scripts/score/run_gt.sh` / `extract_voxblink_gt.py`).
 
 ## The signal that separates the modes
 
@@ -98,7 +98,7 @@ ms vi hi` (clean) and most of the in-the-wild set. Read WER directly.
 
 The scoring endpoint (vLLM `/v1/audio/transcriptions`, OpenAI-compatible) *does*
 accept a `language` param — validated against the 58-language Whisper set — and the
-client (`utils/run_wer.py`) already sends it, but only for 9 langs (`LANG_HINT`: en
+client (`scripts/score/run_wer.py`) already sends it, but only for 9 langs (`LANG_HINT`: en
 zh de es fr it ja ko ru); every v2-added lang sends nothing.
 
 Extending the hint does **not** fix the tail. A/B on ~40 clips/lang, correct ISO
@@ -158,7 +158,7 @@ difficulty/normalization, Mode C), and `he` improves greatly but stays ~29% (Heb
 is hard for Whisper too, just no longer routed to Arabic/romanized).
 
 Whisper runs as a **drop-in vLLM server** on the same OpenAI endpoint the scorer
-already uses — `ASR_MODEL=openai/whisper-large-v3 bash scripts/serve_asr.sh` (vLLM
+already uses — `ASR_MODEL=openai/whisper-large-v3 bash scripts/score/serve_asr.sh` (vLLM
 0.21 auto-detects it and exposes `/v1/audio/transcriptions`, no extra flags). The
 server-path numbers above match the in-process run exactly, so `run_wer.py` needs
 only a base-URL switch to use it.

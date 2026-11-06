@@ -41,40 +41,40 @@ dependencies = [
     "tqdm",
     "PyYAML>=5.1.2",
     "pyloudnorm>=0.2.0",
-    "scikit-learn",          # scripts/rhythm_dist.py
+    "scikit-learn",          # scripts/prosody/rhythm_dist.py
     "pyarrow>=25.0.1",
 ]
 
 [project.optional-dependencies]
-# Native Google Gemini TTS for scripts/generate_gemini.py + run_generate_gemini.sh.
+# Native Google Gemini TTS for scripts/gen/generate_gemini.py + scripts/gen/run_gemini.sh.
 # Not needed for the core benchmark; install with:  uv sync --extra gemini
 gemini = [
     "google-genai>=2.25.0",
 ]
 
-# Official ElevenLabs TTS for scripts/generate_elevenlabs.py +
-# run_generate_elevenlabs.sh. Not needed for the core benchmark; install with:
+# Official ElevenLabs TTS for scripts/gen/generate_elevenlabs.py +
+# scripts/gen/run_elevenlabs.sh. Not needed for the core benchmark; install with:
 #   uv sync --extra elevenlabs
 elevenlabs = [
     "elevenlabs",
 ]
 
-# Inworld REST TTS for scripts/generate_inworld.py + run_generate_inworld.sh.
+# Inworld REST TTS for scripts/gen/generate_inworld.py + scripts/gen/run_inworld.sh.
 # No SDK -- just a raw HTTP client. Not needed for the core benchmark; install
 # with:  uv sync --extra inworld
 inworld = [
     "requests",
 ]
 
-# Cartesia (Sonic) REST TTS for scripts/generate_cartesia.py +
-# run_generate_cartesia.sh. No SDK -- raw HTTP client. Install with:
+# Cartesia (Sonic) REST TTS for scripts/gen/generate_cartesia.py +
+# scripts/gen/run_cartesia.sh. No SDK -- raw HTTP client. Install with:
 #   uv sync --extra cartesia
 cartesia = [
     "requests",
 ]
 
-# Extra MOS scorer run from the main .venv by run_score.sh:
-#   sfi-utmos -> utils/score_msr_utmos.py  (MSR-UTMOS parallel MOS predictor)
+# Extra MOS scorer run from the main .venv by scripts/score/run_score.sh:
+#   sfi-utmos -> scripts/score/score_msr_utmos.py  (MSR-UTMOS parallel MOS predictor)
 # Heavy transitive deps (lightning, ...), so kept optional;
 # install with:  uv sync --extra scorers
 scorers = [
@@ -88,8 +88,8 @@ viz = [
     "scipy",
 ]
 
-# vLLM-Omni: local multi-model TTS serving for scripts/generate_omni.py +
-# run_generate_omni.sh. A separate, fast-moving project; requires Python >=3.11
+# vLLM-Omni: local multi-model TTS serving for scripts/gen/generate_omni.py +
+# scripts/gen/run_omni.sh. A separate, fast-moving project; requires Python >=3.11
 # (the repo .venv is built on 3.12). Install with:  uv sync --extra omni
 omni = [
     # PyPI's wheel (0.20.0) predates the vLLM 0.25.1 wheel pinned in

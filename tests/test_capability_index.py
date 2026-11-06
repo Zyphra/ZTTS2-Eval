@@ -13,9 +13,8 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-sys.path.insert(0, str(REPO / "scripts" / "results_doc"))
 
-import build_capability_index as ci  # noqa: E402
+from scripts.results_doc import build_capability_index as ci  # noqa: E402
 
 
 def synthetic(capability, coverage):

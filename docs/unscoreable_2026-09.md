@@ -8,7 +8,7 @@ symmetrically, so it is the maintainer's call.* The call was made; this is the r
 
 ## The defect
 
-`utils/run_wer.py` wrote one `.raw` row per utterance it managed to transcribe.
+`scripts/score/run_wer.py` wrote one `.raw` row per utterance it managed to transcribe.
 An utterance it could not transcribe was recorded as UNSCORED in the sidecar and
 left out of the average. So every leaf mean was a **survivor mean**: the more of a
 system's output was untranscribable, the less of that output counted against the

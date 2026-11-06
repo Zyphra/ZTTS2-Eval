@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build the explorer's reliability payload — the interactive twin of the
-scripts/tufte_* reliability plates.
+scripts/plots/tufte_* reliability plates.
 
 The tufte_* plots (p99 CI, survival overlay, small multiples, slopegraph) all
 derive from one thing: per-series arrays of integer edit counts reconstructed
-from the GT `wav_res_ref_text.wer.raw` leaves (see scripts/tufte_common.py,
+from the GT `wav_res_ref_text.wer.raw` leaves (see scripts/plots/tufte_common.py,
 which we import so the tokenisation — and thus the edit counts — match exactly).
 
 This collapses those arrays into a compact, portable JSON the browser can render
@@ -25,16 +25,15 @@ import sys
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 CACHE_DIR = os.path.join(SCRIPT_DIR, "_cache")
 OUT = os.path.join(CACHE_DIR, "reliability.json")
 
-# tufte_common lives in scripts/ — reuse its exact loader + tokenisation.
-sys.path.insert(0, SCRIPTS_DIR)
-import tufte_common as tc  # noqa: E402
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import label as model_label, write_json_atomic  # noqa: E402
+# tufte_common lives in scripts/plots/ — reuse its exact loader + tokenisation.
+from scripts.plots import tufte_common as tc  # noqa: E402
+from scripts.results_doc.rd_common import label as model_label, write_json_atomic  # noqa: E402
 
 KS = [1, 3, 5, 10]          # slopegraph severity thresholds (match tufte_slopegraph)
 BOOT = 2000                 # bootstrap resamples for the p99 CI (match tufte_p99)
@@ -81,7 +80,7 @@ MODEL_MIN_N = 200           # drop smoke-test leaves (n≈3–8) — not measure
 
 def _has_inputs(globs):
     for g in globs:
-        if glob.glob(g) or glob.glob(os.path.join(REPO_ROOT, g)):
+        if glob.glob(g) or glob.glob(os.path.join(REPO, g)):
             return True
     return False
 
@@ -170,7 +169,7 @@ def _all_model_langs(task="clean"):
     """Every language any model actually produced for `task`, ordered basket-first."""
     files = []
     for eng in MODEL_ENGINE_GLOBS:
-        files += glob.glob(os.path.join(REPO_ROOT, eng, task, "*",
+        files += glob.glob(os.path.join(REPO, eng, task, "*",
                                         "wav_res_ref_text.wer.raw"))
     langs = {tc.base_lang(os.path.basename(os.path.dirname(f))) for f in files}
     return [l for l in MODEL_LANGS_9 if l in langs] + \
@@ -184,7 +183,7 @@ def _model_basket(task):
     the aggregate never demands languages no system has."""
     per_model = {}
     for eng in MODEL_ENGINE_GLOBS:
-        for f in glob.glob(os.path.join(REPO_ROOT, eng, task, "*",
+        for f in glob.glob(os.path.join(REPO, eng, task, "*",
                                         "wav_res_ref_text.wer.raw")):
             # <engine>_<model>/<task>/<lang>/wav_res_ref_text.wer.raw
             model = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(f))))
@@ -271,7 +270,7 @@ def main():
     if not out["datasets"]:
         print("[reliability] no datasets had inputs — writing empty payload", file=sys.stderr)
     write_json_atomic(OUT, out, separators=(",", ":"))
-    print(f"wrote {os.path.relpath(OUT, REPO_ROOT)} "
+    print(f"wrote {os.path.relpath(OUT, REPO)} "
           f"({os.path.getsize(OUT) / 1024:.0f} KB, {len(out['datasets'])} datasets)")
 
 

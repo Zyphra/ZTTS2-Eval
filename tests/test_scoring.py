@@ -20,9 +20,8 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-sys.path.insert(0, str(REPO / "scripts"))
 
 from utils import average_wer, benchmark  # noqa: E402
 from utils.text_norm import (KNOWN_LANGS, NUM2WORDS_LANGS, near_duplicate,  # noqa: E402
@@ -75,8 +74,8 @@ class RoutingTest(unittest.TestCase):
 
     def test_whisper_lang_without_server_is_a_hard_failure(self):
         with tempfile.TemporaryDirectory() as d:
-            r = subprocess.run([PY, "run_wer.py", str(self._manifest(d)), f"{d}/out.raw", "en"],
-                               cwd=REPO / "utils", env=_env(ASR_ROUTING="1"),
+            r = subprocess.run([PY, "scripts/score/run_wer.py", str(self._manifest(d)), f"{d}/out.raw",
+                                "en"], cwd=REPO, env=_env(ASR_ROUTING="1"),
                                capture_output=True, text=True)
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("routes to Whisper-large-v3 but WHISPER_BASE_URL is unset", r.stderr)
@@ -84,13 +83,13 @@ class RoutingTest(unittest.TestCase):
     def test_missing_wav_is_imputed_and_footer_is_stamped(self):
         with tempfile.TemporaryDirectory() as d:
             raw, wer = f"{d}/out.raw", f"{d}/out.wer"
-            r = subprocess.run([PY, "run_wer.py", str(self._manifest(d)), raw, "zh"],
-                               cwd=REPO / "utils", env=_env(ASR_ROUTING="0"),
+            r = subprocess.run([PY, "scripts/score/run_wer.py", str(self._manifest(d)), raw, "zh"],
+                               cwd=REPO, env=_env(ASR_ROUTING="0"),
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertTrue(Path(raw).read_text(encoding="utf-8").split("\t")[3]
                             .startswith("<UNSCOREABLE:missing_wav>"))
-            subprocess.run([PY, "average_wer.py", raw, wer], cwd=REPO / "utils", check=False,
+            subprocess.run([PY, "utils/average_wer.py", raw, wer], cwd=REPO, check=False,
                            capture_output=True, text=True)
             foot = Path(wer).read_text(encoding="utf-8")
         for line in ("WER_CLIP: 100.0", "N_IMPUTED: 1", "WER_TAIL50: 100.000",
@@ -123,7 +122,7 @@ class ClusteredBootstrapTest(unittest.TestCase):
 
 class SplitHalfGeometryTest(unittest.TestCase):
     def test_w2_fair_of_identical_samples_sits_at_the_ceiling(self):
-        import speaking_rate_dist as sr
+        from scripts.prosody import speaking_rate_dist as sr
         ref = np.random.default_rng(0).normal(15, 3, 1000)
         self.assertEqual(sr.w2(ref, ref), 0.0)
         ratio = sr.w2_fair(ref, ref) / sr.ceiling(ref)
@@ -146,21 +145,21 @@ class CharSecContentFilterTest(unittest.TestCase):
         return str(wavs)
 
     def test_only_utterances_the_asr_heard_are_scored(self):
-        import speaking_rate_dist as sr
+        from scripts.prosody import speaking_rate_dist as sr
         with tempfile.TemporaryDirectory() as d:
             files, share = sr.heard_files(self._leaf(d, [0.0, sr.MAX_WER, 0.75, None]))
         self.assertEqual([Path(f).stem for f in files], ["uttid_1", "uttid_2"])
         self.assertAlmostEqual(share, 0.5)
 
     def test_untranscribed_leaf_gets_no_char_s(self):
-        import speaking_rate_dist as sr
+        from scripts.prosody import speaking_rate_dist as sr
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(sr.heard_files(self._leaf(d, [None, None])), ([], 0.0))
 
     def test_duration_cache_rereads_a_regenerated_wav(self):
         # The per-leaf cache must not serve a stale duration after a wav is regenerated
         # in place (same name, new audio): rebuilds would silently keep the old char/s.
-        import speaking_rate_dist as sr
+        from scripts.prosody import speaking_rate_dist as sr
         tone = lambda s: (0.3 * np.sin(2 * np.pi * 200 * np.arange(int(s * 16000)) / 16000)).astype(np.float32)
         with tempfile.TemporaryDirectory() as d:
             wavs = Path(d) / "leaf" / "wavs"
@@ -178,7 +177,7 @@ class CharSecContentFilterTest(unittest.TestCase):
 
 class MpmSpanTest(unittest.TestCase):
     def test_span_anchors(self):
-        from utils.score_mpm_shuffle_floor import mpm_span
+        from scripts.prosody.score_mpm_shuffle_floor import mpm_span
         floor, noise = 2.0, 10.0
         self.assertEqual(mpm_span(floor, floor, noise), 0.0)
         self.assertEqual(mpm_span(noise, floor, noise), 1.0)
@@ -188,7 +187,7 @@ class MpmSpanTest(unittest.TestCase):
     def test_leading_and_trailing_silence_never_reach_the_features(self):
         # The FLEURS-R references carry ~2.45 s of edge silence and most systems almost
         # none; untrimmed, MPM span measured that padding instead of prosody.
-        from utils.score_mpm_shuffle_floor import SR, _load_wav
+        from scripts.prosody.score_mpm_shuffle_floor import SR, _load_wav
         t = np.arange(int(1.5 * SR)) / SR
         voice = (0.3 * np.sin(2 * np.pi * 180 * t) * (1 + 0.5 * np.sin(2 * np.pi * 3 * t))).astype(np.float32)
         padded = np.concatenate([np.zeros(SR, np.float32), voice, np.zeros(int(0.8 * SR), np.float32)])

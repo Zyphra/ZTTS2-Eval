@@ -66,13 +66,13 @@ sampling loop. Reviewed 2026-08-05, whole tree:
 
 The 1.5B and the realtime 0.5B need *different* versions of the same module names —
 `configuration_vibevoice.py` alone differs by 146 lines between them. Merging would
-break one model to serve the other. `run_generate_vibevoice.sh` (realtime 0.5B) points
-at `third_party/VibeVoice`; `run_generate_vibevoice15.sh` points here. Neither tree is
+break one model to serve the other. `scripts/gen/run_vibevoice.sh` (realtime 0.5B) points
+at `third_party/VibeVoice`; `scripts/gen/run_vibevoice15.sh` points here. Neither tree is
 on the other's `PYTHONPATH`.
 
 ## The 7B variant — weights provenance differs, and is weaker
 
-`run_generate_vibevoice15.sh --model 7b` runs **`vibevoice/VibeVoice-7B`**, which is
+`scripts/gen/run_vibevoice15.sh --model 7b` runs **`vibevoice/VibeVoice-7B`**, which is
 *not* a Microsoft repo. Microsoft withdrew VibeVoice-Large outright — `docs/vibevoice-tts.md`
 lists its weights as `Disabled` — and this is a third-party re-upload by the same party
 that published the code backup above.

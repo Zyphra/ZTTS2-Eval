@@ -19,17 +19,17 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-OUT = os.path.join(REPO_ROOT, "RESULTS_CURRENT.md")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+OUT = os.path.join(REPO, "RESULTS_CURRENT.md")
 CAP_INDEX = os.path.join(SCRIPT_DIR, "_cache", "capability_index.json")
 
-sys.path.insert(0, REPO_ROOT)
-sys.path.insert(0, SCRIPT_DIR)
 from utils.benchmark import (  # noqa: E402
     ASR_MODELS, BENCHMARK_VERSION, CLEAN_LANGS, ITW_LANGS, QWEN_LANGS, SPK_HUB_REF,
     SPK_HUB_REPO, SPK_VARIANT, data_uids, langs_for)
 # Shared display-label map, conditioning classes, snapshot loader and macro rule.
-from rd_common import (  # noqa: E402
+from scripts.results_doc.rd_common import (  # noqa: E402
     COND_LEGEND, COND_MARKER, condition, index_records, label, load_snapshot,
     macro, marked_label, n_covered, rec_value)
 
@@ -130,13 +130,13 @@ def _headline_header(cols):
 def dedup_counts():
     """{task: (n_before, n_after)} from data/near_duplicates_removed.json + data/, or None."""
     try:
-        with open(os.path.join(REPO_ROOT, "data", "near_duplicates_removed.json"),
+        with open(os.path.join(REPO, "data", "near_duplicates_removed.json"),
                   encoding="utf-8") as f:
             removed = json.load(f)["removed"]
         out = {}
         for task in (CLEAN, ITW):
             n_rem = sum(len(v) for k, v in removed.items() if k.split("/", 1)[0] == task)
-            tdir = os.path.join(REPO_ROOT, "data", task)
+            tdir = os.path.join(REPO, "data", task)
             n_now = sum(len(data_uids(task, l)) for l in sorted(os.listdir(tdir))
                         if os.path.isfile(os.path.join(tdir, l, "text")))
             out[task] = (n_now + n_rem, n_now, n_rem)
@@ -497,11 +497,11 @@ def render(recs, dedup=None, cap_index=None):
     W("  lowercase, Unicode punctuation strip, and digits expanded to words with")
     W("  `num2words` (languages without a `num2words` converter keep their digits —")
     W("  `utils/text_norm.py:NUM2WORDS_LANGS`); zh/ja/ko/th scored as CER")
-    W("  (`utils/run_wer.py`).")
+    W("  (`scripts/score/run_wer.py`).")
     W(f"- **ASR** is routed per language and the routing is enforced: {qwen_l} use")
     W(f"  `{asr_q[0]}` (revision `{asr_q[1]}`); every other language uses")
     W(f"  `{asr_w[0]}` (revision `{asr_w[1]}`). Both are served via vLLM")
-    W("  (`scripts/serve_asr.sh`). Revisions, language baskets and the version stamp")
+    W("  (`scripts/score/serve_asr.sh`). Revisions, language baskets and the version stamp")
     W("  live in `utils/benchmark.py`; every score file carries")
     W(f"  `BENCHMARK_VERSION: {BENCHMARK_VERSION}` and its scorer pin, and `build_results.py`")
     W("  refuses any input whose stamp does not match.")
@@ -514,27 +514,27 @@ def render(recs, dedup=None, cap_index=None):
     W("  checkpoint (`MSR_UTMOS_CKPT`).")
     W("- **Rhythm** = distance of the generated rhythm distribution (mHuBERT-147 features)")
     W("  to real speech, as pace and pause factors in units of the real-speech split-half")
-    W("  ceiling (`scripts/rhythm_dist.py`, `docs/rhythm.md`); lower is better.")
+    W("  ceiling (`scripts/prosody/rhythm_dist.py`, `docs/rhythm.md`); lower is better.")
     W("- **Pitch range** = 2-Wasserstein distance between the per-utterance p90−p10")
     W("  semitone-range distributions of generated and real speech, in units of the")
     W("  split-half ceiling, on a fixed 500-utterance sample per language")
-    W("  (`scripts/pitch_range_dist.py`, `docs/pitch_range.md`).")
+    W("  (`scripts/prosody/pitch_range_dist.py`, `docs/pitch_range.md`).")
     W("- **Paired ITW prosody** = per-utterance median |log2| duration ratio (generations")
     W("  with WER ≤ 20% only), mean absolute pause-count difference (pauses = gaps ≥ 0.2 s")
     W("  between Silero VAD speech segments) and median |log2|")
     W("  pitch-range ratio of each generation against the real target recording")
-    W("  (`scripts/paired_itw.py`); ITW only.")
+    W("  (`scripts/prosody/paired_itw.py`); ITW only.")
     W("- **Characters/s distance** = 2-Wasserstein distance between generated and")
     W("  reference speaking-rate distributions on the utterances the ASR heard with")
-    W("  WER ≤ 20% (`scripts/speaking_rate_dist.py`); lower is better.")
+    W("  WER ≤ 20% (`scripts/prosody/speaking_rate_dist.py`); lower is better.")
     W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
-    W("  by the contour-scrambled floor (1) (`utils/score_mpm_shuffle_floor.py`), on audio")
+    W("  by the contour-scrambled floor (1) (`scripts/prosody/score_mpm_shuffle_floor.py`), on audio")
     W("  with leading/trailing silence trimmed (`docs/controls_2026-08.md` C6). Clean")
     W("  set only — anchors collapse on in-the-wild audio (`docs/mpm_itw_limits.md`);")
     W("  values >1 are worse than contour-scrambled speech.")
     W("- **Reliability gallery** — per-language edit-distance survival/tail plates for")
     W("  the GT baselines: [`assets/reliability_gallery.html`](assets/reliability_gallery.html)")
-    W("  (`scripts/run_reliability.sh`).")
+    W("  (`scripts/plots/run_reliability.sh`).")
     W("- Empty cells (`—`) = test set not run for that model, or score file missing.")
     W("- Refresh by re-running `scripts/results_doc/run.sh` (or just `gen_md.py` if")
     W("  only the markdown layout changed).")

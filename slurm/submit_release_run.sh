@@ -45,11 +45,11 @@ sb() {
 J_tg=""; J_hf=""
 if [ "${skip_targets}" != "1" ]; then
     J_tg=$(sb --job-name=ztts-targets --cpus-per-task=16 --mem=64G --time=04:00:00 \
-        --wrap ".venv/bin/python scripts/build_voxblink_targets.py --import-from results/gt_in-the-wild")
+        --wrap ".venv/bin/python scripts/prep/build_voxblink_targets.py --import-from results/gt_in-the-wild")
     if [ -n "${HF_TOKEN:-}" ]; then
         J_hf=$(sb --job-name=ztts-hf-upload --dependency="afterok:${J_tg}" \
             --cpus-per-task=8 --mem=32G --time=10:00:00 \
-            --wrap ".venv/bin/python scripts/upload_release_data.py")
+            --wrap ".venv/bin/python scripts/prep/upload_release_data.py")
     else
         echo "HF upload skipped: HF_TOKEN unset"
     fi
@@ -58,11 +58,11 @@ after_tg=()
 if [ -n "${J_tg}" ]; then after_tg=(--dependency="afterok:${J_tg}"); fi
 
 J_rs=$(sbatch --parsable --chdir="${repo}" --export=ALL ${site_args[@]+"${site_args[@]}"} \
-    ${after_tg[@]+"${after_tg[@]}"} --array="0-$((nodes - 1))" scripts/rescore_all.sh)
+    ${after_tg[@]+"${after_tg[@]}"} --array="0-$((nodes - 1))" scripts/score/rescore_all.sh)
 J_gc=$(sb --job-name=ztts-gt-clean slurm/score_job.sh \
-    bash scripts/run_gt.sh --task clean)
+    bash scripts/score/run_gt.sh --task clean)
 J_gi=$(sb --job-name=ztts-gt-itw ${after_tg[@]+"${after_tg[@]}"} slurm/score_job.sh \
-    bash scripts/run_gt.sh --task in-the-wild)
+    bash scripts/score/run_gt.sh --task in-the-wild)
 
 # speaking is omitted: the final run.sh step recomputes char/s, GT halves included.
 out=$(METRICS_KINDS="mpm rhythm pitch_range" METRICS_FINALIZE=0 \

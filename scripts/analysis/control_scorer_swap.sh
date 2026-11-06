@@ -9,7 +9,7 @@
 # (*.whisperctl.*) so published scores are untouched. The readout is
 # difference-in-differences: qwen3's (whisper - qwen) WER shift vs the cohort's.
 #
-# Mechanism: QWEN_LANGS is env-overridable in utils/run_wer.py; shrinking it to
+# Mechanism: QWEN_LANGS is env-overridable in scripts/score/run_wer.py; shrinking it to
 # exclude en/zh routes them to Whisper with the language forced (WHISPER_LANG_CODE
 # lists en/zh for exactly this use).
 #
@@ -19,8 +19,8 @@
 #
 # NB: set +u -- serve_asr.sh references optional unset vars.
 set +u
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
-[ -f scripts/serve_asr.sh ] || { echo "[ctl-scorer] ERROR: not at repo root"; exit 1; }
+[ -f scripts/score/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
+[ -f scripts/score/serve_asr.sh ] || { echo "[ctl-scorer] ERROR: not at repo root"; exit 1; }
 
 LANGS="${CTL_LANGS:-en zh}"
 MODELS="${CTL_MODELS:-omni_qwen3-tts-1.7b omni_qwen3-tts-0.6b omni_fish-s2-pro omni_omnivoice-reftext omni_voxcpm2 zonos2_accurate gt_clean}"
@@ -34,7 +34,7 @@ export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
 srv="logs/slurm/servers/ctl-scorer-${job_id}"; mkdir -p "${srv}"
 export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
 
-. scripts/serve_asr.sh
+. scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[ctl-scorer] ERROR: ASR server failed"; exit 1; }
 maybe_start_whisper || exit 1

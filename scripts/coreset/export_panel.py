@@ -12,8 +12,8 @@ already expects, so **no generation or scoring code has to change**:
 
 Running the benchmark on a panel is then just:
 
-    bash run_generate_omni.sh --model <m> --task clean_mini --test_set en
-    bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+    bash scripts/gen/run_omni.sh --model <m> --task clean_mini --test_set en
+    bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 Original uids are preserved rather than renumbered, so any panel result can be traced
 back to the full set. Note the two sets differ in how they write prompt paths -- the
@@ -31,11 +31,11 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import Matrix, load_panel  # noqa: E402
+from scripts.coreset.common import Matrix, load_panel  # noqa: E402
 from utils.scp import load_scp, load_text  # noqa: E402
 
 SET_TASK = {"clean": "clean", "itw": "in-the-wild"}
@@ -46,14 +46,14 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
     M = Matrix(panel["set"])
     src_task = SET_TASK[panel["set"]]
     out_task = out_task or f"{src_task}_{panel['kind']}"
-    out_root = os.path.join(REPO_ROOT, "data", out_task)
+    out_root = os.path.join(REPO, "data", out_task)
 
     if os.path.exists(out_root):
         if not overwrite:
             sys.exit(f"error: {out_root} exists (pass --overwrite to replace)")
         shutil.rmtree(out_root)
 
-    manifest = {"source_panel": os.path.relpath(panel_path, REPO_ROOT),
+    manifest = {"source_panel": os.path.relpath(panel_path, REPO),
                 "set": panel["set"], "kind": panel["kind"],
                 "selector": panel["selector"], "k_requested": panel["k_requested"],
                 "source_task": src_task,
@@ -70,7 +70,7 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
         order = np.argsort(idx, kind="stable")
         idx, w = idx[order], w[order]
 
-        src = os.path.join(REPO_ROOT, "data", src_task, lang)
+        src = os.path.join(REPO, "data", src_task, lang)
         texts = load_text(os.path.join(src, "text"), missing_ok=True)
         ptexts = load_text(os.path.join(src, "prompt_text"), missing_ok=True)
         pwavs = load_scp(os.path.join(src, "prompt_wav.scp"), resolve=False, missing_ok=True)
@@ -95,7 +95,7 @@ def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=
             if not ptexts.get(uid, "").strip():
                 missing.append((lang, uid, "prompt_text"))
                 continue
-            abs_wav = src_wav if os.path.isabs(src_wav) else os.path.join(REPO_ROOT, src_wav)
+            abs_wav = src_wav if os.path.isabs(src_wav) else os.path.join(REPO, src_wav)
             abs_wav = os.path.realpath(abs_wav)
             base = os.path.basename(abs_wav)
             dst_wav = os.path.join(dst, "waveform", base)

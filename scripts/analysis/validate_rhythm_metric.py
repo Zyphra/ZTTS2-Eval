@@ -1,4 +1,4 @@
-"""Selectivity validation for the rhythm metric (scripts/rhythm_dist.py).
+"""Selectivity validation for the rhythm metric (scripts/prosody/rhythm_dist.py).
 
 Constructed-ground-truth design (results/prosody_metric_audit + FPD post-mortem:
 correlating ~12 systems against listeners has no power; perturbations with a
@@ -56,12 +56,12 @@ import tempfile
 
 import numpy as np
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(REPO, "scripts"))
-from speaking_rate_dist import w2, ceiling  # noqa: E402
-from rhythm_dist import (Tokenizer, load_dir, fit_kmeans, dims_for_wavs,
-                         DIMS, SR, FRAME_S)  # noqa: E402
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from scripts.prosody.speaking_rate_dist import w2, ceiling  # noqa: E402
+from scripts.prosody.rhythm_dist import (Tokenizer, load_dir, fit_kmeans, dims_for_wavs,
+                         DIMS, SR, FRAME_S)  # noqa: E402
 from utils import vad  # noqa: E402
 
 

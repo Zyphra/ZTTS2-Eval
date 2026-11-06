@@ -1,4 +1,4 @@
-"""Shared harness for the generation clients (scripts/generate_*.py).
+"""Shared harness for the generation clients (scripts/gen/generate_*.py).
 
 Consolidates the helpers that were previously copy-pasted (and drifting) across
 the API/server clients -- language detection, retry/backoff, audio decode +
@@ -19,10 +19,7 @@ import re
 import sys
 import time
 
-try:
-    from .scp import load_scp
-except ImportError:  # imported with utils/ itself on sys.path
-    from scp import load_scp  # type: ignore
+from .scp import load_scp
 
 
 # --- language helpers --------------------------------------------------------
@@ -70,10 +67,7 @@ def normalize_lang(s):
 def benchmark_lang(data_dir):
     """The benchmark language of a test-set dir (its basename); exits if it is not
     in the frozen Clean / ITW baskets."""
-    try:
-        from .benchmark import CLEAN_LANGS, ITW_LANGS
-    except ImportError:  # imported with utils/ itself on sys.path
-        from benchmark import CLEAN_LANGS, ITW_LANGS  # type: ignore
+    from .benchmark import CLEAN_LANGS, ITW_LANGS
     lang = os.path.basename(os.path.normpath(data_dir))
     if lang not in set(CLEAN_LANGS) | set(ITW_LANGS):
         sys.exit(f"error: {lang!r} is not a benchmark language (data dir {data_dir!r})")
@@ -432,6 +426,6 @@ def run_generate_loop(uids, generate, workers, desc, wav_dir):
           f"mean audio {mean_dur:.2f}s -> {wav_dir}")
     if fail:
         print(f"[warn] {fail} failed; scoring counts a missing wav as maximum error "
-              f"(utils/run_wer.py), so re-run to retry before scoring -- finished "
+              f"(scripts/score/run_wer.py), so re-run to retry before scoring -- finished "
               f"wavs are skipped.")
     return ok, skip, fail

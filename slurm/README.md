@@ -6,8 +6,8 @@ the model sweep out **one job per model**, so 8 omni models run in parallel acro
 GPUs/nodes rather than cycling sequentially on a single GPU. Each job **generates then
 scores** its model inside one 1-GPU allocation.
 
-This is a thin layer over the existing entry points (`run_generate_*`, `run_score.sh`,
-`scripts/serve_*.sh`); it does not change any generation or scoring logic.
+This is a thin layer over the existing entry points (`scripts/gen/run_*.sh`, `scripts/score/run_score.sh`,
+`scripts/gen/serve_*.sh`); it does not change any generation or scoring logic.
 
 ## Quick start
 
@@ -60,15 +60,15 @@ hard-coded and come from the submitter.
   scheme as `eval_job.sh`) and the allocated GPU pinned as index 0:
   ```bash
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-         bash scripts/run_gt.sh --task in-the-wild
+         bash scripts/score/run_gt.sh --task in-the-wild
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-         bash run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
+         bash scripts/score/run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
   ```
-- **`scripts/rescore_all.sh`** — array job (8 GPUs per node, `--requeue`) that fully
+- **`scripts/score/rescore_all.sh`** — array job (8 GPUs per node, `--requeue`) that fully
   rescores every `results/<system>/<task>/<lang>` leaf — WER with the routed ASR, both
   speaker-similarity passes, MSR-UTMOS — so every score file carries the benchmark
   version stamp. Leaves are dealt round-robin over node × GPU shards
-  (`sbatch --array=0-3 --chdir="$(pwd -P)" --export=ALL scripts/rescore_all.sh`), each
+  (`sbatch --array=0-3 --chdir="$(pwd -P)" --export=ALL scripts/score/rescore_all.sh`), each
   shard with its own ASR and Whisper servers. The resume gates are version-aware, so a
   requeued or rerun job resumes at the first stale leaf. Leaf failures are listed in
   `logs/slurm/rescore-all-<array job>-failed.txt` and do not fail the job (a shard
@@ -77,7 +77,7 @@ hard-coded and come from the submitter.
 - **`submit_metrics.sh` / `submit_ground_truth_metrics.sh`** — arrays for the
   distributional metrics: `speaking` (char/s), `mpm` (Clean only), `rhythm` (GPU) and
   `pitch_range` (CPU; on the In-The-Wild set the same job also runs
-  `scripts/paired_itw.py`), and for the ground-truth halves `speaking_gt`, `mpm_gt`.
+  `scripts/prosody/paired_itw.py`), and for the ground-truth halves `speaking_gt`, `mpm_gt`.
   They compose through the environment: `METRICS_PARTITION` / `METRICS_ACCOUNT` /
   `METRICS_QOS` (site; `submit_metrics.sh` also takes `METRICS_RESERVATION`), `METRICS_KINDS` (which arrays to
   submit), `METRICS_DEPENDENCY` (an `--dependency` string applied to every array), and
@@ -92,7 +92,7 @@ hard-coded and come from the submitter.
   `METRICS_WAIT_SYSTEMS="a b"` a row starts as soon as those systems' leaves for its
   language are complete, instead of after the generation jobs end.
 - **`zonos3_gen_job.sh`** — ZONOS3 Mini generation on 8-GPU nodes (array job; always
-  submit with `--array`): one `scripts/serve_zonos3.sh` server per GPU serving every mode
+  submit with `--array`): one `scripts/gen/serve_zonos3.sh` server per GPU serving every mode
   and language it is dealt. Leaves (mode × task × lang) go largest-first round-robin over
   array tasks × GPUs; existing wavs are skipped, so a requeue or resubmit resumes, and a
   dead server is restarted (at most 3 times per GPU). Environment: `ZONOS3_HOME`,
@@ -107,10 +107,10 @@ hard-coded and come from the submitter.
   ```
 - **`gen_job.sh`** — generation on 8-GPU nodes (array job; always submit with `--array`)
   for any driver taking `--model --task --test_set --out_root --limit` (`GEN_DRIVER`).
-  `GEN_SERVER=0` (default) is for in-process drivers such as `run_generate_moss_tts.sh`
-  and `run_generate_ming3.sh`, each GPU's process pinned with `CUDA_VISIBLE_DEVICES`;
+  `GEN_SERVER=0` (default) is for in-process drivers such as `scripts/gen/run_moss_tts.sh`
+  and `scripts/gen/run_ming3.sh`, each GPU's process pinned with `CUDA_VISIBLE_DEVICES`;
   `GEN_SERVER=1` is for drivers that start their own server and also take `--gpu --port
-  --workers` (`run_generate_omni.sh`), one server per leaf on its GPU, run with
+  --workers` (`scripts/gen/run_omni.sh`), one server per leaf on its GPU, run with
   `HF_HUB_OFFLINE=1` (download the model on a networked host first). The pending leaves
   (task × lang with a text uid lacking a wav) are listed once, largest first; each GPU
   claims the next leaf (atomic mkdir under `logs/slurm/ztts-gen-<array job>-claims/`), so
@@ -118,14 +118,14 @@ hard-coded and come from the submitter.
   wavs is rerun once, and a requeued task releases its own unfinished claims.
   Environment: `GEN_DRIVER` and `GEN_MODEL` (required), `GEN_TASKS`, `GEN_LANGS`,
   `GEN_LIMIT`, `GEN_SERVER`, `GEN_WORKERS` (default 16), `GEN_OUT_ROOT` (default
-  `results/omni_<model>` for `run_generate_omni.sh`, else `results/<model>`), `OMNI_VENV`.
+  `results/omni_<model>` for `scripts/gen/run_omni.sh`, else `results/<model>`), `OMNI_VENV`.
   It prints a `COVERAGE <system> <task> <lang> <got>/<want>` line per leaf and exits 1
   iff a leaf is left in `logs/slurm/ztts-gen-<array job>_<task>-failed.txt` (driver
   exited non-zero or the leaf ends below 98% coverage).
   ```bash
-  GEN_DRIVER=run_generate_moss_tts.sh GEN_MODEL=moss-tts-v1.5 sbatch --chdir="$(pwd -P)" \
+  GEN_DRIVER=scripts/gen/run_moss_tts.sh GEN_MODEL=moss-tts-v1.5 sbatch --chdir="$(pwd -P)" \
       --export=ALL --array=0-3 slurm/gen_job.sh
-  GEN_DRIVER=run_generate_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --chdir="$(pwd -P)" \
+  GEN_DRIVER=scripts/gen/run_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --chdir="$(pwd -P)" \
       --export=ALL --array=0-1 slurm/gen_job.sh
   ```
 - **`submit_release_run.sh`** — the whole release DAG, run from the repo root on the
@@ -192,7 +192,7 @@ client failed to connect`. Pointing at a private dir makes CUDA drive the GPU di
 ## zonos2 server
 
 Each zonos2 job now **launches its own** Zonos2 Mini-SGLang server on the allocated
-GPU (`scripts/serve_zonos2.sh` → `python -m zonos2`), generates through it, stops it,
+GPU (`scripts/gen/serve_zonos2.sh` → `python -m zonos2`), generates through it, stops it,
 then reuses the same GPU for scoring — the self-managed shape as the omni engine. The
 server code lives in a separate checkout (set `ZONOS2_HOME` to a ZONOS2 checkout with its own venv); override via `ZONOS2_*` env or
 `--model_path`. Pass `--server <URL>` to reuse an already-running external server

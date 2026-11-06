@@ -36,12 +36,12 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`), and, on the
   In-The-Wild set, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
   `Range |log2|`, from `paired_itw_<lang>.csv`).
-- **Reliability views** are the interactive twins of the `scripts/tufte_*` plates
+- **Reliability views** are the interactive twins of the `scripts/plots/tufte_*` plates
   (p99 + bootstrap CI, survival overlay, small multiples, slopegraph), rendered as
   native SVG from `reliability.json` — built by
-  `scripts/results_doc/build_reliability.py`, which reuses `scripts/tufte_common.py`
+  `scripts/results_doc/build_reliability.py`, which reuses `scripts/plots/tufte_common.py`
   so the edit counts match the plates exactly.
-- **Speaking-rate views** are the interactive twin of `scripts/speaking_rate_dist.py`
+- **Speaking-rate views** are the interactive twin of `scripts/prosody/speaking_rate_dist.py`
   (d ref · bootstrap CI ranking, and per-system pace distributions drawn from the char/s
   quantile functions), rendered from
   `speaking_rate.json` — built by `scripts/results_doc/build_speaking_rate.py`, which
@@ -201,7 +201,7 @@ data via `<script src>`.
   VoxBlink2 / ASR-backend) and a chart type (p99 · CI, survival overlay, small
   multiples, slopegraph). In the survival overlay, click a legend chip to drop or
   restore a language; best / least-reliable / most-catastrophic are auto-highlighted.
-- **speaking rate** view: `scripts/speaking_rate_dist.py` live — pick the test set,
+- **speaking rate** view: `scripts/prosody/speaking_rate_dist.py` live — pick the test set,
   then the language within it (the reliability view's two-row idiom; there are ~50
   panels, too many for one chip row), then a chart type. Switching test set keeps the
   current language where that set has it. **d · CI** ranks systems by how

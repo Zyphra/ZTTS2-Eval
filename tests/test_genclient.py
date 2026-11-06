@@ -20,7 +20,7 @@ from pathlib import Path
 from unittest import mock
 
 # Make `utils` importable regardless of how this file is launched.
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from utils import genclient as gc  # noqa: E402

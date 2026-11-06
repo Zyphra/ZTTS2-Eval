@@ -35,7 +35,7 @@ Both qwen3 systems score relatively *worse* once a non-family scorer is used. Th
 effect (0.5–0.7 WER_CLIP points) is the size of several adjacent rank gaps in the
 published base-9 table, where qwen3-tts-1.7b ranked first.
 
-**Adoption.** `en` was removed from `QWEN_LANGS` (`utils/run_wer.py`): English now
+**Adoption.** `en` was removed from `QWEN_LANGS` (`scripts/score/run_wer.py`): English now
 routes to Whisper-large-v3 with the language forced, exactly as the non-QWEN_LANGS
 tail always has. `zh` stays on Qwen3-ASR — its DiD is null, and Qwen is the better
 Chinese scorer on clean read speech (`docs/asr_whisper_vs_qwen.md`). All 55 English
@@ -179,7 +179,7 @@ absolute 0–0.2 window: a pure gain change manufactures span. The p95 per-utter
 normalization fix (`e / p95(e)`, clipped to [0,1]) was designed and validated
 (rank preservation τ +0.867) but never applied.
 
-**Design/adoption.** Applied at `utils/score_mpm_shuffle_floor.py` (the repo owns the
+**Design/adoption.** Applied at `scripts/prosody/score_mpm_shuffle_floor.py` (the repo owns the
 tokenization; the upstream ttsds package is untouched, preserving bit-identity for
 anyone calling it directly). The anchor cache key does *not* hash the featurization
 code, so the version tag was bumped `v3` → `v4` — without that, every anchor would
@@ -219,7 +219,7 @@ variant — `omnivoice-reftext` — while qwen3 and voxcpm2 were held at no-ref-
 systems introduced by the harness.
 
 **Design.** New registry keys `qwen3-tts-1.7b-reftext`, `qwen3-tts-0.6b-reftext`,
-`voxcpm2-reftext` (`scripts/omni_models.sh`, same model, ref_text kept — the
+`voxcpm2-reftext` (`scripts/gen/omni_models.sh`, same model, ref_text kept — the
 `omnivoice-reftext` idiom), generated and scored over the clean and in-the-wild sets
 so every no-ref system has a symmetric with-transcript row.
 
@@ -264,9 +264,9 @@ both sets, plus `vi` for 1.7b) are therefore published as **explicitly partial**
 their true coverage in the `N_SCORED:`/`N_EXPECTED:` footers (e.g. 1220/1256, 1277/1500)
 and Δ-vs-GT restricted to covered languages as usual. They were *not* silently dropped:
 averaging only the utterances that survived would flatter precisely the most broken
-configuration — the survivor bias `utils/run_wer.py` already guards against elsewhere.
+configuration — the survivor bias `scripts/score/run_wer.py` already guards against elsewhere.
 
-`ASR_TIMEOUT` is now an env knob on `utils/run_wer.py` (default unchanged at 60 s) so a
+`ASR_TIMEOUT` is now an env knob on `scripts/score/run_wer.py` (default unchanged at 60 s) so a
 future leaf with legitimately long audio can be scored without editing the scorer.
 
 **Open recommendation — taken on 2026-09-01, see `docs/unscoreable_2026-09.md`.** The
@@ -320,7 +320,7 @@ to real-speech-like spans — moss-tts 0.63 → 0.04, higgs-audio-v3 0.37 → 0.
 fish-s2-pro 0.85 → 0.20, ZONOS2 accurate 0.48 → 0.17 — while voxtral, which speaks in
 preset voices rather than the prompt's, stayed near the scrambled floor (1.01 → 0.97).
 
-**Design/adoption.** `utils/score_mpm_shuffle_floor.py` trims leading/trailing silence
+**Design/adoption.** `scripts/prosody/score_mpm_shuffle_floor.py` trims leading/trailing silence
 (`TRIM_TOP_DB = 35`) in `_load_wav`, the single loader for reference, systems and the
 ground-truth split, and the anchor cache tag moves `v4` → `v5` (the content hash cannot
 see featurization changes). The full FLEURS-R MPM array (35 languages × all systems) and
@@ -387,10 +387,10 @@ by ≤ 0.3×, but where a few utterances failed, those few dominate the W2 tail:
 | moss-tts-v1.5, ja | 9.1× | 3.0× | 92% |
 | qwen3-tts-0.6b-reftext, fr | 8.5× | 4.6× | 96% |
 
-**Design/adoption.** `scripts/speaking_rate_dist.py` scores char/s only on utterances
+**Design/adoption.** `scripts/prosody/speaking_rate_dist.py` scores char/s only on utterances
 whose WER in the leaf's `wav_res_ref_text.wer.raw` is ≤ `MAX_WER` = 0.2 (`heard_files`);
 a leaf with no transcription gets no char/s, and `heard_pct` reports the share kept.
-`scripts/paired_itw.py` applies the same rule to the duration columns only (`n_dur`
+`scripts/prosody/paired_itw.py` applies the same rule to the duration columns only (`n_dur`
 counts the pairs behind them; below 50 they are empty). Pauses and pitch range keep every
 pair. Intelligibility stays in WER and tail rate, where it is already scored. The real
 reference speech is not filtered.
@@ -451,7 +451,7 @@ negative in every language).
 score, now comes from Silero VAD (`utils.benchmark.SILERO_VAD`, v6.2.3 pinned by commit)
 at its default thresholds, on the peak-normalized file: a pause is a gap ≥ 0.2 s between
 two speech segments, on the generation and the real recording alike
-(`scripts/paired_itw.py`). Char/s, rhythm and pitch range keep the energy rule; their
+(`scripts/prosody/paired_itw.py`). Char/s, rhythm and pitch range keep the energy rule; their
 In-The-Wild figures, and voxtral's everywhere, carry this caveat.
 
 **Validation** (same 120 FLEURS-R `en` utterances; pauses/utt):

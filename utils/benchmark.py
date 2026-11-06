@@ -68,8 +68,8 @@ SPK_VARIANT = ("b6", "lm", "vb2+vox2_v0")
 MSR_UTMOS_CKPT = ("https://huggingface.co/sarulab-speech/MSR-UTMOS_w2v2_fold0/resolve/"
                   "2cbd24044e8dabcafc44bf801b19b4d59d557540/model.ckpt")
 MHUBERT = ("utter-project/mHuBERT-147", "7ad3fc0bc5106c58c9c13526abccad527150d135")
-# Silero VAD v6.2.3 (utils/vad.py): paired ITW pauses (scripts/paired_itw.py) and the rhythm
-# edge cut (scripts/rhythm_dist.py).
+# Silero VAD v6.2.3 (utils/vad.py): paired ITW pauses (scripts/prosody/paired_itw.py) and the rhythm
+# edge cut (scripts/prosody/rhythm_dist.py).
 SILERO_VAD = ("snakers4/silero-vad", "5cd7945676eb32225748052e2e6a0580e4686a08")
 
 

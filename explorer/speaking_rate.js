@@ -1,5 +1,5 @@
 /* ============================================================
-   ZTTS2 · Eval — speaking-rate views (scripts/speaking_rate_dist.py, live)
+   ZTTS2 · Eval — speaking-rate views (scripts/prosody/speaking_rate_dist.py, live)
    Interactive SVG twins of the char/s distributional metric, in the
    Zyphra theme. Reads /api/speaking_rate (built by
    scripts/results_doc/build_speaking_rate.py).

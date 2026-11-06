@@ -2,7 +2,7 @@
 
 Scores a sample of human reference clips raw and under pure gain changes
 (no other processing) with the same scorer the eval uses
-(utils/score_msr_utmos.py) and reports the per-clip score delta per
+(scripts/score/score_msr_utmos.py) and reports the per-clip score delta per
 condition. A level-invariant scorer returns deltas at zero; MSR-UTMOS does
 not (2026-09-08, 80 clips: -6 dB -> +0.042 mean, -12 dB -> +0.095).
 
@@ -29,9 +29,10 @@ import numpy as np
 import torch
 import torchaudio
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from utils.score_msr_utmos import load_model, score_wave  # noqa: E402
+from scripts.score.score_msr_utmos import load_model, score_wave  # noqa: E402
 
 GAINS_DB = (-6.0, -12.0, 3.0)
 PEAK_DBFS = -1.0

@@ -37,14 +37,15 @@ import wave
 
 import numpy as np
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from scripts.tufte_common import ref_token_count  # noqa: E402  exact run_wer.py tokenization
+from scripts.plots.tufte_common import ref_token_count  # noqa: E402  exact run_wer.py tokenization
 from utils.per_uid import load_leaf  # noqa: E402
 from utils.scp import load_msr_utmos_cache, load_scp, load_text  # noqa: E402
 
-OUT_DIR = os.path.join(REPO_ROOT, "assets", "coreset")
+OUT_DIR = os.path.join(REPO, "assets", "coreset")
 
 SETS = {
     "clean": {"task": "clean", "gt": "gt_clean", "asr_alt": "whisper_clean"},
@@ -134,7 +135,7 @@ def itw_prompt_msr():
     shipped ``_msr_utmos_cache.tsv``. This is the quality axis the set was stratified on
     (5 uniform bins over 1.0-4.0), so panels must keep it balanced.
     """
-    data = os.path.join(REPO_ROOT, "data", "in-the-wild")
+    data = os.path.join(REPO, "data", "in-the-wild")
     cache_path = os.path.join(data, "_msr_utmos_cache.tsv")
     man_path = os.path.join(data, "_stage_a", "manifest.tsv")
     if not (os.path.isfile(cache_path) and os.path.isfile(man_path)):
@@ -181,13 +182,13 @@ def build_items(task, langs, prompt_msr):
     """Ordered item list + metadata, in the order `data/<task>/<lang>/text` defines."""
     rows = []
     for lang in langs:
-        ldir = os.path.join(REPO_ROOT, "data", task, lang)
+        ldir = os.path.join(REPO, "data", task, lang)
         texts = load_text(os.path.join(ldir, "text"), missing_ok=True)
         prompts = load_scp(os.path.join(ldir, "prompt_wav.scp"), resolve=False, missing_ok=True)
         # Preserve file order (load_text keeps insertion order) for a deterministic axis.
         for uid, text in texts.items():
             pw = prompts.get(uid, "")
-            pw_abs = pw if os.path.isabs(pw) else os.path.join(REPO_ROOT, pw)
+            pw_abs = pw if os.path.isabs(pw) else os.path.join(REPO, pw)
             rows.append({
                 "lang": lang,
                 "uid": uid,
@@ -208,16 +209,16 @@ def build_items(task, langs, prompt_msr):
 # ---------------------------------------------------------------------------
 def leaf_dir(results_dir, task, lang):
     """Model leaves nest the task; GT/whisper baselines fold it into the dir name."""
-    flat = os.path.join(REPO_ROOT, "results", results_dir, lang)
+    flat = os.path.join(REPO, "results", results_dir, lang)
     if results_dir.startswith(("gt_", "whisper_")):
         return flat
-    return os.path.join(REPO_ROOT, "results", results_dir, task, lang)
+    return os.path.join(REPO, "results", results_dir, task, lang)
 
 
 def build_set(set_name, verbose=True):
     cfg = SETS[set_name]
     task = cfg["task"]
-    data_dir = os.path.join(REPO_ROOT, "data", task)
+    data_dir = os.path.join(REPO, "data", task)
     langs = sorted(d for d in os.listdir(data_dir)
                    if os.path.isdir(os.path.join(data_dir, d)) and not d.startswith("_"))
 
@@ -268,7 +269,7 @@ def build_set(set_name, verbose=True):
             scored = max(n_scored.values())
             coverage[(key, lang)] = scored / n_lang_items if n_lang_items else 0.0
             # Imputed cells ARE covered -- an utterance the reference ASR could not
-            # transcribe is scored as maximum error, not dropped (utils/run_wer.py).
+            # transcribe is scored as maximum error, not dropped (scripts/score/run_wer.py).
             # They are counted separately so systems_<set>.csv can say how much of a
             # row is measurement, which coverage alone can no longer distinguish.
             imputed[(key, lang)] = sum(

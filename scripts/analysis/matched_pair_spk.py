@@ -21,7 +21,8 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 # Canonical spk_simi_scores.txt parser -- do NOT re-implement it here. The local
 # copy this replaced accepted 2-field lines (parse_spk requires the full
 # '<uid> <ref> <hyp>' 3-field row), a silent semantic divergence.

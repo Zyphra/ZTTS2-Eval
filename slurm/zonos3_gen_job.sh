@@ -36,7 +36,7 @@
 # 1 iff any leaf is left in logs/slurm/ztts-zonos3-gen-<array job>_<task>-failed.txt.
 set -uo pipefail
 
-[ -f run_generate_zonos3.sh ] || { echo "[zonos3-gen] ERROR: run from the repo root (sbatch --chdir)" >&2; exit 1; }
+[ -f scripts/gen/run_zonos3.sh ] || { echo "[zonos3-gen] ERROR: run from the repo root (sbatch --chdir)" >&2; exit 1; }
 [ -d "${ZONOS3_HOME:-}" ] || { echo "[zonos3-gen] ERROR: ZONOS3_HOME is not set to a directory" >&2; exit 1; }
 [ -n "${Z3_TASKS:-}" ] || { echo "[zonos3-gen] ERROR: Z3_TASKS is empty" >&2; exit 1; }
 Z3_MODES=${Z3_MODES:-"reference embedding"}
@@ -84,7 +84,7 @@ for ((s = 0; s < n_gpu; s++)); do
         export ZONOS3_MAX_RUNNING=${Z3_MAX_RUNNING}
         export ZONOS3_LOG=${srv_dir}/gpu${s}.log
         export CUDA_MPS_PIPE_DIRECTORY=/tmp/nompss-${USER:-u}-${job}-${s}
-        . scripts/serve_zonos3.sh
+        . scripts/gen/serve_zonos3.sh
         trap stop_zonos3_server EXIT
         trap 'stop_zonos3_server; exit 143' INT TERM
 
@@ -99,7 +99,7 @@ for ((s = 0; s < n_gpu; s++)); do
             start_zonos3_server
         }
         run_leaf() {
-            bash run_generate_zonos3.sh --server "${ZONOS3_BASE_URL}" --speaker_mode "$1" \
+            bash scripts/gen/run_zonos3.sh --server "${ZONOS3_BASE_URL}" --speaker_mode "$1" \
                 --task "$2" --test_set "$3" --out_root "results/${Z3_SYSTEM}_$1" \
                 --workers "${Z3_MAX_RUNNING}" --limit "${Z3_LIMIT}" --laci "${Z3_LACI}" < /dev/null
         }

@@ -48,11 +48,11 @@ import sys
 
 import numpy as np
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(REPO, "scripts"))
-from rhythm_dist import w2_fair  # noqa: E402
-from speaking_rate_dist import boot_ci, ceiling, w2  # noqa: E402
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from scripts.prosody.rhythm_dist import w2_fair  # noqa: E402
+from scripts.prosody.speaking_rate_dist import boot_ci, ceiling, w2  # noqa: E402
 from utils.per_uid import parse_score_path  # noqa: E402
 
 SCORE_FILE = "msr_utmos_scores.txt"

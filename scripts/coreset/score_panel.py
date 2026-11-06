@@ -29,11 +29,11 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import CI_BOOT, CI_SEED, Matrix, weighted_boot  # noqa: E402
+from scripts.coreset.common import CI_BOOT, CI_SEED, Matrix, weighted_boot  # noqa: E402
 from utils.per_uid import load_leaf  # noqa: E402
 
 METRIC_KEY = {"wer_clip": "wer_clip", "spk": "spk", "msr": "msr"}
@@ -44,7 +44,7 @@ SET_OF_TASK = {"clean": "clean", "in-the-wild": "itw"}
 
 
 def read_panel_manifest(task):
-    path = os.path.join(REPO_ROOT, "data", task, "panel.json")
+    path = os.path.join(REPO, "data", task, "panel.json")
     if not os.path.isfile(path):
         sys.exit(f"error: {path} not found — is {task} an exported panel?")
     with open(path, encoding="utf-8") as fh:

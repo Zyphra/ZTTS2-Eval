@@ -4,21 +4,21 @@ paired ITW prosody; refuse inputs that are not ZTTS2-Eval <BENCHMARK_VERSION>.""
 import collections, csv, os, re, json, sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 CACHE = os.path.join(SCRIPT_DIR, "_cache")
 os.makedirs(CACHE, exist_ok=True)
 
-ROOT = os.path.join(REPO_ROOT, "results")
-DATA = os.path.join(REPO_ROOT, "data")
+ROOT = os.path.join(REPO, "results")
+DATA = os.path.join(REPO, "data")
 OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
-sys.path.insert(0, REPO_ROOT)
 from utils.per_uid import (CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf,  # noqa: E402
                            parse_tsv, parse_wer as parse_wer_rows)
 from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_panel_alias,  # noqa: E402
                              langs_for, leaf_problems)
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import write_json_atomic  # noqa: E402
+from scripts.results_doc.rd_common import write_json_atomic  # noqa: E402
 
 try:                      # only the coreset bootstrap needs it; the rest is stdlib
     import numpy as np
@@ -30,7 +30,7 @@ except ImportError:
 # items happened to be scored, not of the panel.
 MIN_PANEL_COVERAGE = 0.9
 
-# Shuffle-floor MPM (utils/score_mpm_shuffle_floor.py): a distributional prosody
+# Shuffle-floor MPM (scripts/prosody/score_mpm_shuffle_floor.py): a distributional prosody
 # metric with a token-space noise floor. Two readouts per (system, language):
 #   score = d_noise/(d_ref+d_noise)*100   -- bounded but saturating
 #   span  = (d_ref - d_ref_floor)/(d_noise_floor - d_ref_floor)
@@ -93,7 +93,7 @@ def stamp_current(path, system, version):
     """True iff `version` is the current benchmark version; else record the row."""
     if version == BENCHMARK_VERSION:
         return True
-    _STALE[(os.path.relpath(path, REPO_ROOT), version)].add(system)
+    _STALE[(os.path.relpath(path, REPO), version)].add(system)
     return False
 
 
@@ -143,8 +143,8 @@ def load_mpm():
 MPM = load_mpm()
 
 
-# Prosody CSVs written by scripts/rhythm_dist.py, scripts/pitch_range_dist.py and
-# scripts/paired_itw.py into results/. Each file is one (task, lang); a row is one
+# Prosody CSVs written by scripts/prosody/rhythm_dist.py, scripts/prosody/pitch_range_dist.py and
+# scripts/prosody/paired_itw.py into results/. Each file is one (task, lang); a row is one
 # system. The task is the file-name prefix after <prefix>_ (see split_task_lang).
 PROSODY = {}      # (model, task, lang) -> {record key: value}
 _PROSODY_TASKS = ("in-the-wild", "clean")
@@ -645,7 +645,7 @@ def collect_all():
         for p in problems:
             print(p, file=sys.stderr)
         sys.exit(f"build_results: {len(problems)} input(s) are not ZTTS2-Eval "
-                 f"{BENCHMARK_VERSION}; rescore (scripts/rescore_all.sh, "
+                 f"{BENCHMARK_VERSION}; rescore (scripts/score/rescore_all.sh, "
                  "slurm/submit_metrics.sh) or list the leaf in "
                  "scripts/results_doc/excluded_leaves.txt")
 

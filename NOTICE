@@ -30,12 +30,12 @@ ReDimNet2 (PalabraAI) — speaker-similarity embeddings; loaded via torch.hub
   License: MIT
   https://github.com/PalabraAI/redimnet2
 
-MSR-UTMOS / sfi-utmos — MOS prediction (utils/score_msr_utmos.py)
+MSR-UTMOS / sfi-utmos — MOS prediction (scripts/score/score_msr_utmos.py)
   License: MIT
   https://github.com/sarulab-speech/msr-utmos
 
 mHuBERT-147 (utter-project/mHuBERT-147) — multilingual speech encoder for the rhythm
-  metric (scripts/rhythm_dist.py); fetched at a pinned revision
+  metric (scripts/prosody/rhythm_dist.py); fetched at a pinned revision
   License: CC-BY-NC-SA-4.0 (model card)
   https://huggingface.co/utter-project/mHuBERT-147
 
@@ -43,8 +43,8 @@ num2words — digit-to-word expansion in the WER text prep (utils/text_norm.py)
   License: LGPL
   https://github.com/savoirfairelinux/num2words
 
-TTSDS2 (ttsds 2.1.1) — Masked Prosody Model for the MPM span (utils/score_mpm_shuffle_floor.py);
-  installed by scripts/setup_ttsds_env.sh
+TTSDS2 (ttsds 2.1.1) — Masked Prosody Model for the MPM span (scripts/prosody/score_mpm_shuffle_floor.py);
+  installed by scripts/setup/setup_ttsds_env.sh
   License: MIT
   https://github.com/ttsds/ttsds
 

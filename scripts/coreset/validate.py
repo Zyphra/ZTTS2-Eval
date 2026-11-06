@@ -33,11 +33,13 @@ import time
 import numpy as np
 from scipy import stats
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import (Fingerprints, Matrix, OUT_DIR, SIGN_GAP_EDGES, check_weights,  # noqa: E402
+from scripts.coreset.common import (Fingerprints, Matrix, OUT_DIR, SIGN_GAP_EDGES, check_weights,  # noqa: E402
                     load_validation_rows, mae_cells, mean_se, pairwise_sign_stats)
-from panel_select import build_panel  # noqa: E402
+from scripts.coreset.panel_select import build_panel  # noqa: E402
 
 EVAL_METRICS = ("wer_clip", "spk", "msr")
 STOCHASTIC = {"random_global", "random_perlang", "strat_meta", "strat_response", "strat_quantile"}

@@ -6,7 +6,7 @@ Run from the repo root with either:
 
 Covers the shared scp helpers (utils.scp), the average_wer aggregation, the
 wav/text join, the explorer server API, plus an import-check of every
-scripts/generate_*.py client and a light touch on utils/genclient.py's pure
+scripts/gen/generate_*.py client and a light touch on utils/genclient.py's pure
 helpers (full coverage lives in tests/test_genclient.py). It does NOT import
 the heavy scoring drivers (torch / vllm), so it stays fast and runnable
 anywhere.
@@ -25,7 +25,7 @@ import urllib.request
 from pathlib import Path
 
 # Make `utils` importable regardless of how this file is launched.
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from utils.scp import load_scp, load_scp_items, load_text  # noqa: E402
@@ -81,7 +81,7 @@ class ScpTest(unittest.TestCase):
 
 
 class EntryPointValidationTest(unittest.TestCase):
-    """run_score.sh / scripts/lib_gen.sh reject bad arguments before any server starts."""
+    """scripts/score/run_score.sh / scripts/gen/lib_gen.sh reject bad arguments before any server starts."""
 
     def _run(self, *cmd):
         t0 = time.monotonic()
@@ -89,22 +89,22 @@ class EntryPointValidationTest(unittest.TestCase):
         return proc, time.monotonic() - t0
 
     def test_run_score_requires_decode_dir(self):
-        proc, _ = self._run("bash", "run_score.sh")
+        proc, _ = self._run("bash", "scripts/score/run_score.sh")
         self.assertEqual(proc.returncode, 1)
         self.assertIn("--decode_dir is required", proc.stderr)
 
     def test_run_score_unknown_task_fails_fast(self):
-        proc, dt = self._run("bash", "run_score.sh", "--decode_dir", "/tmp/x/bogus")
+        proc, dt = self._run("bash", "scripts/score/run_score.sh", "--decode_dir", "/tmp/x/bogus")
         self.assertEqual(proc.returncode, 1)
         self.assertIn("unknown task 'bogus'", proc.stderr)
         self.assertLess(dt, 5.0)  # the ASR servers never started
 
     def test_gen_langs_basket_filter_and_unknown_task(self):
         proc, _ = self._run("bash", "-c",
-                            '. scripts/lib_gen.sh; gen_langs in-the-wild "" "en fr xx"')
+                            '. scripts/gen/lib_gen.sh; gen_langs in-the-wild "" "en fr xx"')
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(proc.stdout.split(), ["en", "fr"])
-        proc, _ = self._run("bash", "-c", '. scripts/lib_gen.sh; gen_langs nosuch ""')
+        proc, _ = self._run("bash", "-c", '. scripts/gen/lib_gen.sh; gen_langs nosuch ""')
         self.assertEqual(proc.returncode, 1)
         self.assertIn("unknown task 'nosuch'", proc.stderr)
 
@@ -172,7 +172,7 @@ class AverageWerTest(unittest.TestCase):
 
 
 class GetWavResRefTextTest(unittest.TestCase):
-    """utils/get_wav_res_ref_text.py joins the target text with the generated wavs;
+    """scripts/score/get_wav_res_ref_text.py joins the target text with the generated wavs;
     missing wavs are dropped HERE (before run_wer.py counts anything), so the
     coverage warning it prints is the only trace of incomplete generation."""
 
@@ -187,7 +187,7 @@ class GetWavResRefTextTest(unittest.TestCase):
         out = Path(d) / "wav_res_ref_text"
 
         proc = subprocess.run(
-            [sys.executable, str(REPO / "utils" / "get_wav_res_ref_text.py"),
+            [sys.executable, str(REPO / "scripts" / "score" / "get_wav_res_ref_text.py"),
              str(meta), str(wav_dir), str(out)],
             capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -422,12 +422,11 @@ class PerUidParserTest(unittest.TestCase):
 
 
 class WerRawRepairTest(unittest.TestCase):
-    """scripts/repair_wer_raw.py — reassembly of records split by tabs/newlines."""
+    """scripts/score/repair_wer_raw.py — reassembly of records split by tabs/newlines."""
 
     @staticmethod
     def _repair(text):
-        sys.path.insert(0, str(REPO / "scripts"))
-        from repair_wer_raw import repair_lines
+        from scripts.score.repair_wer_raw import repair_lines
         return repair_lines(text)
 
     def test_clean_input_is_untouched(self):
@@ -501,8 +500,7 @@ class CoresetEstimatorTest(unittest.TestCase):
 
     def test_weights_sum_to_one_per_language(self):
         import numpy as np
-        sys.path.insert(0, str(REPO / "scripts" / "coreset"))
-        from common import check_weights
+        from scripts.coreset.common import check_weights
         good = {"langs": {"en": {"idx": [0, 1], "w": [0.5, 0.5]},
                           "fr": {"idx": [2], "w": [1.0]}}}
         bad = {"langs": {"en": {"idx": [0, 1], "w": [0.5, 0.4]}}}
@@ -512,7 +510,7 @@ class CoresetEstimatorTest(unittest.TestCase):
 
 
 class GenerateClientImportTest(unittest.TestCase):
-    """Every scripts/generate_*.py must import cleanly: utils/genclient.py keeps
+    """Every scripts/gen/generate_*.py must import cleanly: utils/genclient.py keeps
     third-party imports out of module scope, so an import-time failure here is a
     real regression (syntax error, moved helper, argv parsing at import), not a
     missing optional extra. Clients whose own deps genuinely are not installed
@@ -520,15 +518,12 @@ class GenerateClientImportTest(unittest.TestCase):
 
     def test_all_generate_clients_import(self):
         import importlib
-        scripts_dir = str(REPO / "scripts")
-        if scripts_dir not in sys.path:
-            sys.path.insert(0, scripts_dir)
-        paths = sorted((REPO / "scripts").glob("generate_*.py"))
-        self.assertGreaterEqual(len(paths), 13)  # the current client roster
+        paths = sorted((REPO / "scripts" / "gen").glob("generate_*.py"))
+        self.assertGreaterEqual(len(paths), 19)  # the current client roster
         for p in paths:
             with self.subTest(client=p.stem):
                 try:
-                    mod = importlib.import_module(p.stem)
+                    mod = importlib.import_module(f"scripts.gen.{p.stem}")
                 except ModuleNotFoundError as e:
                     self.skipTest(f"optional dep not installed: {e.name}")
                 self.assertTrue(hasattr(mod, "main"),
@@ -592,8 +587,7 @@ class PanelSnapshotTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        sys.path.insert(0, str(REPO / "scripts" / "results_doc"))
-        import build_results
+        from scripts.results_doc import build_results
         cls.br = build_results
 
     def _leaf(self, tmp, wers, spks):
@@ -650,8 +644,7 @@ class FullSetMacroTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        sys.path.insert(0, str(REPO / "scripts" / "results_doc"))
-        import build_results
+        from scripts.results_doc import build_results
         from utils.benchmark import ITW_LANGS
         cls.br, cls.langs = build_results, ITW_LANGS
 

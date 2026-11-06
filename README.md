@@ -104,7 +104,7 @@ the June 2026 benchmark introduced alongside ZONOS2.
 |Uncertainty and controls|none published|bootstrap CIs, generation-variance study, seen-speaker and scorer self-favoritism controls, documented confounds|[controls](docs/controls_2026-08.md), [Provenance](#provenance--known-confounds)|
 |Cost|full sets only|coreset panels: Mini (16× / 8.9× fewer generations), Delta (287× / 89×), validated on held-out model families|[Coreset](docs/coreset.md)|
 |Diagnostics|explorer built from your own `results/`|+ reliability gallery of per-language error tails; explorer ships a committed snapshot|[gallery](assets/reliability_gallery.html)|
-|Data distribution|prompt audio in git|metadata in git, prompt audio on Hugging Face via `scripts/download_data.py`|[Data](#data)|
+|Data distribution|prompt audio in git|metadata in git, prompt audio on Hugging Face via `scripts/prep/download_data.py`|[Data](#data)|
 
 ZTTS1-Eval and ZTTS2-Eval scores are not comparable — prompts, ASR routing, text
 prep, failure handling, the speaker-similarity reference and the prosody metrics all
@@ -154,7 +154,7 @@ same sentence (equal after case/punctuation folding, or ≥ 0.8 `difflib` ratio;
 panels, because a system can score well on them by repeating its prompt: 22 Clean and
 164 In-The-Wild items (Clean 57,388 → 57,366; In-The-Wild 17,319 → 17,155). They
 are listed in [`data/near_duplicates_removed.json`](data/near_duplicates_removed.json);
-the prep scripts skip such pairs, and `python scripts/drop_near_duplicates.py`
+the prep scripts skip such pairs, and `python scripts/prep/drop_near_duplicates.py`
 re-applies the filter idempotently.
 
 Each language directory uses the layout the scoring pipeline expects:
@@ -168,7 +168,7 @@ target_wav.scp  # In-The-Wild only: "<uttid> <path_to_real_target.wav>"
 target_wav/     # In-The-Wild only: <uttid>.wav (held-out real recording of the same speaker)
 ```
 
-The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/download_data.py` (both sets), or a subset with `--tasks in-the-wild --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
+The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/prep/download_data.py` (both sets), or a subset with `--tasks in-the-wild --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
 
 ## Metrics
 
@@ -353,17 +353,17 @@ uv sync --extra omni --extra scorers && source .venv/bin/activate
 
 # 2. fetch the audio for the set you'll run: prompts + held-out target recordings
 #    (drop the flags for everything, 24 GB+)
-python scripts/download_data.py --tasks in-the-wild --langs en
+python scripts/prep/download_data.py --tasks in-the-wild --langs en
 
 # 3. generate the English slice of the In-The-Wild Mini coreset panel (50 items)
 #    with one local model
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task in-the-wild_mini --test_set en
+bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task in-the-wild_mini --test_set en
 
-# 4. score it. run_score.sh auto-starts/stops the ASR servers and routes each
+# 4. score it. scripts/score/run_score.sh auto-starts/stops the ASR servers and routes each
 #    language to Qwen3-ASR or Whisper-large-v3 as the published numbers do; both
 #    co-locate on GPU 0 by default (same settings as slurm/eval_job.sh). It also
 #    scores speaker similarity against the held-out real recordings.
-bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini --test_set en
+bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini --test_set en
 
 # 5. weighted estimate of the FULL In-The-Wild score, with a bootstrap CI
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini
@@ -390,7 +390,7 @@ curves, and a per-utterance drill-down with audio playback and ASR diffs.
 published item weights and captioned with what they can and cannot resolve.
 
 Data-prep and evaluation details follow. The shipped data directories are
-already prepared (metadata in git, audio via `scripts/download_data.py`); the raw-corpus rebuild recipe is in
+already prepared (metadata in git, audio via `scripts/prep/download_data.py`); the raw-corpus rebuild recipe is in
 [docs/voxblink2_rebuild.md](docs/voxblink2_rebuild.md).
 
 ## Data preparation
@@ -399,7 +399,7 @@ The FLEURS-R set can be (re)built from
 [`google/fleurs-r`](https://huggingface.co/datasets/google/fleurs-r):
 
 ```bash
-uv run python scripts/prepare_fleurs_r.py --overwrite
+uv run python scripts/prep/prepare_fleurs_r.py --overwrite
 ```
 
 This downloads FLEURS-R for all 35 curated languages and writes `text`,
@@ -416,7 +416,7 @@ The released `data/in-the-wild/` directories are already prepared: they
 include the target/reference text, manifest, the `target_wav.scp` /
 `target_provenance.json` index of the held-out recordings, and the MSR-UTMOS binning
 cache used by the evaluation scripts; the prompt audio and the held-out target
-recordings (`target_wav/`) come from `scripts/download_data.py`.
+recordings (`target_wav/`) come from `scripts/prep/download_data.py`.
 Rebuilding this set from raw VoxBlink2 requires a
 local VoxBlink2 audio tree and a pre-computed enriched candidate pool, so the full
 recipe lives in [docs/voxblink2_rebuild.md](docs/voxblink2_rebuild.md).
@@ -433,27 +433,27 @@ contour behavior.
 # is the --decode_dir basename and --test_set defaults to its basket.
 # (auto-starts and stops the ASR servers — Qwen3-ASR plus Whisper-large-v3 for the
 #  routed languages; the run fails if the Whisper server cannot start)
-bash run_score.sh --decode_dir results/<system>/clean
+bash scripts/score/run_score.sh --decode_dir results/<system>/clean
 
 # On the In-The-Wild set (VoxBlink2) speaker similarity is also scored against the
 # held-out real recordings (spk_simi_scores.xutt.txt)
-bash run_score.sh --decode_dir results/<system>/in-the-wild
+bash scripts/score/run_score.sh --decode_dir results/<system>/in-the-wild
 ```
 
 ```bash
 # Characters/s distributional distance (defaults to clean/en)
-python scripts/speaking_rate_dist.py
-python scripts/speaking_rate_dist.py --test-set in-the-wild --lang en
+python scripts/prosody/speaking_rate_dist.py
+python scripts/prosody/speaking_rate_dist.py --test-set in-the-wild --lang en
 
 # mHuBERT rhythm (GPU): pause/stall and pace factors vs the real-speech ceiling
-python scripts/rhythm_dist.py --test-set in-the-wild --lang en
+python scripts/prosody/rhythm_dist.py --test-set in-the-wild --lang en
 
 # register-normalized pitch range (CPU; fixed 500-utterance sample)
-python scripts/pitch_range_dist.py --test-set in-the-wild --lang en
+python scripts/prosody/pitch_range_dist.py --test-set in-the-wild --lang en
 
 # per-utterance paired prosody vs the real recording (In-The-Wild only; run after
 # pitch_range_dist.py, it shares the pitch caches)
-python scripts/paired_itw.py --lang en
+python scripts/prosody/paired_itw.py --lang en
 
 # UTMOS shift: signed mean shift (dmean, with CI and the reference split-half band)
 # and spread ratio of a system's per-utterance MSR-UTMOS distribution vs. the
@@ -464,7 +464,7 @@ python scripts/analysis/utmos_shift.py --test-set in-the-wild --lang en
 python scripts/analysis/probe_utmos_level.py
 
 # MPM span against the real/scrambled anchors (Clean set only)
-python utils/score_mpm_shuffle_floor.py \
+python scripts/prosody/score_mpm_shuffle_floor.py \
     --ref-dir data/clean/en/waveform \
     --synth-dir results/omni_qwen3-tts-1.7b/clean/en/wavs \
     --out results/_mpm_shuffle_floor/clean_en.tsv
@@ -479,7 +479,7 @@ distribution views.
 `msr_utmos_ci.txt` `BENCHMARK_VERSION` and `MSR_UTMOS_CKPT`. The scoring drivers
 treat a leaf with a missing or stale stamp as unscored and redo it;
 `python3 -m utils.benchmark problems <leaf_dir> <lang>` lists why a leaf is stale.
-`scripts/rescore_all.sh` rescores every leaf under `results/`, and
+`scripts/score/rescore_all.sh` rescores every leaf under `results/`, and
 `slurm/submit_release_run.sh` is the whole release DAG on SLURM (see
 [slurm/README.md](slurm/README.md)).
 
@@ -487,7 +487,7 @@ Because TTS error metrics are tail-driven, the ground-truth baselines ship with 
 **reliability gallery** — edit-distance survival/tail plates per language (and per
 ASR backend) that show *how often* an utterance goes badly wrong and *by how much*.
 Regenerate the plates and the self-contained page with `bash
-scripts/run_reliability.sh` (also run late in `scripts/results_doc/run.sh`,
+scripts/plots/run_reliability.sh` (also run late in `scripts/results_doc/run.sh`,
 before the explorer payload builders and `publish_snapshot.py`);
 open [`assets/reliability_gallery.html`](assets/reliability_gallery.html). Context
 in [docs/edit_nature.md](docs/edit_nature.md).
@@ -521,8 +521,8 @@ figures predate the near-duplicate filter and the enforced-routing rescore.
 They are ordinary task directories, so nothing in the pipeline changes:
 
 ```bash
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
+bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 # weighted estimate of the FULL benchmark score, with a bootstrap CI
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
@@ -534,15 +534,15 @@ frontier; Delta panels estimate differences only) are in
 [RESULTS_CORESET.md](RESULTS_CORESET.md). Rebuild with `bash scripts/coreset/run.sh`
 (offline, CPU-only — it reads the per-utterance scores already in `results/`).
 
-Generation scripts are provided for local/open models (`run_generate_zonos2.sh`,
-`run_generate_zonos3.sh`, `run_generate_omni.sh`) and for hosted providers. Every
+Generation scripts are provided for local/open models (`scripts/gen/run_zonos2.sh`,
+`scripts/gen/run_zonos3.sh`, `scripts/gen/run_omni.sh`) and for hosted providers. Every
 driver takes `--task` (`clean`, `in-the-wild` or a panel) and `--test_set`, and prints
-the `run_score.sh` command for its output at the end.
+the `scripts/score/run_score.sh` command for its output at the end.
 
-* **`run_generate_omni.sh`** is self-contained — it starts/stops a local
+* **`scripts/gen/run_omni.sh`** is self-contained — it starts/stops a local
   vLLM-Omni server (`uv sync --extra omni`) and is the recommended starting point.
-* **`run_generate_zonos2.sh`** now **starts/stops its own** Zonos2 Mini-SGLang
-  server too (`scripts/serve_zonos2.sh` → `python -m zonos2`), the same shape as
+* **`scripts/gen/run_zonos2.sh`** now **starts/stops its own** Zonos2 Mini-SGLang
+  server too (`scripts/gen/serve_zonos2.sh` → `python -m zonos2`), the same shape as
   the omni path — just run it (optionally `--gpu N --port N`). The server code
   lives in a separate checkout (set `ZONOS2_HOME` to a [ZONOS2](https://github.com/Zyphra/ZONOS2) checkout
   with its own venv); health check `GET /tts/capabilities`. Pass
@@ -556,9 +556,9 @@ the `run_score.sh` command for its output at the end.
   server defaults to accurate. Under SLURM, `slurm/submit_eval.sh --engine zonos2
   --accurate_mode {true|false}` runs each mode as its own job, writing to
   `results/zonos2_accurate` / `results/zonos2_expressive`.
-* **`run_generate_zonos3.sh`** generates ZONOS3 Mini through the release minisgl server
-  (`scripts/serve_zonos3.sh` → `python -m zonos2` from the `ZONOS3_HOME` checkout,
-  optional site env `ZONOS3_ENV`; client `scripts/generate_zonos3.py` → `POST
+* **`scripts/gen/run_zonos3.sh`** generates ZONOS3 Mini through the release minisgl server
+  (`scripts/gen/serve_zonos3.sh` → `python -m zonos2` from the `ZONOS3_HOME` checkout,
+  optional site env `ZONOS3_ENV`; client `scripts/gen/generate_zonos3.py` → `POST
   /tts/generate`), one conditioning mode per call: `--speaker_mode reference` (raw
   reference prefix) or `--speaker_mode embedding` (speaker embedding only) →
   `results/zonos3-mini_<mode>`. It sends the release server's sampling defaults
@@ -573,19 +573,19 @@ the `run_score.sh` command for its output at the end.
 Each hosted-provider script installs via an extra (`uv sync --inexact --extra <name>`,
 so the scorer extras already in `.venv` stay installed) and reads its API key from an
 environment variable; install only what you need. The wrappers take
-`--task`/`--test_set` like `run_generate_zonos3.sh` (default: every language of the
+`--task`/`--test_set` like `scripts/gen/run_zonos3.sh` (default: every language of the
 task), and only one instance per provider account may run at a time.
 
 | Script | Extra | Env var |
 | --- | --- | --- |
-| `run_generate_gemini.sh` | `--extra gemini` | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) |
-| `run_generate_elevenlabs.sh` (+ `_clone`) | `--extra elevenlabs` | `ELEVENLABS_API_KEY` |
-| `run_generate_cartesia.sh` | `--extra cartesia` | `CARTESIA_API_KEY` |
-| `run_generate_inworld.sh` | `--extra inworld` | `INWORLD_API_KEY` |
+| `scripts/gen/run_gemini.sh` | `--extra gemini` | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) |
+| `scripts/gen/run_elevenlabs.sh` (+ `_clone`) | `--extra elevenlabs` | `ELEVENLABS_API_KEY` |
+| `scripts/gen/run_cartesia.sh` | `--extra cartesia` | `CARTESIA_API_KEY` |
+| `scripts/gen/run_inworld.sh` | `--extra inworld` | `INWORLD_API_KEY` |
 
-`run_generate_elevenlabs_clone.sh`, `run_generate_cartesia.sh --mode clone` and
-`run_generate_inworld.sh --clone true` clone each prompt voice per utterance and
-delete the clone after use; Gemini runs on preset voices. `run_generate_gemini.sh`
+`scripts/gen/run_elevenlabs_clone.sh`, `scripts/gen/run_cartesia.sh --mode clone` and
+`scripts/gen/run_inworld.sh --clone true` clone each prompt voice per utterance and
+delete the clone after use; Gemini runs on preset voices. `scripts/gen/run_gemini.sh`
 uses the Gemini Batch API by default (`--batch true`: half the unary price, async;
 jobs are tracked in `<out_dir>/batch_jobs.json` so an interrupted run re-attaches
 instead of resubmitting). ElevenLabs and Cartesia have no batch TTS endpoint;
@@ -606,7 +606,7 @@ structure is mapped in [ARCHITECTURE.md](ARCHITECTURE.md).
 > file is stamped with the version and scorer it came from, and
 > `scripts/results_doc/build_results.py` refuses unstamped or stale inputs (leaves
 > may be listed in `scripts/results_doc/excluded_leaves.txt`). The
-> *generation* model ids in `run_generate_omni.sh` (`model_spec`) are best-effort
+> *generation* model ids in `scripts/gen/run_omni.sh` (`model_spec`) are best-effort
 > and unpinned — pin them to a Hugging Face revision (`<id>@<commit>`) and record
 > the revision if you need to reproduce a specific row of `RESULTS_CURRENT.md`. The
 > CUDA 12.9 wheel pins in `pyproject.toml` can be retargeted to another CUDA build

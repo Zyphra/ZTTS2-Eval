@@ -4,7 +4,7 @@
 #   mpm          MPM span (Clean set ONLY, see below)
 #   rhythm       mHuBERT rhythm distribution (both sets, GPU)
 #   pitch_range  register-normalized pitch range (both sets, CPU); on the ITW set the
-#                same job also runs scripts/paired_itw.py so the shared pitch caches
+#                same job also runs scripts/prosody/paired_itw.py so the shared pitch caches
 #                never race
 # Walltimes stay <= 10 h: single-node jobs with < 5 GPUs are capped at that on the dev
 # partition at the site this was run on (job_submit policy), and 10 h also fits every

@@ -14,12 +14,13 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-OUT = os.path.join(REPO_ROOT, "assets", "plots", "capability_index_time.png")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+OUT = os.path.join(REPO, "assets", "plots", "capability_index_time.png")
 INDEX = os.path.join(SCRIPT_DIR, "_cache", "capability_index.json")
 
-sys.path.insert(0, SCRIPT_DIR)
-from rd_common import label  # noqa: E402
+from scripts.results_doc.rd_common import label  # noqa: E402
 
 INK, MID, ZYPHRA = "#161616", "#9a9a95", "#e7620f"
 

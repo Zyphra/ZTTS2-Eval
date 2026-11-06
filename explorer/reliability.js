@@ -1,6 +1,6 @@
 /* ============================================================
    ZTTS2 · Eval — reliability views (the tufte_* plates, live)
-   Interactive SVG twins of scripts/tufte_p99 / _survival_overlay /
+   Interactive SVG twins of scripts/plots/tufte_p99 / _survival_overlay /
    _survival_smallmultiples / _slopegraph, in the Zyphra theme.
    Reads /api/reliability (build_reliability.py).
    Depends on app.js globals ($, $$, el, svgEl, apiGet)

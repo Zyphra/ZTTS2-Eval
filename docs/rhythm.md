@@ -1,6 +1,6 @@
 # Rhythm metrics over deduped mHuBERT-147 k-means tokens
 
-`scripts/rhythm_dist.py` — a distributional rhythm/timing readout, validated by
+`scripts/prosody/rhythm_dist.py` — a distributional rhythm/timing readout, validated by
 `scripts/analysis/validate_rhythm_metric.py`. Output: `results/rhythm_<set>_<lang>.csv`.
 
 ## Method
@@ -96,7 +96,7 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
 
 ![flattening vs stalling](../assets/plots/rhythm_flatten_vs_stall_in-the-wild_en.png)
 
-`scripts/plot_rhythm_scatter.py` — burstiness std_ratio (log x, 1.0 = same
+`scripts/plots/plot_rhythm_scatter.py` — burstiness std_ratio (log x, 1.0 = same
 spread as real speech) against pause incidence. GT anchors the middle; the
 ASR-optimized cluster is lower-left (kokoro at the extreme, 0.38× / 1.8 %),
 erratic systems upper-right (glm-tts 2.16× / 67.5 %). Good = near GT, not at
@@ -108,7 +108,7 @@ visibly holds the small WERs (1.6–2.8), the erratic corner the blow-ups.
 
 ![held-time ridgeline](../assets/plots/rhythm_dwelltime_ridgeline_in-the-wild_en.png)
 
-`scripts/plot_rhythm_ridgeline.py` — the rhythm analogue of a pitch
+`scripts/plots/plot_rhythm_ridgeline.py` — the rhythm analogue of a pitch
 ridgeline. Each ridge is the distribution of *listening time* over mHuBERT
 segment duration (log x), ≥50 ms only, normalized by total audio time — so
 ridge AREA = the share of a system's audio spent holding a sound, and the
@@ -127,7 +127,7 @@ which carries no between-system signal and visually drowns the tail.
 
 ![pause carpet](../assets/plots/rhythm_carpet_in-the-wild_en.png)
 
-`scripts/plot_rhythm_carpet.py` — the middle ground between the two: small
+`scripts/plots/plot_rhythm_carpet.py` — the middle ground between the two: small
 multiples, one panel per system, the SAME 70 utterances (same uids, same
 row order) as thread-and-knot strips — speech is a thin pale thread,
 100–200 ms holds thicken it (tan), 200–500 ms clause pauses are AMBER knots,
@@ -156,7 +156,7 @@ single runaway sits at the very bottom as its longest strip.
 
 ![rhythm barcode](../assets/plots/rhythm_barcode_in-the-wild_en.png)
 
-`scripts/plot_rhythm_barcode.py` — the honest anecdote: the SAME VoxBlink
+`scripts/plots/plot_rhythm_barcode.py` — the honest anecdote: the SAME VoxBlink
 utterance (same text, same prompt; GT = the real recording) as one rhythm
 SKYLINE per system — each token segment is a block whose HEIGHT is how long
 the sound holds (log, 20 ms–2 s), tan ≥100 ms, amber = 200–500 ms pause,

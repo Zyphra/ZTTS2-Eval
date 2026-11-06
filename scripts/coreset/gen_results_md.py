@@ -15,10 +15,11 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
 
-from common import (Matrix, PANEL_DIR, SIGN_GAP_EDGES, load_panel,  # noqa: E402
+from scripts.coreset.common import (Matrix, PANEL_DIR, SIGN_GAP_EDGES, load_panel,  # noqa: E402
                     load_validation_rows, mae_cells, mean_se, pairwise_sign_stats)
 
 SETS = [("clean", "Clean (FLEURS-R, 35 languages, 57,388 items)"),
@@ -133,7 +134,7 @@ def ci_coverage(set_name, out):
     path = os.path.join(PANEL_DIR, panel_file(set_name))
     if not os.path.isfile(path):
         out.append(f"\n_CI95 coverage of the shipped panel unavailable: "
-                   f"`{os.path.relpath(path, REPO_ROOT)}` not found._\n")
+                   f"`{os.path.relpath(path, REPO)}` not found._\n")
         return
     try:
         M, p = Matrix(set_name), load_panel(path)
@@ -183,7 +184,7 @@ DELTA_K = 200
 def delta_table(set_name, out):
     """Delta-panel power, measured live (there is no CSV for it -- it is cheap to redo)."""
     try:
-        from validate_delta import measure
+        from scripts.coreset.validate_delta import measure
         rows, pairs = measure(set_name, [100, DELTA_K, 400],
                               ["delta", "random_perlang", "strat_meta"])
     except Exception as exc:                       # missing matrix/fingerprints

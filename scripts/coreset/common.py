@@ -25,8 +25,11 @@ import os
 
 import numpy as np
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-OUT_DIR = os.path.join(REPO_ROOT, "assets", "coreset")
+import sys
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+OUT_DIR = os.path.join(REPO, "assets", "coreset")
 PANEL_DIR = os.path.join(OUT_DIR, "panels")
 
 METRICS = ("wer", "wer_clip", "spk", "msr")
