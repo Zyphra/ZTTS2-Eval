@@ -112,7 +112,7 @@ def main():
             return uid, "ok", wav.shape[-1] / sr
         except Exception as e:  # noqa: BLE001 -- log & continue, mirror other clients
             # format_error logs the TYPE too: several exceptions here stringify
-            # to "" (61/403 of voxblink/ko failed that way), which left the log
+            # to "" (61/403 of in-the-wild/ko failed that way), which left the log
             # reading "[gen] uttid_N: error: " with nothing to diagnose.
             return uid, format_error(e), 0.0
 

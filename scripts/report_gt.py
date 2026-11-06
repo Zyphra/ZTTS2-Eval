@@ -20,7 +20,7 @@ import sys
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO)
 from utils.benchmark import QWEN_LANGS  # noqa: E402
-SETS = {"clean": "gt_clean", "voxblink": "gt_in-the-wild"}
+SETS = {"clean": "gt_clean", "in-the-wild": "gt_in-the-wild"}
 
 WER_RE = re.compile(r"^WER:\s*([\d.]+)")
 WER_CI_RE = re.compile(r"WER_CI95:\s*\[([\d.]+),\s*([\d.]+)\]")
@@ -89,10 +89,10 @@ def report(setkey, sort):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--set", choices=["clean", "voxblink", "both"], default="both")
+    ap.add_argument("--set", choices=["clean", "in-the-wild", "both"], default="both")
     ap.add_argument("--sort", choices=["wer", "lang"], default="wer")
     args = ap.parse_args()
-    keys = ["clean", "voxblink"] if args.set == "both" else [args.set]
+    keys = ["clean", "in-the-wild"] if args.set == "both" else [args.set]
     for k in keys:
         report(k, args.sort)
 

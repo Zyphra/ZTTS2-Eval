@@ -229,7 +229,7 @@ def new_rec(model, task, setname):
 
 # ---------------------------------------------------------------------------
 # Coreset panels (scripts/coreset/) -- clean_mini, clean_delta, and the
-# VoxBlink twins. A panel leaf must NOT be summarised by the `.wer` footer: that
+# in-the-wild twins. A panel leaf must NOT be summarised by the `.wer` footer: that
 # footer is an unweighted mean over the sampled items, whereas a panel's estimate
 # is the weighted mean whose weights carry each selected item's cluster mass
 #   S = (1/|L|) * sum_l sum_{j in A_l} w_j y_j ,   sum_j w_j = 1 within a language

@@ -8,7 +8,7 @@
 # a useful intelligibility/naturalness baseline, not a cloning entry.
 #
 # Kokoro covers a subset of the benchmark languages. Supported here:
-#   en zh es fr it ja  (+ pt hi for voxblink);  de ko ru are NOT supported and skipped.
+#   en zh es fr it ja  (+ pt hi for in-the-wild);  de ko ru are NOT supported and skipped.
 #
 # Writes wavs to results/kokoro/<task>/<lang>/wavs/. Score afterwards with
 # run_infer_zonos2_eval.sh (DECODE_DIR=results/kokoro/<task>).

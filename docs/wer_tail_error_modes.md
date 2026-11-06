@@ -7,7 +7,7 @@ defect or a speech-quality problem — it is the ASR being scored, and the audio
 genuine. This note classifies *why* the tail is high, because the mechanism decides
 whether a TTS model's WER in that language is interpretable at all.
 
-Source: `results/gt_clean/<lang>/wav_res_ref_text.wer` (and the voxblink twin).
+Source: `results/gt_clean/<lang>/wav_res_ref_text.wer` (and the in-the-wild twin).
 Per-utterance ref/hyp live in the un-committed `.wer.raw` (regenerable via
 `scripts/run_gt.sh` / `extract_voxblink_gt.py`).
 
@@ -24,7 +24,7 @@ not the lever. The shape of the distribution is.
 
 ## Mode A — cross-script routing (catastrophic, bimodal)
 
-**Langs:** `he`, `hr`, `uk` (clean); `uk` (voxblink).
+**Langs:** `he`, `hr`, `uk` (clean); `uk` (in-the-wild).
 **Signature:** huge WER, `%w≥1` = 30–68%, but `WER_L50` far lower (a real correct
 head coexists with a wall of 100%-wrong clips).
 
@@ -71,13 +71,13 @@ than in Mode A.
 ## Mode C — genuinely harder / mixed
 
 **Langs:** `ar`, `cs`, `da`, `el`, `fi`, `hu`, `ro`, `sv` (clean); `id`, `pl`, `tl`,
-`tr` (voxblink). WER 15–37% with a real correct head (`%w=0` 6–17%). A blend of ASR
+`tr` (in-the-wild). WER 15–37% with a real correct head (`%w=0` 6–17%). A blend of ASR
 quality limits and normalization; usable with the GT floor subtracted, with caution.
 
 ## Mode OK — trustworthy
 
 WER < 15% and a large exact-match head: `en es fr de it ja ko ru zh pt id th nl tr pl
-ms vi hi` (clean) and most of the voxblink set. Read WER directly.
+ms vi hi` (clean) and most of the in-the-wild set. Read WER directly.
 
 ## Practical guidance for the leaderboard
 

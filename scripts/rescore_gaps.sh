@@ -17,7 +17,7 @@
 #
 # All THREE metrics are recomputed per leaf, not just the missing one. A leaf that was
 # scored while generation was still filling has metrics over DIFFERENT wav subsets
-# (e.g. moss-tts-local-v1.5 voxblink: spk/msr present, WER absent) -- recomputing only
+# (e.g. moss-tts-local-v1.5 in-the-wild: spk/msr present, WER absent) -- recomputing only
 # the gap would leave the trio mutually inconsistent.
 #
 # ASR_ROUTING=1: langs outside QWEN_LANGS (en zh ko th vi hi fa yo) go to Whisper

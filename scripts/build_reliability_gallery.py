@@ -40,7 +40,7 @@ def plates_spec():
     """(section tag, title, blurb, [(png, caption, reading-note), ...]) — the
     dataset statistics are computed from the .raw inputs, not hard-coded."""
     clean = _series_stats("results/gt_clean/*/wav_res_ref_text.wer.raw")
-    vox = _series_stats("results/gt_in-the-wild/*/wav_res_ref_text.wer.raw")
+    itw = _series_stats("results/gt_in-the-wild/*/wav_res_ref_text.wer.raw")
     return [
         ("A", "FLEURS-R — clean read-aloud",
          f"{_fmt_stats(*clean)}. Edits reconstructed from "
@@ -62,14 +62,14 @@ def plates_spec():
              "rank changes as severity rises."),
          ]),
         ("B", "VoxBlink2 — in-the-wild",
-         f"{_fmt_stats(*vox)} of noisy, real-world speech. Same reconstruction, "
+         f"{_fmt_stats(*itw)} of noisy, real-world speech. Same reconstruction, "
          "same four views.",
          [
-            ("reliability_p99_voxblink.png", "p99 edit distance, by language", ""),
-            ("reliability_overlay_voxblink.png",
-             f"Survival tails, all {vox[0] or '—'} overlaid", ""),
-            ("reliability_smallmultiples_voxblink.png", "Small multiples — each language against the rest", ""),
-            ("reliability_slopegraph_voxblink.png", "The ranking, column by column (worst 12)", ""),
+            ("reliability_p99_in-the-wild.png", "p99 edit distance, by language", ""),
+            ("reliability_overlay_in-the-wild.png",
+             f"Survival tails, all {itw[0] or '—'} overlaid", ""),
+            ("reliability_smallmultiples_in-the-wild.png", "Small multiples — each language against the rest", ""),
+            ("reliability_slopegraph_in-the-wild.png", "The ranking, column by column (worst 12)", ""),
          ]),
         ("·", "Method — same audio, two ASR backends",
          "The generic <code>--label</code> switch turns the series axis into anything. "
@@ -79,7 +79,7 @@ def plates_spec():
              "Qwen (blue) edges Whisper in the tail — which is exactly why English stays "
              "on Qwen under the routing rule."),
          ]),
-    ], clean, vox
+    ], clean, itw
 
 
 def uri(plots_dir, name):
@@ -222,9 +222,9 @@ def main():
     ap.add_argument("--plots-dir", default=os.path.join(REPO, "assets", "plots"))
     ap.add_argument("--out", default=os.path.join(REPO, "assets", "reliability_gallery.html"))
     args = ap.parse_args()
-    plates_list, clean, vox = plates_spec()
+    plates_list, clean, itw = plates_spec()
     n_plates = sum(len(p[3]) for p in plates_list)
-    total_langs = clean[0] + vox[0]
+    total_langs = clean[0] + itw[0]
     langs_meta = f"{total_langs} languages" if total_langs else "GT reliability"
     html = PAGE.format(sections=build(args.plots_dir, plates_list),
                        n_plates=n_plates, langs_meta=langs_meta)

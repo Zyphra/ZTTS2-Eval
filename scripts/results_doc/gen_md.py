@@ -319,7 +319,7 @@ def render(recs, dedup=None, cap_index=None):
 
     # --- 1. Coverage matrix ----------------------------------------------------
     W("## 1. Coverage matrix\n")
-    W("| Model | clean | voxblink |")
+    W("| Model | clean | in-the-wild |")
     W("|---|:-:|:-:|")
     all_models = sorted({r["model"] for r in recs}, key=_sort_key)
     for m in all_models:
@@ -385,7 +385,7 @@ def render(recs, dedup=None, cap_index=None):
     W("")
     W(f"The avg row is shown only for systems that cover all {n_clean} languages;")
     W(f"others read `partial (n/{n_clean})` and are not comparable to full-coverage averages.")
-    W("The `gt (fleurs-r)` column is real speech scored by the same ASR — the")
+    W("The `gt (clean)` column is real speech scored by the same ASR — the")
     W("achievable WER floor. zh/ja/ko/th are char-tokenized, so their \"WER\" is a")
     W("CER and the `avg` column mixes WER and CER units.\n")
     W(COND_LEGEND + "\n")
@@ -415,7 +415,7 @@ def render(recs, dedup=None, cap_index=None):
     W("MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for that leaf.\n")
     per_lang_table(zs_models, zs_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "msr_utmos"), 2))
     W("")
-    W("The `gt (fleurs-r)` column is real speech: the MOS predictor's anchor, not a")
+    W("The `gt (clean)` column is real speech: the MOS predictor's anchor, not a")
     W("ceiling models must beat — read model cells against it.\n")
     W(COND_LEGEND + "\n")
 
@@ -463,8 +463,8 @@ def render(recs, dedup=None, cap_index=None):
                                           for m in vox_models]) + " |")
         W("")
 
-    W(f"## 5. VoxBlink2 multilingual zero-shot ({len(ITW_LANGS)} languages)\n")
-    W("Aggregates are in §0. The `gt (voxblink)` row is real in-the-wild speech: its WER")
+    W(f"## 5. In-the-wild (VoxBlink2) multilingual zero-shot ({len(ITW_LANGS)} languages)\n")
+    W("Aggregates are in §0. The `gt (in-the-wild)` row is real in-the-wild speech: its WER")
     W("is the ASR floor, its speaker similarity is the prompt scored against the real")
     W("target recording (the same-speaker ceiling that **SPK held-out** is read against),")
     W("and its MSR-UTMOS shows what the MOS predictor gives genuine in-the-wild audio.")

@@ -245,7 +245,7 @@ class FormatErrorTest(unittest.TestCase):
                          "error: ValueError: boom")
 
     def test_empty_message_keeps_type(self):
-        # The 61/403 voxblink/ko failure mode: str(e) == "".
+        # The 61/403 in-the-wild/ko failure mode: str(e) == "".
         self.assertEqual(gc.format_error(ValueError()), "error: ValueError: ")
 
 

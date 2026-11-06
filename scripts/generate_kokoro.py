@@ -57,7 +57,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set "
-                         "(voxblink is sorted into UTMOS bins per lang)")
+                         "(in-the-wild is sorted into UTMOS bins per lang)")
     ap.add_argument("--overwrite", action="store_true",
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()

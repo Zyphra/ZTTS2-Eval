@@ -124,7 +124,7 @@ def wav_duration(path):
         return float("nan")
 
 
-def voxblink_prompt_msr():
+def itw_prompt_msr():
     """``{(lang, uid): prompt MSR-UTMOS}`` for the VoxBlink2 set.
 
     The materialized prompts do not record their source clip, so recover it by joining
@@ -226,7 +226,7 @@ def build_set(set_name, verbose=True):
     langs = sorted(d for d in os.listdir(data_dir)
                    if os.path.isdir(os.path.join(data_dir, d)) and not d.startswith("_"))
 
-    prompt_msr = voxblink_prompt_msr() if set_name == "itw" else {}
+    prompt_msr = itw_prompt_msr() if set_name == "itw" else {}
     if verbose:
         print(f"[{set_name}] {len(langs)} langs; reading item manifests + prompt headers…",
               flush=True)

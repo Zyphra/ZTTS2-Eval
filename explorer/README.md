@@ -160,7 +160,7 @@ data via `<script src>`.
   group's weight (its share of the information the fit has about the system, which is not
   the equal per-dimension residual weighting), and points = weight × level, which add up
   to the index.
-- **coreset panels** (`clean_mini`, `clean_delta`, and the VoxBlink twins —
+- **coreset panels** (`clean_mini`, `clean_delta`, and the in-the-wild twins —
   see [../docs/coreset.md](../docs/coreset.md)) appear as ordinary tasks, captioned
   in the picker with their kind and size. They are *not* ordinary boards:
   - Cells are the **weighted** panel estimator, `Σ w·y` over the language's selected

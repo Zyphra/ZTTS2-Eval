@@ -43,10 +43,10 @@ MODEL_LABEL = {
     "cartesia_sonic-3.6_clone": "cartesia-sonic-3.6",
     "inworld_2_clone": "inworld-tts-2",
     "gemini_3.8-flash": "gemini-3.8-flash",
-    "gt_clean": "gt (fleurs-r)",
-    "gt_in-the-wild": "gt (voxblink)",
-    "whisper_clean": "whisper (fleurs-r)",
-    "whisper_in-the-wild": "whisper (voxblink)",
+    "gt_clean": "gt (clean)",
+    "gt_in-the-wild": "gt (in-the-wild)",
+    "whisper_clean": "whisper (clean)",
+    "whisper_in-the-wild": "whisper (in-the-wild)",
 }
 
 

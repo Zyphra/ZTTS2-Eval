@@ -125,7 +125,7 @@ def main():
     ap.add_argument("--stratified-bins", type=int, default=0,
                     help="if >0, pick K evenly-spaced utts across the full set "
                          "(useful when the set is sorted by quality bin -- e.g. "
-                         "voxblink is 5 MSR-UTMOS bins per lang; --stratified-bins 5 "
+                         "in-the-wild is 5 MSR-UTMOS bins per lang; --stratified-bins 5 "
                          "samples one utt per bin instead of the worst N first)")
     ap.add_argument("--workers", type=int, default=4, help="concurrent requests")
     ap.add_argument("--timeout", type=float, default=300.0, help="per-request seconds")

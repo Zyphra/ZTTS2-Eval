@@ -6,7 +6,7 @@
 # cloner -- speaker-similarity is not meaningful (WER + MSR-UTMOS are). It is
 # ENGLISH ONLY, so only the `en` set is generated. Writes results/neutts-2e/<task>/en/.
 #
-#   bash run_generate_neutts.sh                       # clean/en (+ voxblink/en via --task)
+#   bash run_generate_neutts.sh                       # clean/en (+ in-the-wild/en via --task)
 #   bash run_generate_neutts.sh --limit 3             # smoke test
 #   bash run_generate_neutts.sh --speaker emily --emotion neutral
 #

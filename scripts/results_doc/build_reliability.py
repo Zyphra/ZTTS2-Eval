@@ -49,7 +49,7 @@ DATASETS = [
         "label_scheme": "lang", "rename": None,
     },
     {
-        "key": "voxblink", "kind": "gt",
+        "key": "in-the-wild", "kind": "gt",
         "label": "VoxBlink2 — in the wild",
         "globs": ["results/gt_in-the-wild/*/wav_res_ref_text.wer.raw"],
         "label_scheme": "lang", "rename": None,
@@ -180,7 +180,7 @@ def _all_model_langs(task="clean"):
 def _model_basket(task):
     """The fair aggregate basket for `task`: the MODEL_LANGS_9 languages that at
     least two systems produced. On the full FLEURS-R sweep this is all 9; on a
-    partial run (e.g. a VoxBlink English-only smoke) it shrinks to what exists, so
+    partial run (e.g. an in-the-wild English-only smoke) it shrinks to what exists, so
     the aggregate never demands languages no system has."""
     per_model = {}
     for eng in MODEL_ENGINE_GLOBS:
@@ -256,7 +256,7 @@ def main():
     # One per generation task that has model outputs (read speech + in-the-wild).
     for key, label, task in [
         ("models", "TTS systems — read speech", "clean"),
-        ("models_voxblink", "TTS systems — in the wild", "in-the-wild"),
+        ("models_in-the-wild", "TTS systems — in the wild", "in-the-wild"),
     ]:
         d = _model_dataset(key, label, rng, task=task)
         if d is None:

@@ -522,7 +522,7 @@ class Handler(BaseHTTPRequestHandler):
     def _safe_path(self, rel):
         """Resolve a path from a .scp (which may be repo-relative or absolute),
         refusing anything that escapes ROOT and the --allow-root dirs."""
-        # some .scp files (e.g. voxblink) store absolute paths; others are relative.
+        # some .scp files (e.g. in-the-wild) store absolute paths; others are relative.
         # realpath (not abspath) so symlinks inside ROOT cannot escape it.
         full = os.path.realpath(rel if os.path.isabs(rel) else os.path.join(ROOT, rel))
         return full if _confined(full) else None

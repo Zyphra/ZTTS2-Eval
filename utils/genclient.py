@@ -164,7 +164,7 @@ def with_retry(fn, attempts, base_delay):
 def format_error(e):
     """Standard '[gen]' error string: always includes the exception TYPE.
 
-    Several real failures stringify to '' (61/403 of a voxblink/ko cosyvoice
+    Several real failures stringify to '' (61/403 of an in-the-wild/ko cosyvoice
     run once logged only '[gen] uttid_N: error: ' with nothing to diagnose)."""
     return f"error: {type(e).__name__}: {e}"
 
@@ -296,7 +296,7 @@ def apply_limit(uids, limit=0, stratified_bins=0):
     """--limit / --stratified-bins selection.
 
     stratified_bins > 0 picks K evenly-spaced utts across the full set (useful
-    when the set is sorted by quality bin -- e.g. voxblink is 5 MSR-UTMOS bins
+    when the set is sorted by quality bin -- e.g. in-the-wild is 5 MSR-UTMOS bins
     per lang); otherwise limit > 0 keeps the first N."""
     uids = list(uids)
     if stratified_bins and 0 < stratified_bins < len(uids):
