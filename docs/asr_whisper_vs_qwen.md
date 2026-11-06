@@ -107,22 +107,22 @@ unchanged.
 
 **Caveat for the leaderboard:** when this comparison was made the model results in
 `RESULTS_CURRENT.md` had been scored all-Qwen, so comparing them to the routed GT
-numbers was apples-to-oranges on the tail langs. Benchmark version 2 closes this:
+numbers was apples-to-oranges on the tail langs. The versioned release closes this:
 `scripts/score/rescore_all.sh` rescores every model leaf and the GT baselines with the same
 enforced routing, and `build_results.py` refuses a leaf whose `ASR:` footer stamp does
 not match the language's routed backend.
 
 ### Using it
 
-Routing is the default. The scoring drivers start a Whisper server themselves
+Routing is the default. The scoring drivers start a fresh Whisper server themselves
 (`maybe_start_whisper` in `scripts/score/serve_asr.sh`; it co-locates on the Qwen server's
-GPU, 0.35 memory utilisation each, when no other GPU has ≥50 GB free), or reuse one
-given by `WHISPER_BASE_URL`. A Whisper-routed language with no Whisper server is an
+GPU, 0.35 memory utilisation each, when no other GPU has ≥50000 MiB free), or use the
+external one given by a preset `WHISPER_BASE_URL`. A Whisper-routed language with no Whisper server is an
 error, never a silent fall-back to Qwen. `ASR_ROUTING=0` is a diagnostic all-Qwen
 mode whose results are not benchmark-comparable and are refused by `build_results.py`.
 
 ```bash
-bash scripts/score/run_score.sh --decode_dir results/<system>/clean --test_set en
+bash scripts/score/run_score.sh --decode-dir results/<system>/clean --test-set en
 # or reuse a running Whisper server:
 export WHISPER_BASE_URL=http://127.0.0.1:8001/v1
 ```

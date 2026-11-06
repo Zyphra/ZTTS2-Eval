@@ -38,17 +38,17 @@ were selected, how accurate they actually are, and — importantly — what they
 A panel is an ordinary task directory, so nothing in the pipeline changes:
 
 ```bash
-bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-bash scripts/score/run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
+bash scripts/gen/run_omni.sh --model qwen3-tts-0.6b --task clean_mini --test-set en
+bash scripts/score/run_score.sh --decode-dir results/omni_qwen3-tts-0.6b/clean_mini --test-set en
 
-python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
+python scripts/coreset/score_panel.py --decode-dir results/omni_qwen3-tts-0.6b/clean_mini
 ```
 
 `score_panel.py` applies the published per-item weights and prints the estimate of the
 **full-benchmark** score with a bootstrap CI. Comparing two systems on a Delta panel:
 
 ```bash
-python scripts/coreset/score_panel.py --decode_dir results/A/clean_delta --vs results/B/clean_delta
+python scripts/coreset/score_panel.py --decode-dir results/A/clean_delta --vs results/B/clean_delta
 ```
 
 ### In the explorer
@@ -314,7 +314,7 @@ A sharded re-score of the 22 languages across the GPUs of one allocation complet
 language-agnostic and unaffected). The In-The-Wild sweep was run after the `eval_job.sh`
 routing patch and appears unaffected.
 
-The benchmark-version-2 release supersedes these partial rescores:
+The versioned release supersedes these partial rescores:
 `scripts/score/rescore_all.sh` redoes every leaf (WER with routed ASR, both speaker-sim
 passes, MSR-UTMOS) so that all score files carry the version stamp.
 

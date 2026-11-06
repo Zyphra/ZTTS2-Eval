@@ -365,6 +365,12 @@ Published MPM spans are **not comparable across this change**. The previous TSVs
 at `results/_mpm_shuffle_floor/pre_trim_20261031/` and
 `results/_mpm_ground_truth/pre_trim_20261031/`.
 
+**Update (Silero VAD span trim).** The energy trim (`TRIM_TOP_DB = 35`) is replaced by
+the Silero VAD speech span used by every other prosody metric: `_load_wav` finds the
+span on a 16 kHz copy (`utils/vad.py`, 30 ms edge pad), maps it onto the 22.05 kHz MPM
+input, and drops a file with no detected speech. The anchor cache tag moves `v5` →
+`v6`.
+
 ---
 
 ## C7 — Content errors scored as pace · **ADOPTED (char/s and paired duration re-scored)**
@@ -418,6 +424,14 @@ reference speech is not filtered.
 
 The previous outputs are kept at `results/_prosody_pre_c7_20261101/` (paired CSVs and the
 speaking-rate payload).
+
+**Extension (rhythm and pitch range).** The same WER ≤ 0.2 filter now also applies to
+`scripts/prosody/rhythm_dist.py` and `scripts/prosody/pitch_range_dist.py`: a system is
+scored only on its heard utterances (a leaf with no transcription gets no row), and both
+CSVs carry a `heard_pct` column (100.0 on the ceiling row; the real reference is not
+filtered). The minimum-utterance check runs after the filter. Char/s durations are now
+the Silero VAD speech span at 16 kHz (`utils/vad.trim_speech`) instead of the
+`top_db=35` energy trim, and the paired-duration column uses the same span.
 
 ---
 

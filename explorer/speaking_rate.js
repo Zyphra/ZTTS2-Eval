@@ -1,7 +1,8 @@
 /* ============================================================
    ZTTS2 · Eval — speaking-rate views (scripts/prosody/speaking_rate_dist.py, live)
-   Interactive SVG twins of the char/s distributional metric, in the
-   Zyphra theme. Reads /api/speaking_rate (built by
+   Interactive SVG twins of the char/s distributional metric (durations =
+   Silero VAD speech span at 16 kHz; only utterances the ASR heard with
+   WER <= 20%), in the Zyphra theme. Reads /api/speaking_rate (built by
    scripts/results_doc/build_speaking_rate.py).
    Depends on globals from app.js ($, $$, el, svgEl, apiGet)
    and the chart kit + R_* palette + SMALL_N from
@@ -156,7 +157,7 @@ window.renderSpeaking = async function () {
   const src = $("#sr-source");
   if (src) src.innerHTML =
     `<span><b>Data:</b> ZTTS2-Eval · ${p.set_label} · ` +
-    (p.aggregate ? `macro over ${p.n_langs} languages` : p.lang) + ` · characters per second over trimmed speech, ` +
+    (p.aggregate ? `macro over ${p.n_langs} languages` : p.lang) + ` · characters per second over the Silero VAD speech span (WER ≤ 20% utterances), ` +
     `2-Wasserstein vs the reference-voice distribution</span><span class="lic">CC BY</span>`;
 };
 
@@ -242,7 +243,7 @@ function updateSrHead(p) {
       `line = bootstrap 95% CI. Lower = closer to natural pace; the green rule is the split-half ceiling, ` +
       `what a perfect system scores at finite n. ${stat}.`],
     dist: ["Pace distributions against natural speech",
-      `One row per system: its distribution of speaking rate (characters per second of trimmed speech) ` +
+      `One row per system: its distribution of speaking rate (characters per second of the VAD speech span) ` +
       `over the test set. The shaded ridge is the shape, the bar the middle half (p25–p75) with whiskers to ` +
       `p10 and p90, the white tick the median. The green band and line are the reference voice's middle half ` +
       `and median, and its shape is outlined faintly in every row. "vs natural" is the median's difference ` +
@@ -438,7 +439,7 @@ function drawSrDist(p) {
   svg.append(svgEl("line", { x1: X(ref.median), y1: y0 - 2, x2: X(ref.median), y2: y1, stroke: SR_GREEN, "stroke-width": 1.4, "stroke-dasharray": "4 3" }));
   svg.append(stext("axis-txt", X(ref.median), y0 - 24, `natural median ${ref.median}`, { "text-anchor": "middle", fill: SR_GREEN }));
   svg.append(stext("axis-lab", ml + plotW / 2, H - 6,
-    "speaking rate (characters per second of trimmed speech) — left = slower, right = faster", { "text-anchor": "middle" }));
+    "speaking rate (characters per second of the VAD speech span) — left = slower, right = faster", { "text-anchor": "middle" }));
 
   // right-hand column headers
   let cx = ml + plotW + 12;

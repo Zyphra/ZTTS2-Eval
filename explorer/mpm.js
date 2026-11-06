@@ -27,7 +27,7 @@ window.renderMPM = async function () {
   if (!ok) {
     chart.querySelectorAll("svg").forEach((n) => n.remove());
     if (!chart.querySelector(".loading"))
-      chart.append(el("div", "loading", "no MPM cache — run score_mpm_shuffle_floor.py + build_mpm_dist.py"));
+      chart.append(el("div", "loading", "no MPM cache — run scripts/prosody/score_mpm_shuffle_floor.py + scripts/results_doc/build_mpm_dist.py"));
     $("#mpm-legend").innerHTML = ""; $("#mpm-langs").innerHTML = "";
     $("#mpm-source").innerHTML = ""; $("#ro-channel").textContent = "prosody realism / —";
     return;
@@ -40,7 +40,7 @@ window.renderMPM = async function () {
   const src = $("#mpm-source");
   if (src) src.innerHTML =
     `<span><b>Data:</b> ZTTS2-Eval · MPM (TTSDS masked prosody model) · span = distance from real speech, ` +
-    `normalized per language (0 = ground truth, 1 = contour-scrambled), on audio with leading/trailing silence trimmed. Dot = one language; ◆ = mean. Point estimates.</span>` +
+    `normalized per language (0 = ground truth, 1 = contour-scrambled), on audio cut to its Silero VAD speech span. Dot = one language; ◆ = mean. Point estimates.</span>` +
     `<span class="lic">CC BY</span>`;
 };
 

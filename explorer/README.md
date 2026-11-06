@@ -33,7 +33,9 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   recording; `spk_simi_scores.xutt.txt`) and **SPK prompt** (`spk_simi_scores.txt`) —
   MSR-UTMOS, **MPM (Clean only)**, the rhythm **pace** and **pause** factors and the
   **pitch range** factor (each as a multiple of the real-speech split-half ceiling,
-  from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`), and, on the
+  from `rhythm_<set>_<lang>.csv` / `pitch_range_<set>_<lang>.csv`; scored on each
+  file's Silero VAD speech span and only on the utterances the ASR heard with
+  WER ≤ 20%, with the share kept in the CSVs' `heard_pct`), and, on the
   In-The-Wild set, the paired prosody columns (`Dur |log2|`, `Pause Δ`,
   `Range |log2|`, from `paired_itw_<lang>.csv`).
 - **Reliability views** are the interactive twins of the `scripts/plots/tufte_*` plates
@@ -46,6 +48,8 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   quantile functions), rendered from
   `speaking_rate.json` — built by `scripts/results_doc/build_speaking_rate.py`, which
   reuses the metric itself so the char/s, W2 distances and split-half ceiling match.
+  Durations are each file's Silero VAD speech span (16 kHz), and only the utterances
+  the ASR heard with WER ≤ 20% are scored (the tooltip shows the share kept).
   One panel per (test-set, language): char/s is only comparable within a language.
 - **Per-utterance (joined by `uid`):** the leaf result dir —
   `results/<model>/<task>/<lang>/` for model generations, or the flat
@@ -205,7 +209,8 @@ data via `<script src>`.
   then the language within it (the reliability view's two-row idiom; there are ~50
   panels, too many for one chip row), then a chart type. Switching test set keeps the
   current language where that set has it. **d · CI** ranks systems by how
-  far their char/s distribution sits from the reference voice (green rule = the
+  far their char/s distribution (over Silero VAD speech spans, WER ≤ 20% utterances)
+  sits from the reference voice (green rule = the
   split-half ceiling, a perfect system at finite n). **distribution** gives each system
   one row on a shared char/s axis: a density ridge (estimated from its quantiles) for
   the shape, a p25–p75 bar with p10/p90 whiskers and a median tick, the reference

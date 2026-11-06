@@ -4,8 +4,7 @@ Documentation and result reports for ZTTS2-Eval.
 
 ## Live (root of repo)
 - [`../RESULTS_CURRENT.md`](../RESULTS_CURRENT.md) — results snapshot, regenerated from `results/`.
-- [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — structural map of the codebase (entry point for new readers).
-- [`../README.md`](../README.md) — project overview + dataset / data-prep instructions.
+- [../README.md](../README.md) — overview, data, metrics, usage
 - [`../DATA_LICENSE.md`](../DATA_LICENSE.md) — dataset licenses (FLEURS-R, VoxBlink2).
 - [`../NOTICE`](../NOTICE) — third-party code / scoring-model attribution.
 

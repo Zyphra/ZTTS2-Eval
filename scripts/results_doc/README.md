@@ -57,11 +57,12 @@ per-file copies.
 
 ## Notes
 
-- Char/s decodes and trims every wav, which used to make `build_speaking_rate.py` the
-  slowest step of `run.sh` (hours). Each wav's trimmed and raw duration is now cached per
-  directory (`<leaf>/speaking_rate_durations.tsv`; the references' in
-  `results/_speaking_rate_ref/<set>_<lang>.tsv`), keyed on file name, size, mtime and the
-  trim threshold, so a rebuild only probes wavs that changed (VoxBlink2 `en`: 219 s cold,
+- Char/s decodes every wav and cuts it to its Silero VAD speech span (16 kHz), which used
+  to make `build_speaking_rate.py` the slowest step of `run.sh` (hours). Each wav's trimmed
+  and raw duration is now cached per directory (`<leaf>/speaking_rate_durations.tsv`; the
+  references' in `results/_speaking_rate_ref/<set>_<lang>.tsv`), keyed on file name, size,
+  mtime and the trim tag (`utils.vad.TRIM_TAG`; rows with another tag are re-probed), so a
+  rebuild only probes wavs that changed (VoxBlink2 `en`: 219 s cold,
   22 s warm, identical output). The WER content filter is applied after the cache, so it
   never goes stale with a rescore.
 - `build_capability_index.py` fits the Epoch Capabilities Index model
@@ -81,7 +82,7 @@ per-file copies.
   speaking-rate payload also keeps partial generations that the coverage gate drops. Real
   speech's char/s items are the ground-truth split-half rows `build_speaking_rate.py`
   computes for every panel. System char/s is scored only on utterances with WER ≤ 20%
-  (`speaking_rate_dist.MAX_WER`; `docs/controls_2026-08.md` C7).
+  (`scripts/prosody/common.MAX_WER`; `docs/controls_2026-08.md` C7).
 - Release dates for the over-time chart live in `rd_common.RELEASES`, one entry per results
   dir with its source. They are taken from each project's announcement or dated news
   log, not Hugging Face `createdAt` (repos are often created privately weeks before

@@ -264,9 +264,9 @@ def render(recs, dedup=None, cap_index=None):
             W(f"The same fit over {pm['n_items']} prosody items only (ECI's domain-specific "
               "index), with every prosody metric rather than the capability index's four: "
               f"{aspects}. The {len(pm['dimensions'])} aspects weigh equally, so a quantity "
-              "measured several ways does not outvote one measured once. MPM span is scored "
-              "on silence-trimmed audio (`docs/controls_2026-08.md` C6). Same anchors and "
-              "interval as the capability index.\n")
+              "measured several ways does not outvote one measured once. Every prosody "
+              "metric is scored on each file's Silero VAD speech span (`docs/controls_2026-08.md` "
+              "C6, C9). Same anchors and interval as the capability index.\n")
             index_table(pros)
     for task, title, extra in (
             (CLEAN, "Clean (FLEURS-R)", ""),
@@ -367,21 +367,21 @@ def render(recs, dedup=None, cap_index=None):
     W("seed (unseeded server-default sampling); native recipes note their sampling defaults above.\n")
 
     # --- 2. Clean WER ------------------------------------------------------------
-    zs_models = models_for(recs, CLEAN)
+    clean_models = models_for(recs, CLEAN)
     # GT anchor: the gt_clean baseline rows carry task="" (flat dir), so
     # models_for() misses them — append explicitly; _sort_key buckets gt_* last.
-    if GT_NAME[CLEAN] not in zs_models and \
+    if GT_NAME[CLEAN] not in clean_models and \
             any(r["model"] == GT_NAME[CLEAN] and not r["task"] for r in recs):
-        zs_models = sorted(zs_models + [GT_NAME[CLEAN]], key=_sort_key)
+        clean_models = sorted(clean_models + [GT_NAME[CLEAN]], key=_sort_key)
 
-    def zs_task(m):
+    def clean_task(m):
         # The ground-truth reference rows are stored with an empty task string.
         return "" if m == GT_NAME[CLEAN] else CLEAN
 
     n_clean = len(CLEAN_LANGS)
-    W(f"## 2. Zero-shot WER_CLIP % ({n_clean} languages)\n")
-    per_lang_table(zs_models, zs_task, CLEAN_LANGS, fmt_wer)
-    avg_row(zs_models, zs_task, CLEAN, CLEAN_LANGS)
+    W(f"## 2. Clean WER_CLIP % ({n_clean} languages)\n")
+    per_lang_table(clean_models, clean_task, CLEAN_LANGS, fmt_wer)
+    avg_row(clean_models, clean_task, CLEAN, CLEAN_LANGS)
     W("")
     W(f"The avg row is shown only for systems that cover all {n_clean} languages;")
     W(f"others read `partial (n/{n_clean})` and are not comparable to full-coverage averages.")
@@ -390,19 +390,19 @@ def render(recs, dedup=None, cap_index=None):
     W("CER and the `avg` column mixes WER and CER units.\n")
     W(COND_LEGEND + "\n")
 
-    W("### Zero-shot WER_L50 % (mean of utts with WER < 50%, ignores catastrophic tail)\n")
+    W("### Clean WER_L50 % (mean of utts with WER < 50%, ignores catastrophic tail)\n")
     W("Caveat: when *every* utterance of a leaf is ≥50% WER, `utils/average_wer.py`")
     W("falls back to reporting L50 over the full set — so a cell can exceed 50 for a")
     W("model that collapsed on that language. The catastrophic tail itself is the")
     W("**Tail >50%** column of §0.\n")
-    per_lang_table(zs_models, zs_task, CLEAN_LANGS, fmt_l50)
+    per_lang_table(clean_models, clean_task, CLEAN_LANGS, fmt_l50)
     W("")
 
     # --- 3. Clean speaker similarity --------------------------------------------
-    W("## 3. Zero-shot speaker similarity (×100, higher better)\n")
-    per_lang_table(zs_models, zs_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "spk"), 1))
+    W("## 3. Clean speaker similarity (×100, higher better)\n")
+    per_lang_table(clean_models, clean_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "spk"), 1))
     W("")
-    preset_labels = sorted(f"`{label(m)}`" for m in zs_models
+    preset_labels = sorted(f"`{label(m)}`" for m in clean_models
                            if (condition(m) or ("", ""))[0] == "preset")
     if preset_labels:
         W(f"> Preset-voice engines ({', '.join(preset_labels)}) are not cloning the")
@@ -411,9 +411,9 @@ def render(recs, dedup=None, cap_index=None):
     W(COND_LEGEND + "\n")
 
     # --- 4. Clean MSR-UTMOS ------------------------------------------------------
-    W("## 4. Zero-shot MSR-UTMOS (higher better)\n")
+    W("## 4. Clean MSR-UTMOS (higher better)\n")
     W("MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for that leaf.\n")
-    per_lang_table(zs_models, zs_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "msr_utmos"), 2))
+    per_lang_table(clean_models, clean_task, CLEAN_LANGS, lambda r: fmt(rec_value(r, "msr_utmos"), 2))
     W("")
     W("The `gt (clean)` column is real speech: the MOS predictor's anchor, not a")
     W("ceiling models must beat — read model cells against it.\n")
@@ -426,20 +426,21 @@ def render(recs, dedup=None, cap_index=None):
     W("speech are to each other).\n")
     W("- **Rhythm** — distance between the generated and real rhythm distributions in")
     W("  mHuBERT space, reported as two factors: *pace* (speaking-rate distribution) and")
-    W("  *pause* (burstiness: pause and stall structure). Method and ceiling:")
-    W("  [`docs/rhythm.md`](docs/rhythm.md).")
+    W("  *pause* (burstiness: pause and stall structure), on the utterances with WER ≤ 20%.")
+    W("  Method and ceiling: [`docs/rhythm.md`](docs/rhythm.md).")
     W("- **Pitch range** — register-normalized: each utterance's F0 contour is expressed")
     W("  in semitones around its own median and summarised by its p90−p10 range, so the")
-    W("  speaker's absolute register drops out and only expressiveness remains. Method:")
-    W("  [`docs/pitch_range.md`](docs/pitch_range.md).")
+    W("  speaker's absolute register drops out and only expressiveness remains; on the")
+    W("  utterances with WER ≤ 20%. Method: [`docs/pitch_range.md`](docs/pitch_range.md).")
     W("- **Characters/s** — 2-Wasserstein distance to the reference speaking-rate")
     W("  distribution (explorer speaking-rate view), on the utterances with WER ≤ 20%")
     W("  (docs/controls_2026-08.md C7).")
     W("- **MPM span: Clean set only — anchors collapse on in-the-wild audio "
       "(docs/mpm_itw_limits.md); values >1 are worse than contour-scrambled speech.** "
-      "0 = real-speech split-half floor, 1 = contour-scrambled floor. Leading/trailing "
-      "silence is trimmed before scoring (docs/controls_2026-08.md C6), so spans are not "
-      "comparable with releases before 2026-10-31.\n")
+      "0 = real-speech split-half floor, 1 = contour-scrambled floor.\n")
+    W("All four are scored on each file's Silero VAD speech span (16 kHz), so edge")
+    W("silence, tones and noise do not count as speech (docs/controls_2026-08.md C6, C9).")
+    W("The rhythm and pitch-range CSVs report the share of utterances kept as `heard_pct`.\n")
     W("On the ITW set the real target recording exists for every item, so prosody is also")
     W("measured *paired* per utterance (duration ratio, pause-count difference, pitch-range")
     W("ratio against the target): the **Dur**, **Pause Δ** and **Pitch-range |log2|**")
@@ -514,11 +515,12 @@ def render(recs, dedup=None, cap_index=None):
     W("  checkpoint (`MSR_UTMOS_CKPT`).")
     W("- **Rhythm** = distance of the generated rhythm distribution (mHuBERT-147 features)")
     W("  to real speech, as pace and pause factors in units of the real-speech split-half")
-    W("  ceiling (`scripts/prosody/rhythm_dist.py`, `docs/rhythm.md`); lower is better.")
+    W("  ceiling, on the utterances the ASR heard with WER ≤ 20%")
+    W("  (`scripts/prosody/rhythm_dist.py`, `docs/rhythm.md`); lower is better.")
     W("- **Pitch range** = 2-Wasserstein distance between the per-utterance p90−p10")
     W("  semitone-range distributions of generated and real speech, in units of the")
-    W("  split-half ceiling, on a fixed 500-utterance sample per language")
-    W("  (`scripts/prosody/pitch_range_dist.py`, `docs/pitch_range.md`).")
+    W("  split-half ceiling, on a fixed 500-utterance sample per language, keeping the")
+    W("  utterances with WER ≤ 20% (`scripts/prosody/pitch_range_dist.py`, `docs/pitch_range.md`).")
     W("- **Paired ITW prosody** = per-utterance median |log2| duration ratio (generations")
     W("  with WER ≤ 20% only), mean absolute pause-count difference (pauses = gaps ≥ 0.2 s")
     W("  between Silero VAD speech segments) and median |log2|")
@@ -528,10 +530,11 @@ def render(recs, dedup=None, cap_index=None):
     W("  reference speaking-rate distributions on the utterances the ASR heard with")
     W("  WER ≤ 20% (`scripts/prosody/speaking_rate_dist.py`); lower is better.")
     W("- **MPM span** = distance from the real-speech split-half floor (0), normalized")
-    W("  by the contour-scrambled floor (1) (`scripts/prosody/score_mpm_shuffle_floor.py`), on audio")
-    W("  with leading/trailing silence trimmed (`docs/controls_2026-08.md` C6). Clean")
+    W("  by the contour-scrambled floor (1) (`scripts/prosody/score_mpm_shuffle_floor.py`). Clean")
     W("  set only — anchors collapse on in-the-wild audio (`docs/mpm_itw_limits.md`);")
     W("  values >1 are worse than contour-scrambled speech.")
+    W("- Durations, rhythm, pitch range and MPM are all computed on each file's Silero VAD")
+    W("  speech span (`utils/vad.py`, found at 16 kHz).")
     W("- **Reliability gallery** — per-language edit-distance survival/tail plates for")
     W("  the GT baselines: [`assets/reliability_gallery.html`](assets/reliability_gallery.html)")
     W("  (`scripts/plots/run_reliability.sh`).")

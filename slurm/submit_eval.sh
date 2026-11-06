@@ -195,7 +195,7 @@ mkdir -p logs/slurm
 
 # Config shared by every job goes through the environment (sbatch --export=ALL). This
 # avoids the comma/space escaping problems of `sbatch --export=VAR=value` -- notably
-# for multi-word --test_set lists like "en zh de".
+# for multi-word --test-set lists like "en zh de".
 export EJ_REPO="${REPO_ROOT}"
 export EJ_ENGINE="${engine}"
 export EJ_TASK="${task}"

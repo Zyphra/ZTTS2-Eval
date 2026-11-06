@@ -11,9 +11,10 @@ similarity, and it cannot tell a flat delivery from a lively one.
 
 ## Method
 
-1. Load the wav at 16 kHz and trim lead/trail silence (`librosa.effects.trim`,
-   `top_db=35`, as for char/s). Audio shorter than 0.5 s (8,000 samples)
-   after trimming is not scored.
+1. Load the wav at 16 kHz and cut it to its Silero VAD speech span
+   (`utils/vad.trim_speech`, 30 ms pad; the same cut as char/s, rhythm and MPM). A file
+   with no detected speech, or shorter than 0.5 s (8,000 samples) after the cut, is not
+   scored.
 2. F0 track: `librosa.pyin`, 60–400 Hz, `frame_length=1024`, `hop_length=320` (20 ms).
    A width-3 median filter over the voiced frames removes single-frame octave blips.
 3. Remove the frames pYIN calls voiced where there is no voice (since 2026-11,
@@ -30,6 +31,11 @@ similarity, and it cannot tell a flat delivery from a lively one.
 6. Per (set, language) the metric is the 2-Wasserstein distance between a system's
    distribution of per-utterance ranges and the reference's. The reference is the
    **prompt recordings** of the same uids (`data/<set>/<lang>/prompt_wav.scp`).
+   A system is scored only on the sampled uids the ASR heard with WER ≤ 0.2 (the
+   char/s and rhythm content filter, [controls C7](controls_2026-08.md)); the
+   minimum-utterance check runs after the filter, and `heard_pct` reports the share of
+   sampled uids with a wav that passed (100.0 on the ceiling row). The reference is
+   not filtered.
 
 Validation on WORLD resyntheses of 160 FLEURS-R `en` utterances with a known F0 change
 (median measured / baseline range): contour ×0.5 → 0.52, ×1.5 → 1.44, ×2 → 1.82;
@@ -37,15 +43,15 @@ register shifts of ±4 and ±7 st → 0.96–1.02, for low and high voices alike
 
 The CSV has one row per system: `n`, `median_st` (median range in semitones),
 `median_ratio` (system median / reference median; below 1 = flatter than real speech —
-the direction that `d_ref` alone cannot show), `d_ref` (the W2 distance), `x_ceiling` and
-`benchmark_version`. Rows are sorted by `d_ref`, lower is better.
+the direction that `d_ref` alone cannot show), `d_ref` (the W2 distance), `x_ceiling`,
+`heard_pct` and `benchmark_version`. Rows are sorted by `d_ref`, lower is better.
 
 ## The split-half ceiling
 
 Two halves of the *same* real speech are not at distance 0 at finite n. `x_ceiling` is
 `d_ref` divided by that finite-sample **ceiling**: the mean W2 over 32 random disjoint
-n/2-vs-n/2 splits of the reference (`speaking_rate_dist.ceiling`). A system is compared
-at the same half-vs-half geometry (`speaking_rate_dist.w2_fair`: mean over 32 n/2
+n/2-vs-n/2 splits of the reference (`scripts/prosody/common.ceiling`). A system is compared
+at the same half-vs-half geometry (`scripts/prosody/common.w2_fair`: mean over 32 n/2
 subsamples of both sides), because comparing full samples against a split-half ceiling
 flatters every system — the W2 noise floor shrinks with n (see
 [rhythm.md](rhythm.md)). So `x_ceiling = 1` reads "as close to real speech as two

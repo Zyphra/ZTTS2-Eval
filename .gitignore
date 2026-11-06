@@ -1,8 +1,6 @@
 .vscode/
-debug/
 .env
 .venv/
-.venv-old-py310/
 __pycache__/
 *.pyc
 # Ignore everything under results/ ...
@@ -39,7 +37,6 @@ scripts/results_doc/_cache/
 logs/
 *.log
 results/.wer_norm_cache.json
-.claude/scheduled_tasks.lock
 
 # VoxBlink2 prep artifacts: chmod lists reference a local raw-audio tree.
 data/in-the-wild/_stage_a/*_to_chmod.txt

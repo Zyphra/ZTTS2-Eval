@@ -1,6 +1,6 @@
 # WER-tail error modes (ground-truth diagnosis)
 
-The v2 GT baselines score **real human speech** (FLEURS-R prompt clips; VoxBlink2
+The GT baselines score **real human speech** (FLEURS-R prompt clips; VoxBlink2
 target clips) through the same Qwen3-ASR → WER path as the TTS systems. A chunk of
 languages come back with alarming GT WER (up to ~85%). That number is **not** a data
 defect or a speech-quality problem — it is the ASR being scored, and the audio is
@@ -99,7 +99,7 @@ ms vi hi` (clean) and most of the in-the-wild set. Read WER directly.
 The scoring endpoint (vLLM `/v1/audio/transcriptions`, OpenAI-compatible) *does*
 accept a `language` param — validated against the 58-language Whisper set — and the
 client (`scripts/score/run_wer.py`) already sends it, but only for 9 langs (`LANG_HINT`: en
-zh de es fr it ja ko ru); every v2-added lang sends nothing.
+zh de es fr it ja ko ru); every newly added lang sends nothing.
 
 Extending the hint does **not** fix the tail. A/B on ~40 clips/lang, correct ISO
 hint vs none:

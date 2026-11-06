@@ -188,3 +188,9 @@ Pre-fix TSVs are archived at `results/_mpm_shuffle_floor/pre_p95_20260829/`; see
 `docs/controls_2026-08.md`. Published MPM numbers are not comparable across this change.
 Since 2026-10-31 leading/trailing silence is also trimmed before featurization (cache tag
 `v5`; [controls C6](controls_2026-08.md)), which changes every span again.
+
+Anchor cache tag history:
+
+- v3→v4: per-utterance `p95` energy normalization (above).
+- v4→v5: 35 dB energy trim of leading/trailing silence ([controls C6](controls_2026-08.md)).
+- v5→v6: Silero VAD span trim

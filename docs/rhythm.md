@@ -6,20 +6,27 @@
 ## Method
 
 1. Cut each file to its speech span: first to last Silero VAD speech segment
-   (`utils/vad.py`, pinned v6.2.3, 30 ms pad). Internal pauses are kept — they
-   are rhythm. Until 2026-11 this was the 35 dB energy trim shared with char/s,
+   (`utils/vad.trim_speech`, pinned v6.2.3, computed at 16 kHz, 30 ms pad). Internal
+   pauses are kept — they are rhythm. Until 2026-11 this was a 35 dB energy trim,
    which kept any edge sound within 35 dB of the peak: noise floors, and the
    tones, hums and bursts some systems generate before speaking, all scored as
-   stalls ([controls C9](controls_2026-08.md)).
-2. mHuBERT-147 (multilingual, 147 langs) layer-9 features, 20 ms frames.
-3. k-means (k=100 default) fitted on frames from the **reference set** and
+   stalls ([controls C9](controls_2026-08.md)). char/s, pitch range and MPM now use
+   the same Silero span.
+2. Content filter: a system is scored only on the utterances the ASR heard with
+   WER ≤ 0.2 (`heard_uids`, the `MAX_WER` of char/s; [controls C7](controls_2026-08.md)),
+   so a dropped or runaway sentence counts against WER, not rhythm. The candidates are
+   the benchmark uids with a wav; a system with no transcription is skipped, and the
+   `--min-utts` check runs on the heard set. The CSV's `heard_pct` column is the share
+   of candidates kept (100.0 on the ceiling row). The real reference is not filtered.
+3. mHuBERT-147 (multilingual, 147 langs) layer-9 features, 20 ms frames.
+4. k-means (k=100 default) fitted on frames from the **reference set** and
    cached to `~/.cache/ztts2_eval/rhythm` (same anchor pattern as the MPM
    shuffle floor: every system in one (set, lang) scores against the same
    centroids). The HF repo ships no clustering, so we fit our own; token IDs
    differ per language, which is irrelevant for within-language comparison.
-4. Collapse consecutive duplicate tokens (**dedup**); the run lengths of the
+5. Collapse consecutive duplicate tokens (**dedup**); the run lengths of the
    surviving segments carry the timing signal.
-5. Four per-utterance dimensions, reported **separately** (Prosody-Profile
+6. Four per-utterance dimensions, reported **separately** (Prosody-Profile
    philosophy — no combined mean):
 
    | dim | definition | reads as |
@@ -29,7 +36,7 @@
    | `npvi` | pairwise variability index of run durations | stress- vs syllable-timing contrast |
    | `long_frac` | frames in runs ≥ 200 ms / all frames | pause / stall / drawl mass |
 
-6. Per dim: `d_ref` = 2-Wasserstein between the system's per-utterance values
+7. Per dim: `d_ref` = 2-Wasserstein between the system's per-utterance values
    and the reference's (identical `w2` to `speaking_rate_dist.py`), computed at
    the ceiling's **half-vs-half geometry** (mean over 32 n/2-vs-n/2 subsamples)
    and reported against the reference split-half **ceiling**
@@ -40,15 +47,15 @@
    distributional prosody metrics share one geometry. `--min-utts` defaults to
    100 here and in the other two, so the small ITW languages (vi, uk, th, nl)
    are scored rather than skipped.
-7. d_ref is direction-blind, so two directional columns ride along:
+8. d_ref is direction-blind, so two directional columns ride along:
    `{dim}_std_ratio` (system std / ref std; < 1 = over-regularized) and
    `long_pct` (% of utterances with any ≥200 ms run — pause incidence).
 
 Two of the four dimensions are the headline in the results report
 (`RESULTS_CURRENT.md`, tradeoff figures, explorer): the **pause/stall factor**
 (`burstiness_x_ceiling` in the CSV) and the **pace factor** (`rate_x_ceiling`),
-both as multiples of the real-speech split-half ceiling. Rows carry a
-`benchmark_version` column, and only the uids of the current `text` are scored.
+both as multiples of the real-speech split-half ceiling. Rows carry `heard_pct` and
+`benchmark_version` columns, and only the uids of the current `text` are scored.
 Contour is covered by [pitch_range.md](pitch_range.md).
 
 ## Validation (constructed ground truth, clean/en, 300v300 split)
@@ -83,7 +90,8 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
   digital silence, −45 dB hiss, audible −20 dB noise and a steady hum. The old
   35 dB energy trim passed the first two but kept the last two, scoring them as
   stalls ([controls C9](controls_2026-08.md)). Internal pauses are untouched by
-  design — they are the `burstiness`/`long_frac` signal.
+  design — they are the `burstiness`/`long_frac` signal. The probes run on the
+  reference audio, which the WER filter never touches.
 - **Reversal is detected**, unlike a mean-F0 pitch score (the retired mean-F0
   metric scored backwards GT at 97.2). Reversed transients re-segment the token stream. Strictly this means
   the dims are not *pure* timing — they also see segmentation stability — but
