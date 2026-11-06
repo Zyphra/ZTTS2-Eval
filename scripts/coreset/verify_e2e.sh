@@ -5,11 +5,11 @@
 # The statistical claim (does the weighted estimator recover the macro-average?) is
 # already established offline by scripts/coreset/validate.py over ~9 held-out families.
 # What this script checks is the part offline validation cannot: that the exported
-# data/<task>/ directory really drives run_infer_*.sh, that the scorers write per-uid
+# data/<task>/ directory really drives run_score.sh, that the scorers write per-uid
 # files the panel scorer can read, and that the weights are applied to the right items.
 #
 # To avoid paying for regeneration it reuses each system's EXISTING full-set wavs,
-# symlinking just the panel's uids into a panel DECODE_DIR and re-scoring those. The
+# symlinking just the panel's uids into a panel decode dir and re-scoring those. The
 # generated audio is byte-identical to what a real panel run would produce for those
 # items, because it is the same model on the same prompts. The source task is read from
 # the panel's own panel.json (both sets share the uttid_N uid scheme, so linking from
@@ -108,8 +108,7 @@ for sys in ${E2E_SYSTEMS}; do
     done
     [ -n "${have}" ] || { echo "[e2e] ${sys}: nothing to score"; continue; }
     echo "=== [e2e] scoring ${sys} on ${E2E_TASK} ==="
-    DECODE_DIR="results/${sys}/${E2E_TASK}" \
-        bash run_infer_zonos2_eval.sh --task "${E2E_TASK}" --test_set "${have}"
+    bash run_score.sh --decode_dir "results/${sys}/${E2E_TASK}" --test_set "${have}"
 done
 stop_asr_server || true
 stop_whisper_server || true

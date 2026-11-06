@@ -359,13 +359,11 @@ python scripts/download_data.py --tasks in-the-wild --langs en
 #    with one local model
 bash run_generate_omni.sh --model qwen3-tts-0.6b --task in-the-wild_mini --test_set en
 
-# 4. score that DECODE_DIR (script name is historical and model-agnostic). It
-#    auto-starts/stops the ASR servers and routes each language to Qwen3-ASR or
-#    Whisper-large-v3 as the published numbers do; both co-locate on GPU 0 by
-#    default (same settings as slurm/eval_job.sh). It also scores speaker
-#    similarity against the held-out real recordings.
-DECODE_DIR=results/omni_qwen3-tts-0.6b/in-the-wild_mini \
-    bash run_infer_voxblink_eval.sh --task in-the-wild_mini --test_set en
+# 4. score it. run_score.sh auto-starts/stops the ASR servers and routes each
+#    language to Qwen3-ASR or Whisper-large-v3 as the published numbers do; both
+#    co-locate on GPU 0 by default (same settings as slurm/eval_job.sh). It also
+#    scores speaker similarity against the held-out real recordings.
+bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini --test_set en
 
 # 5. weighted estimate of the FULL In-The-Wild score, with a bootstrap CI
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini
@@ -431,17 +429,15 @@ corpus keeps the reference distribution's speaking-rate, rhythm, pitch-range, an
 contour behavior.
 
 ```bash
-# remember to point DECODE_DIR at your generated audio in the run scripts
-
-# WER, speaker similarity, and MSR-UTMOS — Clean set (FLEURS-R).
-# The script name is historical; it scores any compatible DECODE_DIR.
+# WER, speaker similarity, and MSR-UTMOS for one system's task directory; the task
+# is the --decode_dir basename and --test_set defaults to its basket.
 # (auto-starts and stops the ASR servers — Qwen3-ASR plus Whisper-large-v3 for the
 #  routed languages; the run fails if the Whisper server cannot start)
-bash run_infer_zonos2_eval.sh
+bash run_score.sh --decode_dir results/<system>/clean
 
-# Same metrics on the In-The-Wild set (VoxBlink2); speaker similarity is also
-# scored against the held-out real recordings (spk_simi_scores.xutt.txt)
-bash run_infer_voxblink_eval.sh
+# On the In-The-Wild set (VoxBlink2) speaker similarity is also scored against the
+# held-out real recordings (spk_simi_scores.xutt.txt)
+bash run_score.sh --decode_dir results/<system>/in-the-wild
 ```
 
 ```bash
@@ -526,8 +522,7 @@ They are ordinary task directories, so nothing in the pipeline changes:
 
 ```bash
 bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
-    bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
+bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 # weighted estimate of the FULL benchmark score, with a bootstrap CI
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini

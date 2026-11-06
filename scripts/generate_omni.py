@@ -2,7 +2,7 @@
 
 POSTs each utterance in <data-dir>/text to the server's OpenAI-compatible
 /v1/audio/speech endpoint and writes the result to <out-dir>/wavs/<uttid>.wav --
-the layout run_infer_zonos2_eval.sh expects.
+the layout run_score.sh expects.
 
 This is an HTTP client only: run_generate_omni.sh (via scripts/serve_omni.sh) starts
 and stops the `vllm serve --omni` server; this script talks to one already running.

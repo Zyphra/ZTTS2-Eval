@@ -4,7 +4,7 @@ For each utterance in <data-dir>/text, sends the target text plus the prompt wav
 and its transcript (with-transcript zero-shot cloning, one reference per request)
 to POST /v1/audio/speech and writes the returned 44.1 kHz PCM16 WAV to
 <out-dir>/wavs/<uttid>.wav. <out-dir> is then ready to be scored
-(run_infer_zonos2_eval.sh / run_infer_voxblink_eval.sh).
+(run_score.sh).
 
 The server reads the reference wav from its OWN filesystem, so the prompt path is
 sent absolute. Sampling (upstream CLI/adapter defaults) is sent explicitly: omitted

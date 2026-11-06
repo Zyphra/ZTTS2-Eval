@@ -2,7 +2,7 @@
 """Score a system that was run on an exported coreset panel.
 
 Reads the ordinary per-leaf score files the pipeline already wrote under a panel
-DECODE_DIR, applies the panel's per-item weights, and reports the estimate of the
+decode dir, applies the panel's per-item weights, and reports the estimate of the
 **full-benchmark** score -- plus a weighted bootstrap CI so the number arrives with its
 uncertainty attached instead of looking more precise than it is.
 

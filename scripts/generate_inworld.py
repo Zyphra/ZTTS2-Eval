@@ -2,7 +2,7 @@
 
 For each utterance in <data-dir>/text, synthesizes the target text with an
 Inworld TTS model (via the sync POST /tts/v1/voice endpoint) and writes
-<out-dir>/wavs/<uttid>.wav -- the layout run_infer_zonos2_eval.sh expects.
+<out-dir>/wavs/<uttid>.wav -- the layout run_score.sh expects.
 
 Two voice modes:
   * default (preset): like the Gemini / ElevenLabs engines, uses Inworld's

@@ -6,7 +6,7 @@ the model sweep out **one job per model**, so 8 omni models run in parallel acro
 GPUs/nodes rather than cycling sequentially on a single GPU. Each job **generates then
 scores** its model inside one 1-GPU allocation.
 
-This is a thin layer over the existing entry points (`run_generate_*`, `run_infer_*`,
+This is a thin layer over the existing entry points (`run_generate_*`, `run_score.sh`,
 `scripts/serve_*.sh`); it does not change any generation or scoring logic.
 
 ## Quick start
@@ -62,7 +62,7 @@ hard-coded and come from the submitter.
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
          bash scripts/run_gt.sh --task in-the-wild
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-         env DECODE_DIR=logs/smoke/in-the-wild bash run_infer_voxblink_eval.sh --test_set en
+         bash run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
   ```
 - **`scripts/rescore_all.sh`** — array job (8 GPUs per node, `--requeue`) that fully
   rescores every `results/<system>/<task>/<lang>` leaf — WER with the routed ASR, both

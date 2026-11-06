@@ -39,7 +39,7 @@ A stdlib web explorer browses the resulting scores.
 
 ### Git tracking state
 - All source is tracked: `pyproject.toml`, `uv.lock`, the `run_generate_*.sh` /
-  `run_infer_*.sh` entry points, `scripts/**` (`.py` + `.sh`, incl. `results_doc/`),
+  `run_score.sh` entry points, `scripts/**` (`.py` + `.sh`, incl. `results_doc/`),
   `utils/*.py` + `*.sh`, `explorer/`, `docs/`, `assets/`, and the top-level reports.
 - The `data/` metadata is tracked; the prompt wavs (`data/{clean,in-the-wild}/<lang>/waveform/`)
   and the ITW held-out target recordings (`data/in-the-wild/<lang>/target_wav/`)
@@ -63,7 +63,7 @@ A stdlib web explorer browses the resulting scores.
 ```
 ZTTS2-Eval/
 ├── run_generate_*.sh            # TTS generation orchestrators (entry points)
-├── run_infer_*.sh               # evaluation/scoring orchestrators (entry points)
+├── run_score.sh                 # evaluation/scoring orchestrator (entry point)
 ├── scripts/                     # generation, scoring, data-prep, plotting, servers
 ├── utils/                       # reusable metric + text-norm modules
 ├── explorer/                    # stdlib HTTP web UI for browsing results
@@ -110,16 +110,15 @@ ZTTS2-Eval/
   `in-the-wild` task.
 
 ### Evaluation → scores written next to the wavs
-- **`run_infer_zonos2_eval.sh`** → starts Qwen3-ASR and Whisper-large-v3 via
-  `scripts/serve_asr.sh` (routing is on by default; `ASR_ROUTING=0` is a diagnostic
-  all-Qwen mode that `build_results.py` refuses), then runs WER
-  (`scripts/run_score_wer.sh` → `utils/run_wer.py`), speaker
+- **`run_score.sh --decode_dir <system results>/<task>`** → starts Qwen3-ASR and
+  Whisper-large-v3 via `scripts/serve_asr.sh` (routing is on by default;
+  `ASR_ROUTING=0` is a diagnostic all-Qwen mode that `build_results.py` refuses), then
+  runs WER (`scripts/run_score_wer.sh` → `utils/run_wer.py`), speaker
   similarity (`scripts/eval_speaker_similarity.py`), and MSR-UTMOS
   (`utils/score_msr_utmos.py`) through the shared, version-aware loop in
-  `scripts/lib_infer_scoring.sh`. Reads `DECODE_DIR`.
-- **`run_infer_voxblink_eval.sh`** → the same metric set for `in-the-wild`, plus
-  the held-out speaker-similarity pass against `target_wav.scp`. Both entry points
-  default `--test_set` to the task's frozen basket (`python3 -m utils.benchmark langs <task>`).
+  `scripts/lib_infer_scoring.sh`; on `in-the-wild` also the held-out speaker-similarity
+  pass against `target_wav.scp`. The task is the `--decode_dir` basename (or `--task`);
+  `--test_set` defaults to its frozen basket (`python3 -m utils.benchmark langs <task>`).
 
 ---
 
@@ -134,7 +133,7 @@ ZTTS2-Eval/
   `spk_simi_scores.txt` (vs the prompt) and, on ITW, `spk_simi_scores.xutt.txt` (vs the
   held-out target recording).
 - `utils/score_msr_utmos.py` — MSR-UTMOS MOS predictor → `msr_utmos_scores.txt` (the
-  canonical scorer wired into `run_infer_*` and `run_gt.sh`).
+  canonical scorer wired into `run_score.sh` and `run_gt.sh`).
 - `lib_infer_scoring.sh` — `score_lang_dir` and the version-aware resume gates (a leaf
   whose stamps are missing or stale is rescored).
 - `rescore_all.sh` — full rescore of every `results/<sys>/<task>/<lang>` leaf over
@@ -309,7 +308,7 @@ dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 - **`utils/` is a package** (`utils/__init__.py`); `scripts/*.py` reach it with a
   uniform repo-root `sys.path` bootstrap + `from utils.X import ...`.
 - **Config is distributed**, not centralized: environment variables (`ASR_*`,
-  `OMNI_*`, `ZONOS2_*`, `DECODE_DIR`, `VOXBLINK2_AUDIO_ROOT`), inline bash constants
+  `OMNI_*`, `ZONOS2_*`, `VOXBLINK2_AUDIO_ROOT`), inline bash constants
   (model registries in `run_generate_omni.sh`), and Python literals.
 - **Servers are sourced, not run:** `scripts/serve_asr.sh` and
   `scripts/serve_omni.sh` define `start_*_server` / `stop_*_server` functions;
@@ -322,6 +321,6 @@ dirs); the GT/whisper baselines fold the task into the dir name and are flat —
 - Inspect tracking: `git ls-files | grep -v ^data/`, `git status --short`.
 - Smoke test (no GPU): `python tests/smoke_test.py`.
 - Full pipeline (GPU + servers): `source scripts/serve_asr.sh; start_asr_server`,
-  then `run_infer_zonos2_eval.sh --task clean --test_set en` against an existing
+  then `bash run_score.sh --decode_dir results/<system>/clean --test_set en` against an existing
   `results/` dir.
 - Browse results: `python explorer/serve.py --port 8000 --root .`.

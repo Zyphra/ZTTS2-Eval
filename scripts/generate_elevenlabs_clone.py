@@ -7,7 +7,7 @@ fal): it yields a real zero-shot speaker-similarity number for ElevenLabs.
 
 Per utterance it: (1) creates an Instant Voice Clone (IVC) from the prompt_wav,
 (2) synthesizes the target text with that temp voice + model, (3) decodes to a
-PCM_16 WAV in the run_infer_zonos2_eval.sh layout, then (4) DELETES the temp
+PCM_16 WAV in the run_score.sh layout, then (4) DELETES the temp
 voice so the account's custom-voice slots are freed for the next utterance.
 
 Synthesis goes through generate_elevenlabs.synth (eleven_v4 via the

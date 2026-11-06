@@ -2,7 +2,7 @@
 
 For each utterance in <data-dir>/text, synthesizes the target text with an
 ElevenLabs model (via the official `elevenlabs` SDK) and writes
-<out-dir>/wavs/<uttid>.wav -- the layout run_infer_zonos2_eval.sh expects.
+<out-dir>/wavs/<uttid>.wav -- the layout run_score.sh expects.
 
 This path does NOT clone the prompt speaker: like the Gemini engine in this
 harness, it uses ElevenLabs' built-in preset voices and picks one per utterance

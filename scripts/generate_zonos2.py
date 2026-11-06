@@ -3,7 +3,7 @@
 For each utterance in <data-dir>/text, sends the target text plus the prompt wav
 (zero-shot voice cloning, via /tts/generate's speaker_audio_base64) to the server and
 writes the synthesized audio to <out-dir>/wavs/<uttid>.wav. <out-dir> is then ready
-to be scored by run_infer_zonos2_eval.sh.
+to be scored by run_score.sh.
 
 Usage:
     python scripts/generate_zonos2.py \\

@@ -2,7 +2,7 @@
 
 For each utterance in <data-dir>/text, synthesizes the target text with a
 Gemini TTS model (via the official google-genai SDK) and writes
-<out-dir>/wavs/<uttid>.wav -- the layout run_infer_zonos2_eval.sh expects.
+<out-dir>/wavs/<uttid>.wav -- the layout run_score.sh expects.
 
 This harness does not clone with Gemini (voice replication needs a consent
 recording from the same speaker, which benchmark prompts can't provide): it uses

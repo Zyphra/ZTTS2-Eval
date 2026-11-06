@@ -73,7 +73,7 @@ cartesia = [
     "requests",
 ]
 
-# Extra MOS scorer run from the main .venv by run_infer_*_eval.sh:
+# Extra MOS scorer run from the main .venv by run_score.sh:
 #   sfi-utmos -> utils/score_msr_utmos.py  (MSR-UTMOS parallel MOS predictor)
 # Heavy transitive deps (lightning, ...), so kept optional;
 # install with:  uv sync --extra scorers

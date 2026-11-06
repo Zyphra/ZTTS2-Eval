@@ -84,8 +84,7 @@ cat <<'EOF'
 Run a system on a panel with the unmodified pipeline, e.g.:
 
   bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-  DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
-    bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
+  bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 Then read the weighted estimate of the FULL benchmark score:
 

@@ -232,17 +232,9 @@ bash "${gen_script}" "${gen_args[@]}"
 # ------------------------------------------------------------------- score ----
 if [ "${do_score}" = true ]; then
     decode_dir="${out_base}/${task}"
-    score_args=()
-    if [ "${task}" = in-the-wild ]; then
-        score_script="run_infer_voxblink_eval.sh"        # task pinned inside
-    else
-        score_script="run_infer_zonos2_eval.sh"
-        score_args=(--task "${task}")
-    fi
-    # Score exactly what was generated. The run_infer_* scripts default to test_set="en"
-    # only, but generation with an empty --test_set covers ALL of the task's languages
-    # (sets_for), so without this the other 8 clean langs would go unscored. When no
-    # EJ_TEST_SET was given, derive the language list from the generated subdirs.
+    # Score exactly what was generated: a driver may cover only part of the task's
+    # basket. When no EJ_TEST_SET was given, derive the language list from the
+    # generated subdirs.
     if [ -n "${test_set}" ]; then
         # Keep only languages the generator actually produced wavs for. A driver may
         # legitimately skip some of EJ_TEST_SET (unsupported language, missing data),
@@ -258,14 +250,13 @@ if [ "${do_score}" = true ]; then
         # via set -e; the empty list is handled by the skip branch below.
         score_ts="$(cd "${decode_dir}" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | tr '\n' ' ')" || score_ts=""
     fi
-    # An empty score list must actually SKIP (this used to fall through and let
-    # the run_infer script score its own unrelated default test_set).
+    # An empty score list must actually SKIP (otherwise run_score.sh would score the
+    # task's whole basket).
     if [ -z "${score_ts// }" ]; then
         echo "=== nothing was generated for test_set='${test_set:-<derived>}' under ${decode_dir}; skipping scoring ==="
     else
-        score_args+=(--test_set "${score_ts}")
-        echo "+ DECODE_DIR=${decode_dir} bash ${score_script} ${score_args[*]}"
-        DECODE_DIR="${decode_dir}" bash "${score_script}" "${score_args[@]}"
+        echo "+ bash run_score.sh --decode_dir ${decode_dir} --test_set \"${score_ts}\""
+        bash run_score.sh --decode_dir "${decode_dir}" --test_set "${score_ts}"
     fi
 else
     echo "=== EJ_SCORE=${do_score}; skipping scoring. Generated audio under ${out_base}/${task}/ ==="

@@ -3,7 +3,7 @@
 For each utterance in <data-dir>/text, sends the target text plus the prompt wav
 (audio-only zero-shot cloning, /tts/generate's speaker_audio_base64) and writes the
 synthesized audio to <out-dir>/wavs/<uttid>.wav. <out-dir> is then ready to be
-scored (run_infer_zonos2_eval.sh / run_infer_voxblink_eval.sh).
+scored (run_score.sh).
 
 Two conditioning systems, chosen by --speaker-mode:
     reference   raw reference prefix (the server's default for this checkpoint)

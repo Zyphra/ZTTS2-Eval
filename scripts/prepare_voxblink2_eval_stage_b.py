@@ -1,7 +1,7 @@
 """Stage B of the VoxBlink2-derived eval: score each prompt candidate from the
 Stage-A manifest with MSR-UTMOS, stratified-sample across MOS bins per language,
 and emit `data/in-the-wild/<lang>/{text,prompt_text,prompt_wav.scp,waveform/}`
-in the layout the existing scoring pipeline (run_infer_zonos2_eval.sh) expects.
+in the layout the existing scoring pipeline (run_score.sh) expects.
 
 Stratification is by *prompt* MSR-UTMOS — the audio we feed the TTS — across
 N_BINS uniform bins in [MSR_UTMOS_MIN, MSR_UTMOS_MAX]. Prompts are selected round-robin

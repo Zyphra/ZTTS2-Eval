@@ -5,7 +5,7 @@
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
 #          bash scripts/run_gt.sh --task clean
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-#          env DECODE_DIR=logs/smoke/in-the-wild bash run_infer_voxblink_eval.sh --test_set en
+#          bash run_score.sh --decode_dir logs/smoke/in-the-wild --test_set en
 #
 # Partition / account / QoS come from the submitter (sbatch flags or SBATCH_* env); none
 # is hard-coded here.

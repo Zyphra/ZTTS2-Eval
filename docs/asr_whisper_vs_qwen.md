@@ -122,7 +122,7 @@ error, never a silent fall-back to Qwen. `ASR_ROUTING=0` is a diagnostic all-Qwe
 mode whose results are not benchmark-comparable and are refused by `build_results.py`.
 
 ```bash
-DECODE_DIR=results/<system>/clean bash run_infer_zonos2_eval.sh --task clean --test_set en
+bash run_score.sh --decode_dir results/<system>/clean --test_set en
 # or reuse a running Whisper server:
 export WHISPER_BASE_URL=http://127.0.0.1:8001/v1
 ```

@@ -39,8 +39,7 @@ A panel is an ordinary task directory, so nothing in the pipeline changes:
 
 ```bash
 bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
-DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
-  bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
+bash run_score.sh --decode_dir results/omni_qwen3-tts-0.6b/clean_mini --test_set en
 
 python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
 ```

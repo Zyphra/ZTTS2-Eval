@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ground-truth baselines: score REAL human audio with the same pipeline as the systems.
-# Output is results/gt_<task>/<lang>/ (default), one leaf per language:
+# Output is results/gt_<task>/<lang>/ (default; --out_root overrides), one leaf per language:
 #
 #   --task clean            (Clean, FLEURS-R)  the real PROMPT clips scored against
 #       prompt_text. WER = the ASR error floor on genuine human speech; MSR-UTMOS = the
@@ -23,10 +23,11 @@ cd "$(dirname "$0")/.." || exit 1
 
 task=clean
 test_set=""   # empty -> the task's basket, resolved after option parsing
+out_root=""   # empty -> results/gt_<task>
 . utils/parse_options.sh || exit 1
 [ -n "${test_set}" ] || test_set=$(python3 -m utils.benchmark langs "${task}")
+[ -n "${out_root}" ] || out_root=results/gt_${task}
 
-OUT_ROOT=${DECODE_DIR:-results/gt_${task}}
 if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
 
 . scripts/serve_asr.sh
@@ -41,7 +42,7 @@ pick_score_gpu
 fails=0
 for lang in ${test_set}; do
     data=data/${task}/${lang}
-    sd=${OUT_ROOT}/${lang}
+    sd=${out_root}/${lang}
     [ -f "${data}/prompt_wav.scp" ] || { echo "[skip] ${lang} (no prompt_wav.scp)"; continue; }
 
     if [ "${task}" = "in-the-wild" ]; then
@@ -109,5 +110,5 @@ PYEOF
     echo "  ${lang}: $(grep -h '^WER:' ${sd}/wav_res_ref_text.wer 2>/dev/null) | MSR=$(cat ${sd}/msr_utmos_mean.txt 2>/dev/null)"
 done
 stop_asr_server; stop_whisper_server; trap - EXIT INT TERM
-echo "=== GT_${task} DONE -> ${OUT_ROOT} (${fails} failed step(s)) ==="
+echo "=== GT_${task} DONE -> ${out_root} (${fails} failed step(s)) ==="
 [ "${fails}" -eq 0 ]

@@ -9,7 +9,7 @@ to the prompt); WER and MSR-UTMOS still are. It runs in-process (no server), lik
 generate_echo.py -- a single device, sequential loop.
 
 For each utterance in <data-dir>/text it synthesises with (--lang-code, --voice) and
-writes <out-dir>/wavs/<uttid>.wav (24 kHz), ready for run_infer_zonos2_eval.sh.
+writes <out-dir>/wavs/<uttid>.wav (24 kHz), ready for run_score.sh.
 
 Run with the dedicated Kokoro venv (scripts/setup_kokoro_env.sh):
     ~/.venvs/kokoro/bin/python scripts/generate_kokoro.py \\

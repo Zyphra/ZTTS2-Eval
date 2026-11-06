@@ -22,7 +22,7 @@ lang = sys.argv[3]  # zh / en / hard_zh / to_en / ...
 base = base_lang(lang)
 
 # ASR is served by vLLM via the OpenAI-compatible transcription endpoint. The
-# server(s) are started/stopped by the driver (e.g. run_infer_zonos2_eval.sh); here
+# server(s) are started/stopped by the driver (e.g. run_score.sh); here
 # we are only a client. Qwen3-ASR is the default backend.
 BASE_URL = os.environ.get("ASR_BASE_URL", "http://127.0.0.1:8000/v1")
 MODEL = os.environ.get("ASR_MODEL", "Qwen/Qwen3-ASR-1.7B")

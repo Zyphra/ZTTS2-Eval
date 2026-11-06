@@ -19,8 +19,8 @@ CI_SEED = 20260717
 
 # Minimum scored/expected coverage before the aggregate is trusted. Below it the
 # .wer is still written in full (so the partial artifact stays inspectable) but
-# the exit code is non-zero, so cal_wer.sh / resume gates see the failure instead
-# of a success-looking stub (the 3-of-1279 incident rescore_stale_en.sh documents).
+# the exit code is non-zero, so scripts/run_score_wer.sh / resume gates see the failure instead
+# of a success-looking stub.
 MIN_COVERAGE = float(os.environ.get("SCORE_MIN_COVERAGE", "0.98"))
 
 # Rows whose hypothesis is this sentinel were not transcribed at all: the reference

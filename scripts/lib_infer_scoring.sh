@@ -1,11 +1,8 @@
-# scripts/lib_infer_scoring.sh -- shared per-language scoring loop for the
-# run_infer_* eval scripts (WER + speaker-sim + MSR-UTMOS).
+# scripts/lib_infer_scoring.sh -- the shared per-language scoring loop of run_score.sh,
+# scripts/run_gt.sh and scripts/analysis/control_seed_study.sh (WER + speaker-sim +
+# MSR-UTMOS).
 #
-# SOURCE this (`. scripts/lib_infer_scoring.sh`); do not execute it. Both
-# run_infer_zonos2_eval.sh and run_infer_voxblink_eval.sh use this single copy
-# so resume-gate / GPU-pinning fixes land once for both tasks (the two scripts
-# had already drifted apart once: the nan-WER / avg-0.00 resume conditions and
-# the SCORE_GPU pinning existed only in the voxblink sibling).
+# SOURCE this (`. scripts/lib_infer_scoring.sh`); do not execute it.
 #
 # Requires from the caller (set before sourcing):
 #   PY                  python interpreter for the torch scorers (venv-aware)
