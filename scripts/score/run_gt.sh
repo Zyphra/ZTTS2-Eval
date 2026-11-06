@@ -28,7 +28,8 @@ out_root=""   # empty -> results/gt_<task>
 [ -n "${test_set}" ] || test_set=$(python3 -m utils.benchmark langs "${task}")
 [ -n "${out_root}" ] || out_root=results/gt_${task}
 
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+. utils/lib_common.sh || { echo "error: run from the repo root" 1>&2; exit 1; }
+repo_py
 
 . scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM

@@ -30,22 +30,15 @@ set -uo pipefail
 : "${METRICS_RUN_DIR:?METRICS_RUN_DIR is required}"
 : "${METRICS_NODE_KINDS:?METRICS_NODE_KINDS is required}"
 cd "${METRICS_REPO}" || exit 1
+. slurm/lib_slurm.sh || exit 1
 
 node=${SLURM_ARRAY_TASK_ID:-0}
-n_gpu=$(nvidia-smi -L 2>/dev/null | wc -l)
-[ "${n_gpu}" -ge 1 ] || n_gpu=1
+n_gpu=$(slurm_gpu_count)
 cpu_lanes=${METRICS_CPU_LANES:-3}
 claims="${METRICS_RUN_DIR}/claims"
 failed="${METRICS_RUN_DIR}/failed-node${node}.txt"
-mkdir -p "${claims}"
+slurm_claims_init "${claims}" "${node}"
 rm -f "${failed}"
-
-for c in "${claims}"/*/; do
-    [ -d "${c}" ] || continue
-    if [ "$(cat "${c}owner" 2>/dev/null)" = "${node}" ] && [ ! -e "${c}done" ]; then
-        rm -rf "${c}"
-    fi
-done
 
 # Queue lines "<kind> <row> <task> <lang>": one file per lane type, built identically by
 # every task (row order is the manifest's; queue order is by kind, then set size).
@@ -81,8 +74,8 @@ complete() {  # TASK LANG: every METRICS_WAIT_SYSTEMS leaf has a wav per text li
     done
 }
 
-run_row() {  # KIND ROW TASK LANG CLAIM GPU|''
-    local kind=$1 row=$2 task=$3 lang=$4 c=$5 gpu=$6 cpus where=cpu
+run_row() {  # KIND ROW TASK LANG CLAIM_KEY GPU|''
+    local kind=$1 row=$2 task=$3 lang=$4 key=$5 gpu=$6 cpus where=cpu
     case "${kind}" in rhythm) cpus=16 ;; *) cpus=28 ;; esac
     [ -n "${gpu}" ] && where="gpu ${gpu}"
     echo "=== [$(date +%T) node ${node} ${where}] ${kind} ${task}/${lang} ==="
@@ -90,7 +83,7 @@ run_row() {  # KIND ROW TASK LANG CLAIM GPU|''
             METRICS_MANIFEST="${METRICS_RUN_DIR}/${kind}.tsv" SLURM_ARRAY_TASK_ID="${row}" \
             SLURM_CPUS_PER_TASK="${cpus}" bash slurm/metrics_job.sh \
             > "${METRICS_RUN_DIR}/${kind}-${task}_${lang}.out" 2>&1; then
-        touch "${c}/done"
+        slurm_claim_done "${claims}" "${key}"
     else
         echo "${kind} ${task} ${lang}" >> "${failed}"
         echo "[metrics-node] FAILED ${kind} ${task}/${lang} (${METRICS_RUN_DIR}/${kind}-${task}_${lang}.out)"
@@ -98,25 +91,24 @@ run_row() {  # KIND ROW TASK LANG CLAIM GPU|''
 }
 
 lane() {  # QUEUE GPU|''
-    local q=$1 gpu=$2 kind row task lang c open picked gate
+    local q=$1 gpu=$2 kind row task lang key open picked gate
     while :; do
         open=0; picked=""
         # One sacct per scan; rows are gated only while the generation jobs still run.
         gate=0
         if [ -n "${METRICS_WAIT_SYSTEMS:-}" ] && waiting; then gate=1; fi
         while read -r kind row task lang; do
-            c="${claims}/${kind}_${row}"
-            [ -e "${c}" ] && continue
+            key="${kind}_${row}"
+            [ -e "${claims}/${key}" ] && continue
             open=1
             if [ "${gate}" = 1 ] && ! complete "${task}" "${lang}"; then continue; fi
-            mkdir "${c}" 2>/dev/null || continue
-            echo "${node}" > "${c}/owner"
+            slurm_claim "${claims}" "${key}" "${node}" || continue
             picked="${kind} ${row} ${task} ${lang}"
             break
         done < "${q}"
         if [ -n "${picked}" ]; then
             # shellcheck disable=SC2086
-            run_row ${picked} "${c}" "${gpu}"
+            run_row ${picked} "${key}" "${gpu}"
         elif [ "${open}" -eq 1 ]; then
             sleep 30
         else

@@ -63,7 +63,7 @@ if [ "${laci}" != "true" ] && [ "${laci}" != "false" ]; then
 fi
 [ -z "${out_root}" ] && out_root="results/zonos3-mini_${speaker_mode}"
 
-gen_main_py
+repo_py
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
 

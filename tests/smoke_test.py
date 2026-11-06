@@ -109,6 +109,20 @@ class EntryPointValidationTest(unittest.TestCase):
         self.assertIn("unknown task 'nosuch'", proc.stderr)
 
 
+class SlurmPortWindowTest(unittest.TestCase):
+    """slurm/lib_slurm.sh: concurrent jobs (and the GPU slots inside one job) must get
+    disjoint port windows, with fixed role offsets inside a slot."""
+
+    def test_slot_and_role_ports(self):
+        proc = subprocess.run(
+            ["bash", "-c", '. slurm/lib_slurm.sh; b=$(slurm_port_base 2); '
+                           'echo $b $(slurm_role_port $b asr) $(slurm_role_port $b whisper)'],
+            cwd=REPO, capture_output=True, text=True, timeout=60,
+            env={**os.environ, "SLURM_JOB_ID": "12345"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.split(), ["33808", "33810", "33811"])
+
+
 class AverageWerTest(unittest.TestCase):
     """End-to-end run of utils/average_wer.py on synthetic .raw rows.
 

@@ -47,7 +47,7 @@ overwrite=false
 help_message="usage: bash scripts/gen/run_audio8.sh [--server URL|''] [--gpu N] [--port N] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--max_new_tokens N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
 
-gen_main_py
+repo_py
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
 

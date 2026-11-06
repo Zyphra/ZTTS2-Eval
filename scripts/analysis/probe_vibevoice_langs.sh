@@ -39,14 +39,14 @@ N="${PROBE_N:-50}"
 LANGS="${PROBE_LANGS:-de es fr it pt ru ja ko hi ar}"
 ROOT="${PROBE_ROOT:-results/_probe/vibevoice-${MODEL}}"
 
+. slurm/lib_slurm.sh
 job_id="${SLURM_JOB_ID:-$$}"
-port_base=$(( 20000 + (job_id % 10000) * 4 ))
-export ASR_PORT=$(( port_base + 1 )) WHISPER_PORT=$(( port_base + 2 ))
-export ASR_GPU=0 WHISPER_GPU=0 ASR_ROUTING=1
+port_base=$(slurm_port_base 0)
+export ASR_PORT=$(slurm_role_port "${port_base}" asr) WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
+export ASR_GPU=0 WHISPER_GPU=0
 export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
-srv="logs/slurm/servers/probe-${job_id}"; mkdir -p "${srv}"
-export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+export SERVE_LOG_DIR=$(slurm_server_log_dir "probe-${job_id}")
+PY=.venv/bin/python
 
 echo "=== probe: model=${MODEL} task=${TASK} n=${N}/lang langs='${LANGS}' -> ${ROOT}"
 
@@ -54,7 +54,7 @@ echo "=== probe: model=${MODEL} task=${TASK} n=${N}/lang langs='${LANGS}' -> ${R
 for l in ${LANGS}; do
     [ -f "data/${TASK}/${l}/text" ] || { echo "[probe] skip ${l}: no data"; continue; }
     bash scripts/gen/run_vibevoice15.sh --model "${MODEL}" --task "${TASK}" \
-        --test_set "${l}" --allow_unsupported true --limit "${N}" --out_root "${ROOT}" \
+        --test-set "${l}" --allow-unsupported true --limit "${N}" --out-root "${ROOT}" \
         || echo "[probe] generation failed for ${l}"
 done
 

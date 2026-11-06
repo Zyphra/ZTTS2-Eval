@@ -167,9 +167,10 @@ for m in ${models}; do
 
     export OMNI_MODEL="${model_id}"
     export OMNI_SERVE_ARGS="${serve_args}"
-    export OMNI_LOG="${OMNI_LOG_DIR:-/tmp}/vllm_omni_${m}.log"
+    export OMNI_LOG_ROLE="tts_${m}"
+    export OMNI_PORT="${port}"            # each model prefers --port; a retry may move it
     if ! start_omni_server; then
-        echo "[skip] ${m}: server failed to start (see ${OMNI_LOG})" 1>&2
+        echo "[skip] ${m}: server failed to start" 1>&2
         continue
     fi
 
@@ -189,7 +190,7 @@ for m in ${models}; do
 
         echo "=== [omni:${m}] ${data_dir} -> ${out_dir} (mode=${mode}) ${lang_opt} ==="
         "${PY}" scripts/gen/generate_omni.py \
-            --server "http://127.0.0.1:${port}" \
+            --server "http://127.0.0.1:${OMNI_PORT}" \
             --mode "${mode}" \
             --model "${model_id}" \
             --data-dir "${data_dir}" \

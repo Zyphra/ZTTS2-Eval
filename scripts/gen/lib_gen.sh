@@ -3,15 +3,12 @@
 # SOURCE this from the repo root (`. scripts/gen/lib_gen.sh`); do not execute it. A failed
 # source is the drivers' "not run from the repo root" check.
 #
-# Provides:
-#   gen_main_py                        PY = the project venv python (else python)
+# Provides (plus repo_py from utils/lib_common.sh):
 #   gen_langs TASK TEST_SET [SUPPORTED] the language list to generate (stdout)
 #   gen_require_ran RAN NAMES TASK     exit 1 when no language was generated
 #   gen_done OUT_ROOT TASK LANGS       print the output dir and the scoring command
 
-gen_main_py() {
-    if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
-}
+. utils/lib_common.sh
 
 # An explicit TEST_SET is echoed unchanged (each driver keeps its own policy for
 # languages it does not support). Empty TEST_SET -> the task's frozen basket

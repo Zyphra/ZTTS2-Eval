@@ -20,8 +20,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-PY=${PY:-.venv/bin/python}
-[ -x "${PY}" ] || PY=python
+. utils/lib_common.sh
+repo_py
 
 MINI_SELECTOR=${MINI_SELECTOR:-strat_meta}
 CLEAN_MINI_K=${CLEAN_MINI_K:-3500}

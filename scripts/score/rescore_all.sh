@@ -47,8 +47,8 @@ failed_file="logs/slurm/rescore-all-${array_job}-failed.txt"
 list_file="logs/slurm/rescore-all-${array_job}-leaves.txt"
 claims="logs/slurm/rescore-all-${array_job}-claims"
 
-n_gpu=$(nvidia-smi -L 2>/dev/null | wc -l)
-[ "${n_gpu}" -ge 1 ] || n_gpu=1
+. slurm/lib_slurm.sh
+n_gpu=$(slurm_gpu_count)
 # Workers per GPU share that GPU's ASR + Whisper servers, overlapping one leaf's ASR
 # with another's speaker-sim / MSR-UTMOS (measured ~88% GPU utilization at 2).
 wpg=${RESCORE_WORKERS_PER_GPU:-2}
@@ -62,9 +62,9 @@ export OMP_NUM_THREADS=${threads} MKL_NUM_THREADS=${threads}
 
 # The work list is computed ONCE per array job (first task to start, under a mkdir lock)
 # and frozen: every task and every requeue reads the same file.
-if [ ! -f "${list_file}" ]; then
-    if mkdir "${list_file}.lock" 2>/dev/null; then
-        leaves=$(python3 - <<'PYEOF' | LC_ALL=C sort
+build_list() {
+    local leaves stale="" sys_name task lang n
+    leaves=$("${PY}" - <<'PYEOF' | LC_ALL=C sort
 import os
 import sys
 from utils.benchmark import SOURCE_TASK, is_panel_alias, langs_for
@@ -86,29 +86,20 @@ for sys_name in sorted(os.listdir("results")):
                 print(sys_name, task, lang)
 PYEOF
 )
-        stale=""
-        while read -r sys_name task lang; do
-            [ -n "${sys_name}" ] || continue
-            leaf_current "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" && continue
-            n=$(find "results/${sys_name}/${task}/${lang}/wavs/" -name '*.wav' | wc -l)
-            stale+="${n} ${sys_name} ${task} ${lang}"$'\n'
-        done <<< "${leaves}"
-        printf '%s' "${stale}" | LC_ALL=C sort -k1,1nr -k2 | cut -d' ' -f2- > "${list_file}.tmp"
-        mv "${list_file}.tmp" "${list_file}"
-        echo "[rescore-all] $(printf '%s\n' "${leaves}" | grep -c .) leaves in total"
-    else
-        until [ -f "${list_file}" ]; do sleep 5; done
-    fi
-fi
-mkdir -p "${claims}"
+    while read -r sys_name task lang; do
+        [ -n "${sys_name}" ] || continue
+        leaf_current "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" && continue
+        n=$(find "results/${sys_name}/${task}/${lang}/wavs/" -name '*.wav' | wc -l)
+        stale+="${n} ${sys_name} ${task} ${lang}"$'\n'
+    done <<< "${leaves}"
+    printf '%s' "${stale}" | LC_ALL=C sort -k1,1nr -k2 | cut -d' ' -f2-
+    echo "[rescore-all] $(printf '%s\n' "${leaves}" | grep -c .) leaves in total" 1>&2
+}
+slurm_list_once "${list_file}" build_list
 
 # Release this task's claims left unfinished by a previous incarnation (requeue): the
 # task id runs once at a time, so any such claim belongs to a dead process.
-for c in "${claims}"/*/; do
-    [ -d "${c}" ] || continue
-    [ -f "${c}done" ] && continue
-    [ "$(cat "${c}owner" 2>/dev/null)" = "${node}" ] && rm -rf "${c}"
-done
+slurm_claims_init "${claims}" "${node}"
 
 n_list=$(grep -c . "${list_file}")
 n_open=0
@@ -124,14 +115,12 @@ pids=""
 for ((s = 0; s < n_gpu; s++)); do
     (
         export ASR_GPU=$s WHISPER_GPU=$s SCORE_GPU=$s
-        port_base=$(( 20000 + (${SLURM_JOB_ID:-$$} % 1000) * 40 + s * 4 ))
-        export ASR_PORT=$(( port_base + 1 )) WHISPER_PORT=$(( port_base + 2 ))
+        port_base=$(slurm_port_base "${s}")
+        export ASR_PORT=$(slurm_role_port "${port_base}" asr) WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
         # Leave room for the workers' torch scorers next to both servers: 0.35 each
         # left ~24 GB and long utterances OOMed in speaker-sim / MSR-UTMOS.
         export ASR_GPU_MEM_UTIL=${ASR_GPU_MEM_UTIL:-0.22} WHISPER_GPU_MEM_UTIL=${WHISPER_GPU_MEM_UTIL:-0.22}
-        srv="logs/slurm/servers/rescore-all-${array_job}_${node}-s${s}"
-        mkdir -p "${srv}"
-        export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
+        export SERVE_LOG_DIR=$(slurm_server_log_dir "rescore-all-${array_job}_${node}-s${s}")
 
         . scripts/score/serve_asr.sh
         trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
@@ -145,16 +134,15 @@ for ((s = 0; s < n_gpu; s++)); do
                 n_done=0
                 while read -r sys_name task lang <&3; do
                     [ -n "${sys_name}" ] || continue
-                    c="${claims}/${sys_name}__${task}__${lang}"
-                    mkdir "${c}" 2>/dev/null || continue          # someone else has it
-                    echo "${node}" > "${c}/owner"
+                    key="${sys_name}__${task}__${lang}"
+                    slurm_claim "${claims}" "${key}" "${node}" || continue   # someone else has it
                     before=${SCORE_FAILS}
                     echo "=== [$(date +%T) task ${node} gpu ${s} worker ${w}] ${sys_name}/${task}/${lang} ==="
                     score_lang_dir "data/${task}/${lang}" "results/${sys_name}/${task}/${lang}" "${lang}"
                     if [ "${SCORE_FAILS}" -gt "${before}" ]; then
                         echo "${sys_name} ${task} ${lang}" >> "${failed_file}"
                     fi
-                    touch "${c}/done"
+                    slurm_claim_done "${claims}" "${key}"
                     n_done=$(( n_done + 1 ))
                 done 3< "${list_file}"
                 echo "[rescore-all] task ${node} gpu ${s} worker ${w} done:" \

@@ -27,33 +27,34 @@ RUN="${CTL_RUN:?set CTL_RUN (1|2)}"
 LANGS="${CTL_LANGS:-en tr}"
 TASK=in-the-wild
 ROOT="results/_seeds/run${RUN}"
+. slurm/lib_slurm.sh
 job_id="${SLURM_JOB_ID:-$$}"
-port=$(( 22000 + (job_id % 1000) * 20 ))
+port_base=$(slurm_port_base 0)
+port=$(slurm_role_port "${port_base}" tts)
 
 # --- 1. generate under the published config --------------------------------
 if [ "${SYSTEM}" = zonos2_accurate ]; then
     leaf_root="${ROOT}/zonos2_accurate/${TASK}"
     # Published run used --seed 0; runs 1/2 use seeds 1/2 (same temp/topk/min_p).
-    bash scripts/gen/run_zonos2.sh --task "${TASK}" --test_set "${LANGS}" \
-        --out_root "${ROOT}/zonos2_accurate" --gpu 0 --port "${port}" \
-        --accurate_mode true --gen_args "--seed ${RUN}"
+    bash scripts/gen/run_zonos2.sh --task "${TASK}" --test-set "${LANGS}" \
+        --out-root "${ROOT}/zonos2_accurate" --gpu 0 --port "${port}" \
+        --accurate-mode true --gen-args "--seed ${RUN}"
 else
     leaf_root="${ROOT}/omni_${SYSTEM}/${TASK}"
     # No seed / no temperature: the published config is unseeded server defaults,
     # so a fresh run IS the sampling-variance probe. (If a backend turns out to be
     # deterministic, run-vs-published will be ~identical — that is a finding, not
     # a failure.)
-    bash scripts/gen/run_omni.sh --model "${SYSTEM}" --out_root "${ROOT}/omni_${SYSTEM}" \
-        --task "${TASK}" --test_set "${LANGS}" --gpu 0 --port "${port}"
+    bash scripts/gen/run_omni.sh --model "${SYSTEM}" --out-root "${ROOT}/omni_${SYSTEM}" \
+        --task "${TASK}" --test-set "${LANGS}" --gpu 0 --port "${port}"
 fi
 
 # --- 2. score (ASR + Whisper co-located on the same GPU) -------------------
 set +u   # serve_asr.sh references optional unset vars
-export ASR_PORT=$(( port + 3 )) WHISPER_PORT=$(( port + 4 ))
-export ASR_GPU=0 WHISPER_GPU=0 SCORE_GPU=0 ASR_ROUTING=1
+export ASR_PORT=$(slurm_role_port "${port_base}" asr) WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
+export ASR_GPU=0 WHISPER_GPU=0 SCORE_GPU=0
 export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
-srv="logs/slurm/servers/seed-${job_id}"; mkdir -p "${srv}"
-export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
+export SERVE_LOG_DIR=$(slurm_server_log_dir "seed-${job_id}")
 . scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || { echo "[seed-study] ERROR: ASR server failed"; exit 1; }

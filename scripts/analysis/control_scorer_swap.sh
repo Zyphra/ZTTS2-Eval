@@ -25,14 +25,14 @@ set +u
 LANGS="${CTL_LANGS:-en zh}"
 MODELS="${CTL_MODELS:-omni_qwen3-tts-1.7b omni_qwen3-tts-0.6b omni_fish-s2-pro omni_omnivoice-reftext omni_voxcpm2 zonos2_accurate gt_clean}"
 
+. slurm/lib_slurm.sh
 job_id="${SLURM_JOB_ID:-$$}"
-port_base=$(( 21000 + (job_id % 1000) * 40 ))
-export ASR_PORT=$(( port_base + 1 ))
-export WHISPER_PORT=$(( port_base + 2 ))
-export ASR_GPU=0 WHISPER_GPU=0 ASR_ROUTING=1
+port_base=$(slurm_port_base 0)
+export ASR_PORT=$(slurm_role_port "${port_base}" asr) WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
+export ASR_GPU=0 WHISPER_GPU=0
 export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
-srv="logs/slurm/servers/ctl-scorer-${job_id}"; mkdir -p "${srv}"
-export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
+export SERVE_LOG_DIR=$(slurm_server_log_dir "ctl-scorer-${job_id}")
+PY=.venv/bin/python
 
 . scripts/score/serve_asr.sh
 trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
@@ -58,8 +58,8 @@ for m in ${MODELS}; do
       echo "[skip] ${m}/${lg} (already scored)"; n_ok=$((n_ok+1)); continue
     fi
     echo "=== ctl-scorer ${m}/${lg} ==="
-    if (cd utils && python3 run_wer.py "${man}" "${out_raw}" "${lg}" \
-        && python3 average_wer.py "${out_raw}" "${out_wer}"); then
+    if "${PY}" scripts/score/run_wer.py "${man}" "${out_raw}" "${lg}" \
+        && "${PY}" utils/average_wer.py "${out_raw}" "${out_wer}"; then
       n_ok=$((n_ok+1))
     else
       echo "[ctl-scorer] FAIL ${m}/${lg}"; n_fail=$((n_fail+1))

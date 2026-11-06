@@ -32,7 +32,7 @@ E2E_TASK=${E2E_TASK:-clean_mini}
 # One system that was in the selection pool, one from a family held out of it.
 E2E_SYSTEMS=${E2E_SYSTEMS:-"zonos2_accurate kokoro"}
 
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+PY=.venv/bin/python
 
 PANEL_DIR="data/${E2E_TASK}"
 [ -f "${PANEL_DIR}/panel.json" ] || { echo "[e2e] ERROR: ${PANEL_DIR}/panel.json not found — export a panel first"; exit 1; }
@@ -49,13 +49,13 @@ SRC_TASK=${panel_src}
 LANGS=${E2E_LANGS:-$(ls -d "${PANEL_DIR}"/*/ 2>/dev/null | xargs -n1 basename | tr '\n' ' ' || true)}
 [ -n "${LANGS// /}" ] || { echo "[e2e] ERROR: no languages found under ${PANEL_DIR}"; exit 1; }
 
+. slurm/lib_slurm.sh
 job_id="${SLURM_JOB_ID:-$$}"
-port_base=$(( 20000 + (job_id % 10000) * 4 ))
-export ASR_PORT=$(( port_base + 1 )) WHISPER_PORT=$(( port_base + 2 ))
-export ASR_GPU=0 WHISPER_GPU=0 ASR_ROUTING=1
+port_base=$(slurm_port_base 0)
+export ASR_PORT=$(slurm_role_port "${port_base}" asr) WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
+export ASR_GPU=0 WHISPER_GPU=0
 export ASR_GPU_MEM_UTIL=0.35 WHISPER_GPU_MEM_UTIL=0.35
-srv="logs/slurm/servers/coreset-e2e-${job_id}"; mkdir -p "${srv}"
-export ASR_LOG="${srv}/asr.log" WHISPER_LOG="${srv}/whisper.log"
+export SERVE_LOG_DIR=$(slurm_server_log_dir "e2e-${job_id}")
 
 echo "[e2e] task=${E2E_TASK} src_task=${SRC_TASK} systems='${E2E_SYSTEMS}'"
 echo "[e2e] langs: ${LANGS}"

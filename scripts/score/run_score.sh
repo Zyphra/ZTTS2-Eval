@@ -54,7 +54,8 @@ trap 'stop_asr_server; stop_whisper_server' EXIT INT TERM
 start_asr_server || exit 1
 maybe_start_whisper || exit 1
 
-if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+. utils/lib_common.sh || { echo "error: run from the repo root" 1>&2; exit 1; }
+repo_py
 
 # Shared scoring loop (resume gates, SCORE_GPU pinning, per-leaf fail tracking).
 . scripts/score/lib_infer_scoring.sh

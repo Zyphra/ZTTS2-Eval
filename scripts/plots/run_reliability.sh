@@ -13,14 +13,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 REPO_ROOT="$(pwd)"
-
-if [[ -n "${PYTHON:-}" ]]; then
-    PY="$PYTHON"
-elif [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
-    PY="$REPO_ROOT/.venv/bin/python"
-else
-    PY="python3"
-fi
+. utils/lib_common.sh
+repo_py
 echo "Using interpreter: $PY"
 
 PLOTS="$REPO_ROOT/assets/plots"

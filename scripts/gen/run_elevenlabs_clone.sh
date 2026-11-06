@@ -53,7 +53,7 @@ case "${model}" in
 esac
 [ -z "${out_root}" ] && out_root="results/elevenlabs_${model}_clone"
 
-gen_main_py
+repo_py
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
 

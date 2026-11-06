@@ -1,10 +1,12 @@
-# scripts/score/serve_asr.sh -- vLLM Qwen3-ASR server lifecycle.
+# scripts/score/serve_asr.sh -- vLLM Qwen3-ASR (+ Whisper) server lifecycle.
 #
-# SOURCE this file (`. scripts/score/serve_asr.sh`); do not execute it. Sourcing lets the
-# caller own the server PID so its `trap` can clean up on exit/error/interrupt.
+# SOURCE this file from the repo root (`. scripts/score/serve_asr.sh`); do not execute
+# it. Sourcing lets the caller own the server PIDs so its `trap` can clean up on
+# exit/error/interrupt. The launch/retry/stop mechanics are utils/lib_serve.sh's.
 #
-#   start_asr_server   launch (or reuse) the server, block until /health responds
-#   stop_asr_server    terminate a server we started (no-op for a reused one)
+#   start_asr_server   launch a fresh server, block until /health responds; a preset
+#                      ASR_BASE_URL names an external server and nothing is launched
+#   stop_asr_server    terminate the server we started (no-op for an external one)
 #
 # Configure via environment:
 #   ASR_MODEL             HuggingFace model id           (default Qwen/Qwen3-ASR-1.7B)
@@ -14,24 +16,24 @@
 #                         co-location value: Qwen + Whisper + speaker-sim/MSR-UTMOS share
 #                         one GPU; vLLM default 0.9 would starve the scorers)
 #   ASR_STARTUP_TIMEOUT   seconds to wait for readiness   (default 600)
-#   ASR_LOG               server log file                (default /tmp/vllm_asr_<port>.log)
+#   SERVE_LOG_DIR         server log dir (utils/lib_serve.sh; default /tmp/asr_<port>.log)
 #   ASR_EXTRA_ARGS        extra flags appended to `vllm serve` (default empty),
 #                         e.g. tuning flags for a different ASR. Note: swapping in
 #                         openai/whisper-large-v3 needs only ASR_MODEL -- vLLM 0.21
 #                         auto-detects it and exposes /v1/audio/transcriptions with
 #                         no extra flags (an older `--task transcription` is gone).
 
+. utils/lib_serve.sh
+
 ASR_MODEL=${ASR_MODEL:-Qwen/Qwen3-ASR-1.7B}
 ASR_HOST=${ASR_HOST:-127.0.0.1}
 ASR_PORT=${ASR_PORT:-8000}
 # GPU placement: if ASR_GPU is unset, auto-pick the first GPU with at least
-# ASR_GPU_MIN_FREE_MIB free (default 20 GB -- weights ~3.4 GB + KV cache headroom
-# at gpu-mem-util 0.5). Without this, the default GPU 0 may be reclaimed by a
-# co-resident TTS server between runs and vLLM fails to start with an OOM.
+# ASR_GPU_MIN_FREE_MIB free (default 50000 MiB). Without this, the default GPU 0 may be
+# reclaimed by a co-resident TTS server between runs and vLLM fails to start with an OOM.
 if [ -z "${ASR_GPU}" ]; then
-    # Require more than the gpu-memory-utilization target (0.5*81GB=40.5GB) so
-    # vLLM has headroom to actually allocate the KV cache it asks for. 20 GB
-    # passed nominal startup but OOMed once the KV cache grew.
+    # 50000 MiB leaves vLLM headroom to actually allocate the KV cache it asks for;
+    # 20 GB passed nominal startup but OOMed once the KV cache grew.
     _free=${ASR_GPU_MIN_FREE_MIB:-50000}
     ASR_GPU=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits 2>/dev/null \
               | awk -F', ' -v n="${_free}" '$2>=n{print $1; exit}')
@@ -57,7 +59,9 @@ PYEOF
 }
 ASR_REVISION=${ASR_REVISION-$(_pin qwen "${ASR_MODEL}")}
 ASR_STARTUP_TIMEOUT=${ASR_STARTUP_TIMEOUT:-600}
-ASR_BASE_URL="http://${ASR_HOST}:${ASR_PORT}/v1"
+# A preset ASR_BASE_URL is an external server: start_asr_server launches nothing.
+ASR_EXTERNAL_URL=${ASR_BASE_URL:-}
+ASR_BASE_URL=${ASR_EXTERNAL_URL:-http://${ASR_HOST}:${ASR_PORT}/v1}
 export ASR_BASE_URL ASR_MODEL ASR_ROUTING ASR_REVISION
 
 # vLLM defaults to FlashInfer for sampling; on this host FlashInfer's JIT CUDA
@@ -65,7 +69,6 @@ export ASR_BASE_URL ASR_MODEL ASR_ROUTING ASR_REVISION
 # VLLM_USE_FLASHINFER_SAMPLER=1 to re-enable it where the JIT works.
 export VLLM_USE_FLASHINFER_SAMPLER=${VLLM_USE_FLASHINFER_SAMPLER:-0}
 
-_ASR_HEALTH_URL="http://${ASR_HOST}:${ASR_PORT}/health"
 VLLM_PID=""
 
 # Prepend the project venv to PATH if it's not already there. Backgrounded
@@ -86,9 +89,6 @@ else
     ASR_VLLM_BIN=${ASR_VLLM_BIN:-vllm}    # let it fail loudly in start_asr_server
 fi
 
-_asr_healthy() {
-    curl -s -o /dev/null -m 2 "${_ASR_HEALTH_URL}"
-}
 
 # The servers spool any upload larger than 1 MB -- a wav over ~12 s at 44.1 kHz --
 # to a temp file before parsing it. On a node whose /tmp shares a full root disk
@@ -103,63 +103,43 @@ _server_tmpdir() {  # <name> -> creates and prints a private temp dir
     mkdir -p "${d}" && echo "${d}"
 }
 
-start_asr_server() {
-    local logf="${ASR_LOG:-/tmp/vllm_asr_${ASR_PORT}.log}"
+_asr_health() {  # <port>
+    serve_healthy "http://${ASR_HOST}:$1/health"
+}
 
-    # Reuse a server someone already started; leave VLLM_PID empty so we never
-    # kill a process we do not own.
-    if _asr_healthy; then
-        echo "[asr] reusing healthy server at ${ASR_BASE_URL}"
-        VLLM_PID=""
-        return 0
-    fi
-
-    echo "[asr] starting: ${ASR_VLLM_BIN} serve ${ASR_MODEL} on ${ASR_HOST}:${ASR_PORT}" \
-         "(GPU ${ASR_GPU}, mem-util ${ASR_GPU_MEM_UTIL}, args '${ASR_EXTRA_ARGS}', log ${logf})"
+_asr_launch() {  # <port> <logf>
+    echo "[asr] ${ASR_VLLM_BIN} serve ${ASR_MODEL} on ${ASR_HOST}:$1" \
+         "(GPU ${ASR_GPU}, mem-util ${ASR_GPU_MEM_UTIL}, args '${ASR_EXTRA_ARGS}')"
+    [ -n "${ASR_TMPDIR:-}" ] && rm -rf "${ASR_TMPDIR}"   # a failed earlier attempt's
+    ASR_TMPDIR=$(_server_tmpdir "asr-$1") || return 1
     # Both Qwen3-ASR and whisper-large-v3 expose the OpenAI-compatible
     # /v1/audio/transcriptions endpoint with no extra flags (vLLM auto-detects the
     # runner). ASR_EXTRA_ARGS is intentionally unquoted so multiple flags word-split.
-    ASR_TMPDIR=$(_server_tmpdir "asr-${ASR_PORT}") || return 1
-    TMPDIR="${ASR_TMPDIR}" CUDA_VISIBLE_DEVICES="${ASR_GPU}" "${ASR_VLLM_BIN}" serve "${ASR_MODEL}" \
-        --host "${ASR_HOST}" --port "${ASR_PORT}" \
+    TMPDIR="${ASR_TMPDIR}" CUDA_VISIBLE_DEVICES="${ASR_GPU}" setsid "${ASR_VLLM_BIN}" serve "${ASR_MODEL}" \
+        --host "${ASR_HOST}" --port "$1" \
         --gpu-memory-utilization "${ASR_GPU_MEM_UTIL}" \
         ${ASR_REVISION:+--revision ${ASR_REVISION} --tokenizer-revision ${ASR_REVISION}} \
         ${ASR_EXTRA_ARGS} \
-        > "${logf}" 2>&1 &
-    VLLM_PID=$!
+        > "$2" 2>&1 &
+    SERVE_PID=$!
+}
 
-    local waited=0
-    until _asr_healthy; do
-        if ! kill -0 "${VLLM_PID}" 2>/dev/null; then
-            echo "[asr] ERROR: vLLM exited during startup. Last log lines:"
-            tail -n 40 "${logf}"
-            VLLM_PID=""
-            return 1
-        fi
-        if [ "${waited}" -ge "${ASR_STARTUP_TIMEOUT}" ]; then
-            echo "[asr] ERROR: startup timed out after ${ASR_STARTUP_TIMEOUT}s. Last log lines:"
-            tail -n 40 "${logf}"
-            stop_asr_server
-            return 1
-        fi
-        sleep 5
-        waited=$((waited + 5))
-    done
-    echo "[asr] server ready after ~${waited}s (pid ${VLLM_PID})"
+start_asr_server() {
+    if [ -n "${ASR_EXTERNAL_URL}" ]; then
+        echo "[asr] using external server ${ASR_EXTERNAL_URL}"
+        return 0
+    fi
+    serve_start asr "${ASR_PORT}" 1 "${ASR_STARTUP_TIMEOUT}" _asr_launch _asr_health asr || return 1
+    ASR_PORT=${SERVE_PORT}
+    VLLM_PID=${SERVE_PID}
+    ASR_BASE_URL="http://${ASR_HOST}:${ASR_PORT}/v1"
+    export ASR_PORT ASR_BASE_URL
 }
 
 stop_asr_server() {
-    [ -z "${VLLM_PID}" ] && return 0
-    echo "[asr] stopping vLLM (pid ${VLLM_PID})"
-    kill "${VLLM_PID}" 2>/dev/null || true
-    local i=0
-    while kill -0 "${VLLM_PID}" 2>/dev/null; do
-        i=$((i + 1))
-        [ "${i}" -ge 20 ] && break
-        sleep 1
-    done
-    kill -9 "${VLLM_PID}" 2>/dev/null || true
-    VLLM_PID=""
+    [ -n "${VLLM_PID}" ] && echo "[asr] stopping vLLM (pid ${VLLM_PID})"
+    serve_stop "${VLLM_PID}"
+    VLLM_PID=
     [ -n "${ASR_TMPDIR:-}" ] && rm -rf "${ASR_TMPDIR}"
     ASR_TMPDIR=""
 }
@@ -169,11 +149,12 @@ stop_asr_server() {
 # (see docs/asr_whisper_vs_qwen.md). These functions bring up that second server on
 # its own GPU/port/PID so it never clobbers the Qwen server above.
 #   WHISPER_ASR_MODEL   model to serve            (default openai/whisper-large-v3)
-#   WHISPER_PORT        bind port                 (default 8001)
-#   WHISPER_GPU         GPU index                 (default: auto-pick != ASR_GPU; when no
-#                       other GPU has room, co-locate on ASR_GPU)
+#   WHISPER_PORT        preferred port            (default 8001)
+#   WHISPER_GPU         GPU index                 (default: auto-pick != ASR_GPU with at least
+#                       ASR_GPU_MIN_FREE_MIB free; when no other GPU has room, co-locate
+#                       on ASR_GPU)
 #   WHISPER_GPU_MEM_UTIL vLLM --gpu-memory-utilization (default 0.35)
-#   WHISPER_LOG         server log file           (default /tmp/vllm_whisper_<port>.log)
+# A preset WHISPER_BASE_URL is an external server (maybe_start_whisper launches nothing).
 WHISPER_ASR_MODEL=${WHISPER_ASR_MODEL:-openai/whisper-large-v3}
 WHISPER_PORT=${WHISPER_PORT:-8001}
 WHISPER_GPU=${WHISPER_GPU:-}
@@ -182,66 +163,46 @@ WHISPER_REVISION=${WHISPER_REVISION-$(_pin whisper "${WHISPER_ASR_MODEL}")}
 export WHISPER_REVISION
 WHISPER_VLLM_PID=""
 
-start_whisper_server() {
-    local logf="${WHISPER_LOG:-/tmp/vllm_whisper_${WHISPER_PORT}.log}"
-    local url="http://${ASR_HOST}:${WHISPER_PORT}"
+_whisper_health() {  # <port>
+    serve_healthy "http://${ASR_HOST}:$1/health"
+}
 
-    if curl -s -o /dev/null -m 2 "${url}/health"; then
-        echo "[whisper] reusing healthy server at ${url}/v1"
-        WHISPER_VLLM_PID=""
-        export WHISPER_BASE_URL="${url}/v1" WHISPER_MODEL="${WHISPER_ASR_MODEL}"
-        return 0
-    fi
-
-    # Pick a GPU distinct from the Qwen server's, with headroom for the KV cache.
-    local gpu="${WHISPER_GPU}"
-    if [ -z "${gpu}" ]; then
-        gpu=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits 2>/dev/null \
-              | awk -F', ' -v skip="${ASR_GPU:-99}" '$1!=skip && $2>=50000{print $1; exit}')
-        if [ -z "${gpu}" ]; then
-            gpu="${ASR_GPU}"
-            echo "[whisper] co-locating on GPU ${ASR_GPU}"
-        fi
-    fi
-
-    echo "[whisper] starting ${WHISPER_ASR_MODEL} on ${ASR_HOST}:${WHISPER_PORT} (GPU ${gpu}, log ${logf})"
-    WHISPER_TMPDIR=$(_server_tmpdir "whisper-${WHISPER_PORT}") || return 1
-    TMPDIR="${WHISPER_TMPDIR}" CUDA_VISIBLE_DEVICES="${gpu}" "${ASR_VLLM_BIN}" serve "${WHISPER_ASR_MODEL}" \
-        --host "${ASR_HOST}" --port "${WHISPER_PORT}" \
+_whisper_launch() {  # <port> <logf>
+    echo "[whisper] ${WHISPER_ASR_MODEL} on ${ASR_HOST}:$1 (GPU ${_WHISPER_GPU})"
+    [ -n "${WHISPER_TMPDIR:-}" ] && rm -rf "${WHISPER_TMPDIR}"   # a failed earlier attempt's
+    WHISPER_TMPDIR=$(_server_tmpdir "whisper-$1") || return 1
+    TMPDIR="${WHISPER_TMPDIR}" CUDA_VISIBLE_DEVICES="${_WHISPER_GPU}" setsid "${ASR_VLLM_BIN}" serve "${WHISPER_ASR_MODEL}" \
+        --host "${ASR_HOST}" --port "$1" \
         --gpu-memory-utilization "${WHISPER_GPU_MEM_UTIL}" \
         ${WHISPER_REVISION:+--revision ${WHISPER_REVISION} --tokenizer-revision ${WHISPER_REVISION}} \
         ${ASR_EXTRA_ARGS} \
-        > "${logf}" 2>&1 &
-    WHISPER_VLLM_PID=$!
+        > "$2" 2>&1 &
+    SERVE_PID=$!
+}
 
-    local waited=0
-    until curl -s -o /dev/null -m 2 "${url}/health"; do
-        if ! kill -0 "${WHISPER_VLLM_PID}" 2>/dev/null; then
-            echo "[whisper] ERROR: vLLM exited during startup. Last log lines:"
-            tail -n 40 "${logf}"; WHISPER_VLLM_PID=""; return 1
+start_whisper_server() {
+    # Pick a GPU distinct from the Qwen server's, with headroom for the KV cache.
+    _WHISPER_GPU="${WHISPER_GPU}"
+    if [ -z "${_WHISPER_GPU}" ]; then
+        _WHISPER_GPU=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits 2>/dev/null \
+              | awk -F', ' -v skip="${ASR_GPU:-99}" -v n="${ASR_GPU_MIN_FREE_MIB:-50000}" \
+                    '$1!=skip && $2>=n{print $1; exit}')
+        if [ -z "${_WHISPER_GPU}" ]; then
+            _WHISPER_GPU="${ASR_GPU}"
+            echo "[whisper] co-locating on GPU ${ASR_GPU}"
         fi
-        if [ "${waited}" -ge "${ASR_STARTUP_TIMEOUT}" ]; then
-            echo "[whisper] ERROR: startup timed out after ${ASR_STARTUP_TIMEOUT}s."
-            tail -n 40 "${logf}"; stop_whisper_server; return 1
-        fi
-        sleep 5; waited=$((waited + 5))
-    done
-    echo "[whisper] server ready after ~${waited}s (pid ${WHISPER_VLLM_PID})"
-    export WHISPER_BASE_URL="${url}/v1" WHISPER_MODEL="${WHISPER_ASR_MODEL}"
+    fi
+    serve_start whisper "${WHISPER_PORT}" 1 "${ASR_STARTUP_TIMEOUT}" \
+        _whisper_launch _whisper_health whisper || return 1
+    WHISPER_PORT=${SERVE_PORT}
+    WHISPER_VLLM_PID=${SERVE_PID}
+    export WHISPER_BASE_URL="http://${ASR_HOST}:${WHISPER_PORT}/v1" WHISPER_MODEL="${WHISPER_ASR_MODEL}"
 }
 
 stop_whisper_server() {
-    [ -z "${WHISPER_VLLM_PID}" ] && return 0
-    echo "[whisper] stopping vLLM (pid ${WHISPER_VLLM_PID})"
-    kill "${WHISPER_VLLM_PID}" 2>/dev/null || true
-    local i=0
-    while kill -0 "${WHISPER_VLLM_PID}" 2>/dev/null; do
-        i=$((i + 1))
-        [ "${i}" -ge 20 ] && break
-        sleep 1
-    done
-    kill -9 "${WHISPER_VLLM_PID}" 2>/dev/null || true
-    WHISPER_VLLM_PID=""
+    [ -n "${WHISPER_VLLM_PID}" ] && echo "[whisper] stopping vLLM (pid ${WHISPER_VLLM_PID})"
+    serve_stop "${WHISPER_VLLM_PID}"
+    WHISPER_VLLM_PID=
     [ -n "${WHISPER_TMPDIR:-}" ] && rm -rf "${WHISPER_TMPDIR}"
     WHISPER_TMPDIR=""
 }

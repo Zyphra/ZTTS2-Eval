@@ -63,7 +63,7 @@ if [ "${batch}" != "true" ] && [ "${batch}" != "false" ]; then
 fi
 [ -z "${out_root}" ] && out_root="results/gemini_${model}"
 
-gen_main_py
+repo_py
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
 

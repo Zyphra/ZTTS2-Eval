@@ -60,18 +60,15 @@ case "${task}" in
 esac
 
 # Unique localhost ports per job so 1-GPU jobs packed onto the same node never
-# collide on 127.0.0.1 (which would make one job silently reuse another's
-# wrong-model server -- see slurm/README.md). SLURM_JOB_ID is distinct per job.
-#
-# STRIDE of 4: each job owns a 4-port window [base .. base+3]. A job uses base (omni
-# or zonos2 HTTP), base+1 (ASR / zonos2's Mini-SGLang IPC socket) and base+2 (whisper);
-# the next job's base is +4 away, so consecutive job IDs never overlap on a sub-port.
-# (Stride 1 collided: zonos2 job N's IPC on base+1 == zonos2 job N+1's HTTP port.)
+# collide on 127.0.0.1. slurm/lib_slurm.sh gives each job a port window keyed on
+# SLURM_JOB_ID; this job uses slot 0's roles: tts (the omni / zonos2 / audio8 HTTP
+# port; zonos2's Mini-SGLang IPC socket takes tts+1 = tts_aux), asr and whisper.
+. slurm/lib_slurm.sh
 job_id="${SLURM_JOB_ID:-$$}"
-port_base=$(( 20000 + (job_id % 10000) * 4 ))
-export OMNI_PORT=$(( port_base ))
-export ASR_PORT=$(( port_base + 1 ))
-export WHISPER_PORT=$(( port_base + 2 ))
+port_base=$(slurm_port_base 0)
+tts_port=$(slurm_role_port "${port_base}" tts)
+export ASR_PORT=$(slurm_role_port "${port_base}" asr)
+export WHISPER_PORT=$(slurm_role_port "${port_base}" whisper)
 # The single GPU visible inside the cgroup is index 0 for both the ASR server and
 # the torch speaker-sim / MSR-UTMOS models; pin it so their scans don't run.
 export ASR_GPU=0
@@ -86,31 +83,25 @@ export SCORE_GPU=0
 export ASR_ROUTING=1
 export WHISPER_GPU=0
 # ASR + Whisper co-locate on the one cgroup GPU during scoring (the TTS server is
-# already stopped). Each defaults to 0.5 mem-util -> 100% together -> Whisper OOMs at
-# init; 0.35 each (28GB of 80GB) fits both comfortably.
+# already stopped): 0.35 mem-util each (28GB of 80GB) fits both comfortably.
 export ASR_GPU_MEM_UTIL=0.35
 export WHISPER_GPU_MEM_UTIL=0.35
 
 # Server logs on SHARED storage. The repo lives on /data (cluster-wide), whereas
 # /tmp is node-local -- a server log written to /tmp on the compute node can't be
-# read from the login node once the job moves on. Keep them per-job under the repo.
-srv_log_dir="logs/slurm/servers/${SLURM_JOB_ID:-local}"
-mkdir -p "${srv_log_dir}"
-export OMNI_LOG_DIR="${srv_log_dir}"                       # scripts/gen/run_omni.sh reads this
-export ZONOS2_LOG="${srv_log_dir}/zonos2_${OMNI_PORT}.log" # serve_zonos2.sh reads this
-export AUDIO8_LOG="${srv_log_dir}/audio8_${OMNI_PORT}.log" # serve_audio8.sh reads this
-export ASR_LOG="${srv_log_dir}/vllm_asr_${ASR_PORT}.log"   # serve_asr.sh reads this
-export WHISPER_LOG="${srv_log_dir}/vllm_whisper_${WHISPER_PORT}.log"
+# read from the login node once the job moves on. Every server script writes
+# ${SERVE_LOG_DIR}/<role>.log (utils/lib_serve.sh).
+export SERVE_LOG_DIR=$(slurm_server_log_dir "${SLURM_JOB_ID:-local}")
 
 # Stale foreign NVIDIA MPS control daemons on these nodes (another user's default
 # /tmp/nvidia-mps) make CUDA fail at init with "Error 805: MPS client failed to
 # connect to the MPS control daemon". Point CUDA at a private, daemon-less pipe dir
 # so it ignores the foreign daemon and drives the GPU directly.
-export CUDA_MPS_PIPE_DIRECTORY="/tmp/nompss-${USER:-u}-${SLURM_JOB_ID:-$$}"
+export CUDA_MPS_PIPE_DIRECTORY=$(slurm_mps_dir "${SLURM_JOB_ID:-$$}")
 
 echo "=== eval_job: engine=${engine} model=${model} task=${task} test_set='${test_set:-<default>}' ==="
-echo "=== node=$(hostname) job=${job_id} CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>} ports omni=${OMNI_PORT} asr=${ASR_PORT} ==="
-echo "=== server logs -> ${srv_log_dir}/ (shared) ==="
+echo "=== node=$(hostname) job=${job_id} CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>} ports tts=${tts_port} asr=${ASR_PORT} ==="
+echo "=== server logs -> ${SERVE_LOG_DIR}/ (shared) ==="
 
 # ---------------------------------------------------------------- generate ----
 gen_args=()
@@ -119,7 +110,7 @@ case "${engine}" in
         out_base="results/omni_${model}"
         gen_script="scripts/gen/run_omni.sh"
         gen_args=(--model "${model}" --task "${task}")
-        gen_args+=(--port "${OMNI_PORT}" --workers "${workers}" --limit "${limit}")
+        gen_args+=(--port "${tts_port}" --workers "${workers}" --limit "${limit}")
         ;;
     zonos2)
         # Mode-aware output root so the two accurate_mode variants never collide:
@@ -132,9 +123,9 @@ case "${engine}" in
             *)     out_base="results/zonos2" ;;
         esac
         # Self-manage the server unless EJ_SERVER gives an external one. --gpu 0 is the
-        # single cgroup-visible GPU; --port reuses the per-job base (the server also
-        # binds base+1 for its IPC socket, free until the ASR scorer starts later).
-        zonos2_srv=(--gpu 0 --port "${OMNI_PORT}")
+        # single cgroup-visible GPU; --port is the job's tts port (the server also binds
+        # tts+1 for its IPC socket).
+        zonos2_srv=(--gpu 0 --port "${tts_port}")
         [ -n "${server}" ] && zonos2_srv=(--server "${server}")
         [ -n "${model_path}" ] && zonos2_srv+=(--model_path "${model_path}")
         [ -n "${accurate_mode}" ] && zonos2_srv+=(--accurate_mode "${accurate_mode}")
@@ -207,7 +198,7 @@ case "${engine}" in
         # No --workers: the client default (32) matches the server's max running requests.
         out_base="results/audio8-tts-realistic-0.6b"
         gen_script="scripts/gen/run_audio8.sh"
-        gen_args=(--gpu 0 --port "${OMNI_PORT}" --task "${task}" --limit "${limit}")
+        gen_args=(--gpu 0 --port "${tts_port}" --task "${task}" --limit "${limit}")
         ;;
     *)
         echo "eval_job: unknown EJ_ENGINE '${engine}' (omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|vibevoice15|audio8)" 1>&2; exit 1 ;;

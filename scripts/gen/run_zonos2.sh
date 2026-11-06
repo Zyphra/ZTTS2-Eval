@@ -78,7 +78,7 @@ help_message="usage: bash scripts/gen/run_zonos2.sh [--server URL|''] [--gpu N] 
 . utils/parse_options.sh || exit 1
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
-gen_main_py
+repo_py
 
 # --- server lifecycle -----------------------------------------------------------
 # Empty --server: launch our OWN Zonos2 server (like scripts/gen/run_omni.sh), stop it

@@ -16,10 +16,10 @@
 #                 scripts/gen/run_zonos3_reftext.sh, ... Each GPU's process sees only its GPU.
 #   GEN_SERVER=1  drivers that start and stop their own server per call and also take
 #                 `--gpu N --port P --workers W`: scripts/gen/run_omni.sh (vLLM-Omni). Every
-#                 leaf starts its own server on its GPU (port window per GPU, server log
-#                 under logs/slurm/servers/<job>-g<gpu>/). The servers resolve the model
-#                 from the local HF cache only (HF_HUB_OFFLINE=1): pre-download it on a
-#                 networked host first.
+#                 leaf starts its own server on its GPU (tts port of slurm/lib_slurm.sh's
+#                 per-GPU window, server logs under logs/slurm/servers/<job>-g<gpu>/). The
+#                 servers resolve the model from the local HF cache only (HF_HUB_OFFLINE=1):
+#                 pre-download it on a networked host first.
 # Always submit as an ARRAY job (the %A_%a output name and the <array job>_<task> file
 # tags assume one), from the repo root:
 #
@@ -55,6 +55,8 @@
 # logs/slurm/ztts-gen-<array job>_<task>-failed.txt.
 set -uo pipefail
 
+. slurm/lib_slurm.sh || { echo "[gen] ERROR: run from the repo root (sbatch --chdir)" >&2; exit 1; }
+
 [ -n "${GEN_DRIVER:-}" ] || { echo "[gen] ERROR: GEN_DRIVER is empty" >&2; exit 1; }
 [ -f "${GEN_DRIVER}" ] || { echo "[gen] ERROR: no ${GEN_DRIVER}: run from the repo root (sbatch --chdir)" >&2; exit 1; }
 [ -n "${GEN_MODEL:-}" ] || { echo "[gen] ERROR: GEN_MODEL is empty" >&2; exit 1; }
@@ -77,8 +79,7 @@ system=$(basename "${GEN_OUT_ROOT}")
 job=${SLURM_JOB_ID:-$$}
 array_job=${SLURM_ARRAY_JOB_ID:-$job}
 node=${SLURM_ARRAY_TASK_ID:-0}
-n_gpu=$(nvidia-smi -L 2>/dev/null | wc -l)
-[ "${n_gpu}" -ge 1 ] || n_gpu=1
+n_gpu=$(slurm_gpu_count)
 if [ "${GEN_SERVER}" = 1 ]; then
     export HF_HUB_OFFLINE=1
     per_gpu="${GEN_WORKERS} workers each, venv ${OMNI_VENV:-.venv}"
@@ -95,42 +96,26 @@ list_file=${base}-leaves.txt
 claims=${base}-claims
 failed=${base}_${node}-failed.txt
 
-want_of() {  # TASK LANG -> utterances the leaf should have
-    local n; n=$(grep -c . "data/$1/$2/text")
-    if [ "${GEN_LIMIT}" -gt 0 ] && [ "${GEN_LIMIT}" -lt "${n}" ]; then n=${GEN_LIMIT}; fi
-    echo "${n}"
-}
-missing_of() {  # TASK LANG -> wanted text uids without a wav
-    LC_ALL=C comm -23 \
-        <(awk 'NF {print $1}' "data/$1/$2/text" | head -n "$(want_of "$1" "$2")" | LC_ALL=C sort -u) \
-        <(find "${GEN_OUT_ROOT}/$1/$2/wavs" -maxdepth 1 -name '*.wav' -printf '%f\n' 2>/dev/null \
-            | sed 's/\.wav$//' | LC_ALL=C sort -u) \
-        | grep -c .
-}
+leaf_text() { echo "data/$1/$2/text"; }
+leaf_wavs() { echo "${GEN_OUT_ROOT}/$1/$2/wavs"; }
+want_of() { slurm_want "$(leaf_text "$1" "$2")" "${GEN_LIMIT}"; }
+missing_of() { slurm_missing "$(leaf_text "$1" "$2")" "$(leaf_wavs "$1" "$2")" "${GEN_LIMIT}"; }
 
-if [ ! -f "${list_file}" ]; then
-    if mkdir "${list_file}.lock" 2>/dev/null; then
-        for task in ${GEN_TASKS}; do
-            for lang in $(python3 -m utils.benchmark langs "${task}"); do
-                [ -f "data/${task}/${lang}/text" ] || continue
-                if [ -n "${GEN_LANGS}" ]; then
-                    case " ${GEN_LANGS} " in *" ${lang} "*) ;; *) continue ;; esac
-                fi
-                m=$(missing_of "${task}" "${lang}")
-                [ "${m}" -gt 0 ] && echo "${m} ${task} ${lang}"
-            done
-        done | LC_ALL=C sort -k1,1nr -k2 > "${list_file}.tmp"
-        mv "${list_file}.tmp" "${list_file}"
-    else
-        until [ -f "${list_file}" ]; do sleep 5; done
-    fi
-fi
-mkdir -p "${claims}"
-for c in "${claims}"/*/; do
-    [ -d "${c}" ] || continue
-    [ -f "${c}done" ] && continue
-    [ "$(cat "${c}owner" 2>/dev/null)" = "${node}" ] && rm -rf "${c}"
-done
+build_leaves() {  # "<missing> <task> <lang>" per pending leaf, largest first
+    local task lang m
+    for task in ${GEN_TASKS}; do
+        for lang in $(python3 -m utils.benchmark langs "${task}"); do
+            [ -f "data/${task}/${lang}/text" ] || continue
+            if [ -n "${GEN_LANGS}" ]; then
+                case " ${GEN_LANGS} " in *" ${lang} "*) ;; *) continue ;; esac
+            fi
+            m=$(missing_of "${task}" "${lang}")
+            [ "${m}" -gt 0 ] && echo "${m} ${task} ${lang}"
+        done
+    done | LC_ALL=C sort -k1,1nr -k2
+}
+slurm_list_once "${list_file}" build_leaves
+slurm_claims_init "${claims}" "${node}"
 rm -f "${failed}"
 echo "[gen] task ${node}: ${system} via ${GEN_DRIVER}, $(grep -c . "${list_file}") pending leaves" \
      "(${list_file}), ${n_gpu} GPU(s), ${per_gpu}"
@@ -138,13 +123,12 @@ echo "[gen] task ${node}: ${system} via ${GEN_DRIVER}, $(grep -c . "${list_file}
 pids=""
 for ((s = 0; s < n_gpu; s++)); do
     (
-        export CUDA_MPS_PIPE_DIRECTORY=/tmp/nompss-${USER:-u}-${job}-${s}
+        export CUDA_MPS_PIPE_DIRECTORY=$(slurm_mps_dir "${job}-${s}")
         if [ "${GEN_SERVER}" = 1 ]; then
             # No CUDA_VISIBLE_DEVICES here: the driver's server script sets it from --gpu
             # (scripts/gen/serve_omni.sh), so exporting a device id as well would remap --gpu.
-            export OMNI_LOG_DIR=logs/slurm/servers/${job}-g${s}
-            mkdir -p "${OMNI_LOG_DIR}"
-            port=$(( 20000 + (job % 1000) * 40 + s * 4 ))
+            export SERVE_LOG_DIR=$(slurm_server_log_dir "${job}-g${s}")
+            port=$(slurm_role_port "$(slurm_port_base "${s}")" tts)
             srv_args=(--gpu "${s}" --port "${port}" --workers "${GEN_WORKERS}")
         else
             export CUDA_VISIBLE_DEVICES=${s}
@@ -155,9 +139,8 @@ for ((s = 0; s < n_gpu; s++)); do
                 --out_root "${GEN_OUT_ROOT}" --limit "${GEN_LIMIT}" "${srv_args[@]}" < /dev/null
         }
         while read -r _n task lang <&3; do
-            c="${claims}/${task}__${lang}"
-            mkdir "${c}" 2>/dev/null || continue
-            echo "${node}" > "${c}/owner"
+            key="${task}__${lang}"
+            slurm_claim "${claims}" "${key}" "${node}" || continue
             echo "=== [$(date +%T) task ${node} gpu ${s}] ${system} ${task} ${lang} ==="
             run_leaf "${task}" "${lang}"; rc=$?
             if [ "${rc}" -eq 0 ] && [ "$(missing_of "${task}" "${lang}")" -gt 0 ]; then
@@ -167,7 +150,7 @@ for ((s = 0; s < n_gpu; s++)); do
             want=$(want_of "${task}" "${lang}")
             got=$(( want - $(missing_of "${task}" "${lang}") ))
             if [ "${rc}" -eq 0 ] && [ $(( got * 100 )) -ge $(( want * 98 )) ]; then
-                touch "${c}/done"
+                slurm_claim_done "${claims}" "${key}"
             else
                 echo "[gen] ${task}/${lang}: FAILED (rc ${rc}, ${got}/${want} wavs)"
                 echo "${task} ${lang}" >> "${failed}"

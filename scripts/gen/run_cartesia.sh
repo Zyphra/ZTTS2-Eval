@@ -59,7 +59,7 @@ if [ -z "${out_root}" ]; then
     [ "${mode}" = "clone" ] && out_root="${out_root}_clone"
 fi
 
-gen_main_py
+repo_py
 
 names=$(gen_langs "${task}" "${test_set}") || exit 1
 

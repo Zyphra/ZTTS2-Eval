@@ -19,7 +19,7 @@ set -euo pipefail
 [ -f scripts/score/eval_speaker_similarity.py ] || cd "$(dirname "$0")/../.." || exit 1
 
 LANGS="${CTL_LANGS:-en zh de th}"
-PY="${PY:-.venv/bin/python}"
+PY=.venv/bin/python
 
 [ -f "$HOME/.cache/torch/hub/checkpoints/b6-vox2-lm.pt" ] || {
   echo "[ctl-spk] ERROR: b6-vox2-lm.pt not prefetched"; exit 1; }
