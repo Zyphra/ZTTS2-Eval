@@ -10,7 +10,7 @@
 #   bash run_generate_zonos3_reftext.sh --task clean_mini --test_set "en zh" --limit 4
 #   bash run_generate_zonos3_reftext.sh --task in-the-wild --gpu 2
 #   GEN_DRIVER=run_generate_zonos3_reftext.sh GEN_MODEL=zonos3-rate30-20k-r2grpo-reftext_embedding \
-#       sbatch --parsable --chdir="$(pwd -P)" --export=ALL --array=0-1 slurm/native_gen_job.sh
+#       sbatch --parsable --chdir="$(pwd -P)" --export=ALL --array=0-1 slurm/gen_job.sh
 #
 # Environment (required):
 #   ZONOS3_HOME   minisgl checkout (its git rev is recorded in gen_meta.json)

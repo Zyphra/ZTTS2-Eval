@@ -105,26 +105,28 @@ hard-coded and come from the submitter.
   Z3_TASKS="clean_mini in-the-wild_mini" sbatch --chdir="$(pwd -P)" \
       --export=ALL --array=0-0 slurm/zonos3_gen_job.sh
   ```
-- **`native_gen_job.sh`** / **`omni_gen_job.sh`** — generation on 8-GPU nodes (array
-  jobs; always submit with `--array`) for in-process drivers (`GEN_DRIVER`: any driver
-  taking `--model --task --test_set --out_root --limit`, e.g. `run_generate_moss_tts.sh`,
-  `run_generate_ming3.sh`) and for vLLM-Omni (`run_generate_omni.sh`, one server per
-  leaf on its GPU). The pending leaves
+- **`gen_job.sh`** — generation on 8-GPU nodes (array job; always submit with `--array`)
+  for any driver taking `--model --task --test_set --out_root --limit` (`GEN_DRIVER`).
+  `GEN_SERVER=0` (default) is for in-process drivers such as `run_generate_moss_tts.sh`
+  and `run_generate_ming3.sh`, each GPU's process pinned with `CUDA_VISIBLE_DEVICES`;
+  `GEN_SERVER=1` is for drivers that start their own server and also take `--gpu --port
+  --workers` (`run_generate_omni.sh`), one server per leaf on its GPU, run with
+  `HF_HUB_OFFLINE=1` (download the model on a networked host first). The pending leaves
   (task × lang with a text uid lacking a wav) are listed once, largest first; each GPU
-  claims the next leaf (atomic mkdir under
-  `logs/slurm/ztts-{native,omni}-gen-<array job>-claims/`), so late tasks never leave a
-  share idle. Existing wavs are skipped, a leaf still missing wavs is rerun once, and a
-  requeued task releases its own unfinished claims. Environment: `GEN_DRIVER` and
-  `GEN_MODEL` (required), `GEN_TASKS`, `GEN_LANGS`, `GEN_LIMIT`, `GEN_OUT_ROOT`; and
-  `OMNI_GEN_MODEL` (required), `OMNI_GEN_TASKS`, `OMNI_GEN_LANGS`, `OMNI_GEN_LIMIT`,
-  `OMNI_GEN_WORKERS` (default 16), `OMNI_VENV`, `OMNI_GEN_OUT_ROOT`. The omni servers run
-  with `HF_HUB_OFFLINE=1`, so download the model on a networked host first. Both print a
-  `COVERAGE <system> <task> <lang> <got>/<want>` line per leaf and exit 1 iff a leaf is
-  left in `logs/slurm/ztts-{native,omni}-gen-<array job>_<task>-failed.txt` (for omni
-  also when a leaf ends below 98% coverage).
+  claims the next leaf (atomic mkdir under `logs/slurm/ztts-gen-<array job>-claims/`), so
+  late tasks never leave a share idle. Existing wavs are skipped, a leaf still missing
+  wavs is rerun once, and a requeued task releases its own unfinished claims.
+  Environment: `GEN_DRIVER` and `GEN_MODEL` (required), `GEN_TASKS`, `GEN_LANGS`,
+  `GEN_LIMIT`, `GEN_SERVER`, `GEN_WORKERS` (default 16), `GEN_OUT_ROOT` (default
+  `results/omni_<model>` for `run_generate_omni.sh`, else `results/<model>`), `OMNI_VENV`.
+  It prints a `COVERAGE <system> <task> <lang> <got>/<want>` line per leaf and exits 1
+  iff a leaf is left in `logs/slurm/ztts-gen-<array job>_<task>-failed.txt` (driver
+  exited non-zero or the leaf ends below 98% coverage).
   ```bash
-  OMNI_GEN_MODEL=omnivoice sbatch --chdir="$(pwd -P)" --export=ALL --array=0-1 \
-      slurm/omni_gen_job.sh
+  GEN_DRIVER=run_generate_moss_tts.sh GEN_MODEL=moss-tts-v1.5 sbatch --chdir="$(pwd -P)" \
+      --export=ALL --array=0-3 slurm/gen_job.sh
+  GEN_DRIVER=run_generate_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --chdir="$(pwd -P)" \
+      --export=ALL --array=0-1 slurm/gen_job.sh
   ```
 - **`submit_release_run.sh`** — the whole release DAG, run from the repo root on the
   login node: build the target recordings (`build_voxblink_targets.py`), upload them to
