@@ -47,7 +47,7 @@ VOXTRAL = "mistralai/Voxtral-Mini-3B-2507"   # the ASR field used as `text`
 # Transcript-language gate. Whisper LID labels the AUDIO; nothing ever checked
 # that the TRANSCRIPT is in that language, and on accented speech LID fails
 # systematically: the benchmark shipped a `yo` (Yoruba) set whose 148 transcripts
-# were all fluent Nigerian English (removed 2026-08-29, see RESULTS_VOXBLINK.md).
+# were all fluent Nigerian English (removed 2026-08-29).
 # Two cheap checks, no third-party LID dependency:
 #   - non-Latin-script languages: the text must actually use that script;
 #   - Latin-script languages other than English: reject texts dominated by

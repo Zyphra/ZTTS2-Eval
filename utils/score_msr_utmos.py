@@ -176,7 +176,7 @@ def main():
         f.write(f"{mean:.4f}\n")
 
     # 95% CI to a separate file so mean_out stays a single float (parsed by
-    # float(open(...).read()) in build_results.py / run_full_zonos2_generic.sh).
+    # float(open(...).read()) in build_results.py).
     ci_out = args.ci_out
     if ci_out is None:
         mp = Path(args.mean_out)

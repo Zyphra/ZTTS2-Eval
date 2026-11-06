@@ -337,8 +337,8 @@ def write_outputs(built):
 # ---------------------------------------------------------------------------
 # reproduction gate: the matrix must regenerate the published tables
 # ---------------------------------------------------------------------------
-# Expected macro-averages, embedded from the committed tables (RESULTS_NEWLANGS.md
-# after its 2026-07-30 correction; RESULTS_VOXBLINK.md as updated 2026-08-29: the
+# Expected macro-averages: the published v2 macro-averages recorded below (the clean
+# 26-language tail after its 2026-07-30 correction; itw as updated 2026-08-29: the
 # `yo` set was removed outright -- its transcripts are Nigerian ENGLISH mislabeled
 # by Whisper LID at the enrichment stage -- so every itw basket is now 20 langs).
 # Per system: (Δ vs GT, WER_CLIP, spk, MSR, n_langs).
@@ -395,7 +395,7 @@ def verify(built):
     """Recompute the published macro-averages straight from the matrix and GATE on them.
 
     This is the correctness gate for everything downstream: if the matrix cannot
-    reproduce RESULTS_VOXBLINK.md / RESULTS_NEWLANGS.md, no panel selected from it can
+    reproduce the published v2 macro-averages recorded below, no panel selected from it can
     be trusted. Aggregation mirrors scripts/results_doc/gen_md.py -- per-language means,
     then an unweighted macro-average over languages (no utterance weighting). Every
     system is checked against VERIFY_EXPECTED within VERIFY_TOL; returns True when all
@@ -413,11 +413,11 @@ def verify(built):
 
     if s == "clean":
         base9 = {"en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru"}
-        scope = [lg for lg in langs if lg not in base9]  # RESULTS_NEWLANGS.md = the 26 tail langs
-        title = "RESULTS_NEWLANGS.md — 26 new langs"
+        scope = [lg for lg in langs if lg not in base9]  # the 26 tail langs
+        title = "clean — 26 tail langs"
     else:
-        scope = langs  # RESULTS_VOXBLINK.md aggregates all 20, tl included (yo removed 2026-08-29)
-        title = "RESULTS_VOXBLINK.md — 20 langs"
+        scope = langs  # all 20, tl included (yo removed 2026-08-29)
+        title = "itw — 20 langs"
 
     masks = {lg: (lang_of == lg) for lg in scope}
 
@@ -516,7 +516,7 @@ def main():
                     help="print the reproduction-gate table instead of only writing files")
     ap.add_argument("--paired-ci", action="store_true",
                     help="after the verify table, print the adjacent-pair paired ΔCI95 "
-                         "table (scripts/paired_ci.py) from the on-disk matrix_<set>.npz")
+                         "table (scripts/analysis/paired_ci.py) from the on-disk matrix_<set>.npz")
     ap.add_argument("--no-write", action="store_true", help="verify only, write nothing")
     ap.add_argument("--from-cache", action="store_true",
                     help="verify from the existing matrix_<set>.npz without re-reading results/")
@@ -537,7 +537,7 @@ def main():
             # Reads matrix_<set>.npz from disk (freshly written above unless --no-write),
             # so the CI table always describes the same matrix the verify gate ran on.
             from scripts.coreset.common import Matrix  # noqa: PLC0415
-            from scripts.paired_ci import print_adjacent  # noqa: PLC0415
+            from scripts.analysis.paired_ci import print_adjacent  # noqa: PLC0415
             print_adjacent(Matrix(s))
     if failed:
         sys.exit(f"error: reproduction gate failed for: {', '.join(failed)}")

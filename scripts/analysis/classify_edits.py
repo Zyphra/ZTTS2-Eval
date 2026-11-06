@@ -7,8 +7,8 @@ For every utterance we re-tokenize ref & hyp with run_wer.py's own `prepare()` (
 or CER characters for zh/ja/ko/th), align them with jiwer, and bucket each individual
 substitution / insertion / deletion. Reported per set, and per language.
 
-    python scripts/classify_edits.py results/gt_clean            # clean
-    python scripts/classify_edits.py results/gt_in-the-wild   # in-the-wild
+    python scripts/analysis/classify_edits.py results/gt_clean            # clean
+    python scripts/analysis/classify_edits.py results/gt_in-the-wild   # in-the-wild
 """
 import glob
 import os
@@ -20,7 +20,7 @@ from jiwer import process_words  # noqa: E402
 
 # Tokenize with the scorer's OWN prepare() (incl. normalize_ortho for ar/fa/he and
 # the zh trad->simplified fold) so edit boundaries match the scored WER exactly.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from utils.text_norm import CHAR_LANGS, base_lang, prepare  # noqa: E402
 
 

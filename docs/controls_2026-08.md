@@ -6,8 +6,8 @@ not rule out from existing artifacts. This document records the controls run in
 response, their measured outcomes, and what was adopted. Each control writes to
 alternate filenames first, so published scores are never overwritten by a probe.
 
-Scripts: `scripts/control_scorer_swap.sh`, `scripts/control_spk_embedder.sh`,
-`scripts/control_seed_study.sh`, `scripts/adopt_whisper_en.sh`.
+Scripts: `scripts/analysis/control_scorer_swap.sh`, `scripts/analysis/control_spk_embedder.sh`,
+`scripts/analysis/control_seed_study.sh`.
 
 ---
 
@@ -39,8 +39,7 @@ published base-9 table, where qwen3-tts-1.7b ranked first.
 routes to Whisper-large-v3 with the language forced, exactly as the non-QWEN_LANGS
 tail always has. `zh` stays on Qwen3-ASR — its DiD is null, and Qwen is the better
 Chinese scorer on clean read speech (`docs/asr_whisper_vs_qwen.md`). All 55 English
-leaves (every system **and** both GT baselines) were rescored symmetrically by
-`scripts/adopt_whisper_en.sh`.
+leaves (every system **and** both GT baselines) were rescored symmetrically.
 
 **Tradeoff, stated explicitly.** Whisper's English GT floor is *higher* than Qwen's
 (4.45 vs 3.78 WER_CLIP), so absolute English numbers rise for everyone. That is a
@@ -49,8 +48,8 @@ the family bias is differential and does not. A benchmark that ranks systems sho
 prefer the unbiased comparison over the lower floor.
 
 **Comparability.** English WER and every aggregate containing it (base-9 `avg`,
-VoxBlink 20-lang means, Δ-vs-GT) changed at this boundary. `RESULTS_NEWLANGS.md`
-(26-language tail) does not include English and is unaffected.
+VoxBlink 20-lang means, Δ-vs-GT) changed at this boundary. The 26-language clean tail
+does not include English and is unaffected.
 
 ---
 
@@ -148,7 +147,7 @@ Three findings.
 system, so a *paired* macro difference carries about **±0.10 (95 %)** of generation
 noise on top of its item-sampling CI. Added in quadrature to the published half-widths
 (±0.26…±0.55) that is a **3–7 % widening** — it does not move any adjacent-pair
-verdict in `RESULTS_VOXBLINK.md`.
+verdict in the published ranking tables.
 
 **(b) It is not negligible per language.** Single-cell comparisons in one language
 (voxcpm2 on `tr`: sd 0.40, range 0.78) should not be read below ~0.5 WER points.
@@ -507,7 +506,7 @@ to the last offset of the pinned Silero VAD (`utils/vad.py`, shared with the pai
 count; peak-normalized; 30 ms pad). Internal pauses are unchanged; a file in which Silero
 finds no speech is not scored. The anchor cache key includes the edge cut.
 
-**Validation** (`scripts/validate_rhythm_metric.py`, clean `en`, 300 vs 300; rate /
+**Validation** (`scripts/analysis/validate_rhythm_metric.py`, clean `en`, 300 vs 300; rate /
 burstiness / npvi / long_frac as multiples of the null):
 
 | probe | probes re-cut by the 35 dB rule | speech span (adopted) |
@@ -600,6 +599,6 @@ Two review findings cannot be closed by compute:
 2. **No shipped metric is perceptually anchored.** The prosody metrics are validated
    against constructed ground truth (the right choice given that cross-system listener
    correlation over ~12 systems is underpowered — the lesson recorded in
-   `docs/rhythm.md` and `scripts/validate_rhythm_metric.py`), but WER, speaker
+   `docs/rhythm.md` and `scripts/analysis/validate_rhythm_metric.py`), but WER, speaker
    similarity and MSR-UTMOS — the three headline columns — have no listener validation
    at all. A small per-language listener probe would give one of them an anchor.

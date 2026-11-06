@@ -188,36 +188,3 @@ Pre-fix TSVs are archived at `results/_mpm_shuffle_floor/pre_p95_20260829/`; see
 `docs/controls_2026-08.md`. Published MPM numbers are not comparable across this change.
 Since 2026-10-31 leading/trailing silence is also trimmed before featurization (cache tag
 `v5`; [controls C6](controls_2026-08.md)), which changes every span again.
-
-## Reproducing
-
-All four scripts are standalone and read only from `data/` and `results/`. The
-`--span` / anchor stages need a GPU and the TTSDS interpreter
-(`~/.venvs/ttsds/bin/python`); SwiftF0 additionally needs `pip install swift-f0`.
-
-```bash
-py=~/.venvs/ttsds/bin/python
-
-# channel sensitivity of the three input measures, + span per condition
-$py scripts/mpm_input_robustness.py --n 150 --lang en --span \
-    --tokens-out /tmp/tok.pt          # --span-from /tmp/tok.pt reruns the GPU stage only
-
-# SwiftF0 vs DIO: accuracy vs synthetic ground truth, robustness, agreement
-$py scripts/mpm_f0_backend_compare.py --n 60
-
-# what the anchors become under each F0 backend, both corpora
-$py scripts/mpm_anchor_backends.py --langs en --n 600
-
-# per-utterance energy normalization: invariance, anchors, ranking
-$py scripts/mpm_energy_norm.py --levels          # invariance only, no GPU
-$py scripts/mpm_energy_norm.py --langs en --n 500
-
-# per-condition anchors, with the matched-n FLEURS-R control
-$py scripts/mpm_stratified_anchors.py --lang en
-```
-
-Floors are split-half estimates of a small quantity, so they vary a few percent with
-`--n` and `--seed`; the ceilings and the compression ratios are stable. The anchor
-pipeline in `mpm_anchor_backends.py` reproduces the committed `d_noise_floor` to 0.16%
-(18.867 vs 18.838 for FLEURS-R en), which is the check that it is faithful to
-`utils/score_mpm_shuffle_floor.py`.

@@ -6,7 +6,7 @@ A Mini panel is judged on how close its *level* is to the full benchmark. A Delt
 judged on the **paired difference** between two systems, where the level does not matter
 at all -- and where pairing removes the per-item variance that dominates an unpaired
 comparison, because both systems spoke the same utterances with the same prompts (the same
-reason `scripts/matched_pair_spk.py` can resolve ~0.3-point effects the raw means cannot).
+reason `scripts/analysis/matched_pair_spk.py` can resolve ~0.3-point effects the raw means cannot).
 
 Two things are reported:
 

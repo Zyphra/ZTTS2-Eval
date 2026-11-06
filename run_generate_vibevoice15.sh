@@ -54,7 +54,7 @@ esac
 
 # Supported-language set, per variant, decided by MEASUREMENT not by the model card.
 # The card says en/zh for both sizes, but a 50-utt/lang probe over 10 diverse languages
-# (scripts/probe_vibevoice_langs.sh, 2026-08-09) showed that only holds for the 1.5B:
+# (scripts/analysis/probe_vibevoice_langs.sh, 2026-08-09) showed that only holds for the 1.5B:
 #
 #   7B   at or BELOW the GT ASR floor on it (-1.18), ru (-0.84), hi (-2.37); within
 #        2.3 pts on es/pt/ar/de/fr; worst were ko (+5.4) and ja (+8.8). Duration ratio

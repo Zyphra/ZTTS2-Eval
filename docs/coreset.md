@@ -309,8 +309,8 @@ The diagnosis is unambiguous rather than inferred:
 2. Stored `he` hypotheses are 90% Hebrew with Arabic and Cyrillic drift; GT's are 100%
    Hebrew, and re-routed synth is 100% Hebrew.
 
-`scripts/rescore_routed_all.sh` completes the re-score, sharding the 22 languages across
-the GPUs of one allocation (WER only — speaker similarity and MSR-UTMOS are
+A sharded re-score of the 22 languages across the GPUs of one allocation completed it
+(WER only — speaker similarity and MSR-UTMOS are
 language-agnostic and unaffected). The In-The-Wild sweep was run after the `eval_job.sh`
 routing patch and appears unaffected.
 
@@ -327,6 +327,6 @@ literal TAB or newline splits its own record in `wav_res_ref_text.wer.raw`;
 `WER:` footer**. Anything reading the footer silently loses the entire leaf.
 
 Four leaves were affected, and three of them had silently dropped a language from
-`RESULTS_NEWLANGS.md` — enough to reorder the top two systems. See the correction note in
-that file. `scripts/repair_wer_raw.py` reassembles the records; it is idempotent and
+the published 26-language clean-tail table — enough to reorder the top two systems.
+`scripts/repair_wer_raw.py` reassembles the records; it is idempotent and
 rewrites nothing that already parses.

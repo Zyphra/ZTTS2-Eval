@@ -176,7 +176,7 @@ self-contained `assets/reliability_gallery.html`. `run_reliability.sh` runs as a
 late step of `results_doc/run.sh` (the run ends with the snapshot publish).
 
 **Run wrappers (`.sh`):** `run_score_wer.sh`,
-`setup_ttsds_env.sh` (the venv MPM needs), `wer_groundtruth.sh`.
+`setup_ttsds_env.sh` (the venv MPM needs).
 
 **Servers (sourced, not executed):** `serve_asr.sh` (`start/stop_asr_server`,
 env `ASR_*`), `serve_omni.sh` (`start/stop_omni_server`, env `OMNI_*`).

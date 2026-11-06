@@ -15,11 +15,11 @@
 #
 #   sbatch --job-name=ztts-ctl-scorer --gpus=1 \
 #          --cpus-per-task=28 --mem=200G --time=8:00:00 --chdir="$(pwd)" \
-#          --output=logs/slurm/ztts-ctl-scorer-%j.out scripts/control_scorer_swap.sh
+#          --output=logs/slurm/ztts-ctl-scorer-%j.out scripts/analysis/control_scorer_swap.sh
 #
 # NB: set +u -- serve_asr.sh references optional unset vars.
 set +u
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/.." || exit 1
+[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
 [ -f scripts/serve_asr.sh ] || { echo "[ctl-scorer] ERROR: not at repo root"; exit 1; }
 
 LANGS="${CTL_LANGS:-en zh}"

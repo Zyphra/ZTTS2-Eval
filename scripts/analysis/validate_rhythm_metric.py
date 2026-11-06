@@ -45,8 +45,8 @@ multiple of the null probe's d_ref for that dim. PASS = targeted cells >> null,
 off-target + control cells ~ null.
 
 Usage:
-    python scripts/validate_rhythm_metric.py                # clean/en, k=100
-    python scripts/validate_rhythm_metric.py --kmeans-k 500 --n 600
+    python scripts/analysis/validate_rhythm_metric.py                # clean/en, k=100
+    python scripts/analysis/validate_rhythm_metric.py --kmeans-k 500 --n 600
 """
 import argparse
 import os
@@ -56,7 +56,7 @@ import tempfile
 
 import numpy as np
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from speaking_rate_dist import w2, ceiling  # noqa: E402
 from rhythm_dist import (Tokenizer, load_dir, fit_kmeans, dims_for_wavs,

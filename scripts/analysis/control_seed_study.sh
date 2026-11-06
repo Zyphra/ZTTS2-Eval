@@ -18,9 +18,9 @@
 #   CTL_SYSTEM=voxcpm2 CTL_RUN=1 sbatch --job-name=ztts-seed-voxcpm2-1 \
 #     --gpus=1 --cpus-per-task=28 --mem=200G \
 #     --time=24:00:00 --chdir="$(pwd)" --output=logs/slurm/ztts-seed-%j.out \
-#     --export=ALL,CTL_SYSTEM=voxcpm2,CTL_RUN=1 scripts/control_seed_study.sh
+#     --export=ALL,CTL_SYSTEM=voxcpm2,CTL_RUN=1 scripts/analysis/control_seed_study.sh
 set -e
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/.." || exit 1
+[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
 
 SYSTEM="${CTL_SYSTEM:?set CTL_SYSTEM (zonos2_accurate|omnivoice-reftext|voxcpm2|fish-s2-pro)}"
 RUN="${CTL_RUN:?set CTL_RUN (1|2)}"

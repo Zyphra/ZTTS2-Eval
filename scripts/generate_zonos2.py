@@ -67,7 +67,7 @@ def main():
                          "switches to expressive mode. Omitted if unset. Requires "
                          "accurate_mode_token_enabled in /tts/capabilities")
     # Speaker-origin ("background") marker token. Training configs call this
-    # `speaker_embedding_origin_token_enabled`; utils/hf.py maps it to the model
+    # `speaker_embedding_origin_token_enabled`; the server maps it to the model
     # flag `speaker_background_token_enabled` (TRUE on the released ZONOS2), and
     # scheduler.py always emits ONE of the two bucket tokens right after the
     # speaker slot. The per-request field selecting which bucket is

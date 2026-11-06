@@ -53,7 +53,7 @@ ASR_RETRY_DELAY = float(os.environ.get("ASR_RETRY_DELAY", "2.0"))
 # (WER_CLIP 100) and every reference token deleted, but with the hypothesis column
 # replaced by an `<UNSCOREABLE:Reason>` sentinel so that no consumer can mistake it
 # for a transcript: average_wer.py counts them into the N_IMPUTED: footer, and
-# analyses over hypothesis text (scripts/classify_edits.py) can filter them out.
+# analyses over hypothesis text (scripts/analysis/classify_edits.py) can filter them out.
 #
 # Only failures attributable to the AUDIO are imputed. Infrastructure failures --
 # a dead engine, a refused connection -- are not the system's fault, so they stay
@@ -109,7 +109,7 @@ WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "openai/whisper-large-v3")
 
 # Langs kept on Qwen3-ASR. zh/ko/th are near-ties (Qwen better on clean read speech,
 # Whisper better on noisy VoxBlink) kept on Qwen.
-# 2026-08-29 (scorer-swap control, scripts/control_scorer_swap.sh): `en` moved to
+# 2026-08-29 (scorer-swap control, scripts/analysis/control_scorer_swap.sh): `en` moved to
 # Whisper. Qwen3-ASR measurably favored its own family on en -- both qwen3-tts
 # systems got RELATIVELY better under Qwen than every cohort system, DiD +0.51
 # [+0.28,+0.74] (1.7b) / +0.70 [+0.46,+0.96] (0.6b) WER_CLIP pts -- while the zh

@@ -22,12 +22,12 @@
 #
 #   sbatch --job-name=ztts-probe-vv --gpus=1 \
 #          --cpus-per-task=28 --mem=200G --time=8:00:00 --chdir="$(pwd)" \
-#          --output=logs/slurm/ztts-probe-vv-%j.out scripts/probe_vibevoice_langs.sh
+#          --output=logs/slurm/ztts-probe-vv-%j.out scripts/analysis/probe_vibevoice_langs.sh
 #
 # Env: PROBE_MODEL (1.5b|7b, default 7b), PROBE_LANGS, PROBE_N (utts per lang),
 #      PROBE_TASK, PROBE_ROOT.
 set +u
-[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/.." || exit 1
+[ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
 [ -f scripts/serve_asr.sh ] || { echo "[probe] ERROR: not at repo root"; exit 1; }
 
 MODEL="${PROBE_MODEL:-7b}"

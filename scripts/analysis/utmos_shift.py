@@ -34,9 +34,9 @@ distribution. The GT leaf is never listed as a system.
 
 Usage
 -----
-    python scripts/utmos_shift.py                                   # clean / en
-    python scripts/utmos_shift.py --test-set in-the-wild --lang en
-    python scripts/utmos_shift.py --models omni_voxcpm2 --out /tmp/x.csv
+    python scripts/analysis/utmos_shift.py                                   # clean / en
+    python scripts/analysis/utmos_shift.py --test-set in-the-wild --lang en
+    python scripts/analysis/utmos_shift.py --models omni_voxcpm2 --out /tmp/x.csv
 
 Output CSV: results/utmos_shift_<set>_<lang>.csv, sorted by |dmean|
 (rank 0 = the reference itself: dmean 0, sd_ratio 1, the null band).
@@ -48,7 +48,7 @@ import sys
 
 import numpy as np
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from rhythm_dist import w2_fair  # noqa: E402
 from speaking_rate_dist import boot_ci, ceiling, w2  # noqa: E402

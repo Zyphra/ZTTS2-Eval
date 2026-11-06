@@ -14,9 +14,9 @@
 #
 #   sbatch --job-name=ztts-ctl-spk --gpus=1 \
 #          --cpus-per-task=14 --mem=100G --time=8:00:00 --chdir="$(pwd)" \
-#          --output=logs/slurm/ztts-ctl-spk-%j.out scripts/control_spk_embedder.sh
+#          --output=logs/slurm/ztts-ctl-spk-%j.out scripts/analysis/control_spk_embedder.sh
 set -euo pipefail
-[ -f scripts/eval_speaker_similarity.py ] || cd "$(dirname "$0")/.." || exit 1
+[ -f scripts/eval_speaker_similarity.py ] || cd "$(dirname "$0")/../.." || exit 1
 
 LANGS="${CTL_LANGS:-en zh de th}"
 PY="${PY:-.venv/bin/python}"

@@ -76,7 +76,7 @@ the mean is dragged by one catastrophic Whisper failure (`yo`).
   them at 5.7. Forcing a wrong language label can *cause* a Whisper meltdown.
   *(Update 2026-08-29: this observation was the tell — the set was not partially
   code-switched but wholesale Nigerian English mislabeled by Whisper LID, and `yo`
-  has been removed from the benchmark entirely; see RESULTS_VOXBLINK.md. The rows
+  has been removed from the benchmark entirely. The rows
   below are kept as the historical record of the comparison.)*
 
 ## Recommendation

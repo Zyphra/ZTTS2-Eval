@@ -60,7 +60,7 @@ WHAT IT DELIBERATELY DOES NOT DO
    bursts some systems generate before speaking — and scored it as a stall
    (docs/controls_2026-08.md C9). Those lead-ins are a defect, but not rhythm.
 
-Validated by constructed perturbations (scripts/validate_rhythm_metric.py):
+Validated by constructed perturbations (scripts/analysis/validate_rhythm_metric.py):
 run that before trusting a change to this file.
 
 Usage

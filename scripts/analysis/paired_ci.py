@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Paired bootstrap CIs for system-vs-system and system-vs-GT deltas.
 
-The published ranking tables (RESULTS_VOXBLINK.md, RESULTS_NEWLANGS.md) print Δ vs GT
+The published ranking tables print Δ vs GT
 to 0.1 with no uncertainty attached. This tool puts the missing intervals on those
 deltas, using the pairing the benchmark already has: every system spoke the SAME items,
 so differencing within item removes the per-item difficulty variance that dominates an
@@ -17,13 +17,13 @@ delta's sign holds, and a CI from resampling *languages* (read it as "would this
 a different language basket", not as the basket-level CI).
 
 Scope defaults to the published basket, exactly as build_matrix.py --verify derives it:
-itw = all 20 langs; clean = the 26 tail languages of RESULTS_NEWLANGS.md (base-9
+itw = all 20 langs; clean = the 26 tail languages of the published ranking tables (base-9
 excluded). ``--langs`` overrides it.
 
-    python scripts/paired_ci.py --set itw --adjacent
-    python scripts/paired_ci.py --set clean --adjacent --langs-random
-    python scripts/paired_ci.py --set itw --vs-gt moss-tts --vs-gt zonos2_expressive
-    python scripts/paired_ci.py --set itw --metric spk --pair zonos2_accurate voxcpm2 --langs en
+    python scripts/analysis/paired_ci.py --set itw --adjacent
+    python scripts/analysis/paired_ci.py --set clean --adjacent --langs-random
+    python scripts/analysis/paired_ci.py --set itw --vs-gt moss-tts --vs-gt zonos2_expressive
+    python scripts/analysis/paired_ci.py --set itw --metric spk --pair zonos2_accurate voxcpm2 --langs en
 """
 
 import argparse
@@ -32,12 +32,12 @@ import sys
 
 import numpy as np
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.path.insert(0, REPO_ROOT)
 
 from scripts.coreset.common import CI_BOOT, CI_SEED, Matrix  # noqa: E402
 
-# RESULTS_NEWLANGS.md scope = the FLEURS-R tail; must match build_matrix.py verify().
+# Clean scope of the published ranking tables = the FLEURS-R tail; must match build_matrix.py verify().
 BASE9 = {"en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru"}
 
 

@@ -12,9 +12,9 @@ per-clip level change, not a fix).
 
 Usage
 -----
-    python scripts/probe_utmos_level.py                       # 40 Clean + 40 ITW en clips
-    python scripts/probe_utmos_level.py --n 100 --langs en de
-    python scripts/probe_utmos_level.py --out assets/probes/utmos_level_<date>.csv
+    python scripts/analysis/probe_utmos_level.py                       # 40 Clean + 40 ITW en clips
+    python scripts/analysis/probe_utmos_level.py --n 100 --langs en de
+    python scripts/analysis/probe_utmos_level.py --out assets/probes/utmos_level_<date>.csv
 
 Output CSV: one row per clip and condition (set, lang, uttid, condition,
 gain_db, score, delta_vs_raw); a summary per condition is printed.
@@ -29,7 +29,7 @@ import numpy as np
 import torch
 import torchaudio
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, REPO)
 from utils.score_msr_utmos import load_model, score_wave  # noqa: E402
 

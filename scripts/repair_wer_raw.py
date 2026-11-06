@@ -12,7 +12,7 @@ plus no `WER:` footer at all. Anything reading the footer (`scripts/results_doc/
 and any hand-rolled aggregation) silently loses that leaf.
 
 That is not hypothetical: it silently dropped one language each from three systems in
-RESULTS_NEWLANGS.md (omnivoice-reftext/he, zonos2_expressive/he, voxtral-tts/th), which
+the published 26-language clean-tail table (omnivoice-reftext/he, zonos2_expressive/he, voxtral-tts/th), which
 moved omnivoice-reftext from +2.3 to +0.6 vs the GT floor and changed the reported
 ranking.
 

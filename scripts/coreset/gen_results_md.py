@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate RESULTS_CORESET.md from the validation CSVs.
 
-Written as a generator rather than by hand on purpose: the hand-maintained RESULTS files
-in this repo silently dropped a language from three systems (see the correction note in
-RESULTS_NEWLANGS.md), and every number below is one nobody should be retyping.
+Written as a generator rather than by hand on purpose: a hand-maintained RESULTS table
+in this repo once silently dropped a language from three systems, and every number
+below is one nobody should be retyping.
 
     python scripts/coreset/gen_results_md.py > RESULTS_CORESET.md
 """
@@ -255,8 +255,8 @@ def main():
                            "languages still have synth scored by Qwen auto-detect while "
                            "ground\ntruth was Whisper-routed — inflating their WER by up to "
                            "53 points. Selecting a public\npanel from those numbers would "
-                           "bake the error in. `scripts/rescore_routed_all.sh` is\n"
-                           "re-scoring them; the Clean panel and this section will be "
+                           "bake the error in. They are being re-scored;\n"
+                           "the Clean panel and this section will be "
                            "regenerated afterwards.\n")
             continue
         k = SHIPPED[set_name]

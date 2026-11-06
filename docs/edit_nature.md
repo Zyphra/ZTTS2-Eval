@@ -10,8 +10,8 @@ word-segmentation) versus a genuine mishearing.
 Reproduce with:
 
 ```
-python scripts/classify_edits.py results/gt_clean            # clean
-python scripts/classify_edits.py results/gt_in-the-wild   # in-the-wild
+python scripts/analysis/classify_edits.py results/gt_clean            # clean
+python scripts/analysis/classify_edits.py results/gt_in-the-wild   # in-the-wild
 ```
 
 Every utterance is re-tokenized with `run_wer.py`'s own `prepare()` (words, or
@@ -85,8 +85,8 @@ ZWNJ / Hebrew niqqud; hamza-carriers → bare letter (`أإآٱ→ا`, `ؤ→و`
 Hebrew matres lectionis (optional vav/yod) is **deliberately not folded** — it changes
 consonantal spelling and could hide a real ASR error.
 
-Re-scoring the committed GT with these folds (offline from the stored ref/hyp via
-`scripts/rescore_ortho.py`; the `ORTHO_NORM_LANGS=""` control reproduces the old WER
+Re-scoring the committed GT with these folds (offline from the stored ref/hyp; the
+`ORTHO_NORM_LANGS=""` control reproduces the old WER
 exactly, so the deltas are pure normalization):
 
 | set | lang | WER before | WER after | Δ |

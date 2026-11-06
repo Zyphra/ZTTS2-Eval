@@ -57,7 +57,7 @@ in the artifacts and are opposite in meaning:
   result, and a much worse one than the truth.
 
 Sidecar reasons cannot separate them — a timeout appears in both — so the backfill
-settles it by measurement. `scripts/rescore_residuals.sh` re-runs each leaf's
+settles it by measurement. The backfill re-runs each leaf's
 **residual** (its unscored utterances, and only those) under today's uniform policy:
 current retries, the loop guard, and the per-language routing the published scores
 use. Whatever transcribes gets a real score. Only what still fails is imputed, by
@@ -75,7 +75,7 @@ An utterance whose generated audio the reference ASR cannot transcribe is scored
   second code path that can disagree with the first.
 * Their hypothesis column carries an `<UNSCOREABLE:Reason>` sentinel instead of a
   transcript, so nothing can mistake one for a transcription.
-  `scripts/classify_edits.py` skips them: the edit decomposition is synthetic and
+  `scripts/analysis/classify_edits.py` skips them: the edit decomposition is synthetic and
   classifying it would invent an error category.
 * `average_wer.py` reports `N_TRANSCRIBED:` and `N_IMPUTED:` beside
   `N_SCORED:`/`N_EXPECTED:`, and warns above a 2 % imputed share.

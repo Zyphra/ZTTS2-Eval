@@ -7,7 +7,7 @@ that variance entirely, so a ~0.3-point effect that the two means cannot separat
 resolvable here.
 
 Usage:
-    python scripts/matched_pair_spk.py A.txt B.txt [C.txt ...] [--labels a,b,c]
+    python scripts/analysis/matched_pair_spk.py A.txt B.txt [C.txt ...] [--labels a,b,c]
 
 Each file is a spk_simi_scores.txt: "<uttid> <x> <score>" per line, plus a trailing
 "avg" row (skipped). Every ordered pair is reported as mean delta, bootstrap CI95 and
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 # Canonical spk_simi_scores.txt parser -- do NOT re-implement it here. The local
 # copy this replaced accepted 2-field lines (parse_spk requires the full
 # '<uid> <ref> <hyp>' 3-field row), a silent semantic divergence.

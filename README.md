@@ -458,10 +458,10 @@ python scripts/paired_itw.py --lang en
 # UTMOS shift: signed mean shift (dmean, with CI and the reference split-half band)
 # and spread ratio of a system's per-utterance MSR-UTMOS distribution vs. the
 # reference's (needs the msr_utmos_scores.txt leaves); W2 kept as a secondary column
-python scripts/utmos_shift.py --test-set in-the-wild --lang en
+python scripts/analysis/utmos_shift.py --test-set in-the-wild --lang en
 
 # MSR-UTMOS level-sensitivity probe (gain sweep); writes assets/probes/utmos_level.csv
-python scripts/probe_utmos_level.py
+python scripts/analysis/probe_utmos_level.py
 
 # MPM span against the real/scrambled anchors (Clean set only)
 python utils/score_mpm_shuffle_floor.py \

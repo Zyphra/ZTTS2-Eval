@@ -1,7 +1,7 @@
 # Rhythm metrics over deduped mHuBERT-147 k-means tokens
 
 `scripts/rhythm_dist.py` — a distributional rhythm/timing readout, validated by
-`scripts/validate_rhythm_metric.py`. Output: `results/rhythm_<set>_<lang>.csv`.
+`scripts/analysis/validate_rhythm_metric.py`. Output: `results/rhythm_<set>_<lang>.csv`.
 
 ## Method
 
