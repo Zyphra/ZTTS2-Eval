@@ -35,7 +35,7 @@ mpm_manifest="${run_dir}/mpm_gt.tsv"
 : > "${speaking_manifest}"
 : > "${mpm_manifest}"
 
-for task in zero_shot zero_shot_voxblink; do
+for task in clean in-the-wild; do
     for lang_dir in data/"${task}"/*; do
         [ -d "${lang_dir}/waveform" ] || continue
         lang="${lang_dir##*/}"
@@ -43,7 +43,7 @@ for task in zero_shot zero_shot_voxblink; do
         # FLEURS-R only, matching the systems' own gate in submit_metrics.sh: the GT
         # row has to be scored on the same item set as the systems it is the floor for.
         # See docs/mpm_itw_limits.md for why VoxBlink2 is excluded.
-        if [ "${task}" = zero_shot ]; then
+        if [ "${task}" = clean ]; then
             printf '%s\t%s\n' "${task}" "${lang}" >> "${mpm_manifest}"
         fi
     done

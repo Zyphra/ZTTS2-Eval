@@ -1,31 +1,31 @@
 {
-  "zero_shot_delta": {
+  "clean_delta": {
     "kind": "delta",
-    "source_task": "zero_shot",
+    "source_task": "clean",
     "selector": "delta",
     "k_actual": 200,
     "seed": 0,
     "langs": 35
   },
-  "zero_shot_mini": {
+  "clean_mini": {
     "kind": "mini",
-    "source_task": "zero_shot",
+    "source_task": "clean",
     "selector": "strat_meta",
     "k_actual": 3500,
     "seed": 0,
     "langs": 35
   },
-  "zero_shot_voxblink_delta": {
+  "in-the-wild_delta": {
     "kind": "delta",
-    "source_task": "zero_shot_voxblink",
+    "source_task": "in-the-wild",
     "selector": "delta",
     "k_actual": 192,
     "seed": 0,
     "langs": 20
   },
-  "zero_shot_voxblink_mini": {
+  "in-the-wild_mini": {
     "kind": "mini",
-    "source_task": "zero_shot_voxblink",
+    "source_task": "in-the-wild",
     "selector": "strat_meta",
     "k_actual": 1919,
     "seed": 0,

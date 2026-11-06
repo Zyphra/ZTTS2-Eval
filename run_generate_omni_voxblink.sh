@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate audio for the VoxBlink2-derived eval (data/zero_shot_voxblink) with
+# Generate audio for the VoxBlink2-derived eval (data/in-the-wild) with
 # vLLM-Omni TTS models. Starts and stops the server itself; mirrors
 # run_generate_omni.sh but pinned to the one new task.
 #
@@ -8,7 +8,7 @@
 #   bash run_generate_omni_voxblink.sh --model qwen3-tts-0.6b --test_set en --limit 3
 #
 # Score afterwards with run_infer_voxblink_eval.sh and DECODE_DIR pointing at
-# results/omni_<model>/zero_shot_voxblink. OMNI_VENV and OMNI_OUT_ROOT work as in
+# results/omni_<model>/in-the-wild. OMNI_VENV and OMNI_OUT_ROOT work as in
 # run_generate_omni.sh.
 set -e
 
@@ -17,7 +17,7 @@ if [ ! -f utils/parse_options.sh ]; then
 fi
 
 model=all
-# Default to the 9 langs shared with zero_shot; the noisy voxblink-only tail
+# Default to the 9 langs shared with clean; the noisy voxblink-only tail
 # (pt ar hi tr tl pl id th yo nl uk vi) is off by default. Re-enable via the full list or
 # an explicit --test_set.
 #   full 21: "en zh de es fr it ja ko ru pt ar hi tr tl pl id th yo nl uk vi"
@@ -83,7 +83,7 @@ for m in ${models}; do
     mode="${rest%%|*}"
     deploy_yaml="${rest#*|}"
 
-    # clone-mode delivery policy (same as the zero_shot driver): audio-only cloning
+    # clone-mode delivery policy (same as the clean driver): audio-only cloning
     # where supported + the ref-audio delivery each connector accepts. No-op for preset.
     nrt_opt=""; ra_opt=""
     if [ "${mode}" = clone ]; then
@@ -126,8 +126,8 @@ for m in ${models}; do
     fi
 
     for nm in ${test_set}; do
-        data_dir="data/zero_shot_voxblink/${nm}"
-        out_dir="${OMNI_OUT_ROOT:-results}/omni_${m}/zero_shot_voxblink/${nm}"
+        data_dir="data/in-the-wild/${nm}"
+        out_dir="${OMNI_OUT_ROOT:-results}/omni_${m}/in-the-wild/${nm}"
         if [ ! -f "${data_dir}/text" ]; then
             echo "[skip] ${data_dir}: no 'text' file" 1>&2; continue
         fi
@@ -152,5 +152,5 @@ for m in ${models}; do
 done
 
 echo
-echo "generation done -> results/omni_<model>/zero_shot_voxblink/"
-echo "score with: DECODE_DIR=results/omni_<model>/zero_shot_voxblink bash run_infer_voxblink_eval.sh"
+echo "generation done -> results/omni_<model>/in-the-wild/"
+echo "score with: DECODE_DIR=results/omni_<model>/in-the-wild bash run_infer_voxblink_eval.sh"

@@ -2,10 +2,9 @@
 """Capability index over time: assets/plots/capability_index_time.png.
 
 The Epoch-Capabilities-Index headline chart for this benchmark: each system's index
-(build_capability_index.py) at its public release date (rd_common.RELEASES), with
-its 90% bootstrap interval, and the frontier — the running best among public systems
-scored on every language. Real speech is the dashed level at its anchor value; systems
-not yet public are hollow, dated by their planned release. As in the
+(build_capability_index.py) at its release date (rd_common.RELEASES), with
+its 90% bootstrap interval, and the frontier — the running best among systems
+scored on every language. Real speech is the dashed level at its anchor value. As in the
 explorer, the y range spans the point estimates: intervals of systems scored on one or
 two languages run off the edge rather than squeezing everything else flat.
 """
@@ -45,7 +44,7 @@ def main():
 
     frontier = []
     for s in pts:
-        if not s["prerelease"] and not partial(s) and (not frontier or s["index"] > frontier[-1]["index"]):
+        if not partial(s) and (not frontier or s["index"] > frontier[-1]["index"]):
             frontier.append(s)
 
     fig, ax = plt.subplots(figsize=(11, 5.6), constrained_layout=True)
@@ -58,8 +57,7 @@ def main():
         col = ZYPHRA if s["name"].startswith("zonos") else MID if partial(s) else INK
         if s["ci"]:
             ax.plot([x, x], s["ci"], color=col, alpha=0.3, lw=1.2, zorder=2)
-        ax.scatter([x], [s["index"]], s=30, zorder=3, color="white" if s["prerelease"] else col,
-                   edgecolors=col, linewidths=1.3)
+        ax.scatter([x], [s["index"]], s=30, zorder=3, color=col)
     if frontier:
         fx = [mdates.date2num(date(s)) for s in frontier]
         fy = [s["index"] for s in frontier]
@@ -86,11 +84,10 @@ def main():
     ax.set_ylabel("capability index (higher = better)")
     ax.grid(alpha=0.25)
     ax.legend(handles=[
-        Line2D([], [], color=INK, alpha=0.55, lw=1.5, label="frontier (public, every language)"),
+        Line2D([], [], color=INK, alpha=0.55, lw=1.5, label="frontier (every language)"),
         Line2D([], [], marker="o", ls="", color=INK, label="scored on every language"),
         Line2D([], [], marker="o", ls="", color=MID, label="some languages only"),
         Line2D([], [], marker="o", ls="", color=ZYPHRA, label="Zyphra"),
-        Line2D([], [], marker="o", ls="", mfc="white", mec=ZYPHRA, label="planned release"),
     ], loc="upper left", bbox_to_anchor=(0, 0.95), fontsize=8)
     ax.set_title("ZTTS2-Eval capability index over time (90% bootstrap intervals)")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

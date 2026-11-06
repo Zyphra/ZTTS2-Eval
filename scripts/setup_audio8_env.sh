@@ -88,5 +88,5 @@ cat <<EOF
 Audio8 SGLang-Omni venv ready at ${VENV} (model ${model_dir}).
 Generate with:
   bash run_generate_audio8.sh --test_set en --limit 3     # smoke test, own server on GPU 0
-  bash run_generate_audio8.sh --task zero_shot_voxblink   # full ITW set
+  bash run_generate_audio8.sh --task in-the-wild   # full ITW set
 EOF

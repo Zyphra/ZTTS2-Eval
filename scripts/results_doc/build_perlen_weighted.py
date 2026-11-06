@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "scripts"))
 from tufte_common import ref_token_count  # noqa: E402  (run_wer.py's exact units)
 
 ROOT_RES = os.path.join(REPO_ROOT, "results")
-ROOT_DATA = os.path.join(REPO_ROOT, "data", "zero_shot_voxblink")
+ROOT_DATA = os.path.join(REPO_ROOT, "data", "in-the-wild")
 
 VOX_LANGS = data_langs(ROOT_DATA)   # every materialized voxblink language
 N_BUCKETS = 6
@@ -72,15 +72,15 @@ def parse_wer_raw_with_ref(path):
 # Baselines live in flat results/<model>/<lang>/ dirs; every TTS system is
 # discovered from the results tree (mirrors build_perbin.py — hard-coded model
 # lists are how this cache came to silently hold only stale baselines).
-BASELINES = {"gt": "gt_zero_shot_voxblink"}
+BASELINES = {"gt": "gt_in-the-wild"}
 MODELS = dict(BASELINES)
-MODELS.update(discover_systems("zero_shot_voxblink"))
+MODELS.update(discover_systems("in-the-wild"))
 print(f"models: {', '.join(sorted(MODELS))}")
 
 per_bucket = {}
 for label, mdir in MODELS.items():
     for lang in VOX_LANGS:
-        task = "" if label in BASELINES else "zero_shot_voxblink"
+        task = "" if label in BASELINES else "in-the-wild"
         base = os.path.join(ROOT_RES, mdir, task, lang) if task else os.path.join(ROOT_RES, mdir, lang)
         path = os.path.join(base, "wav_res_ref_text.wer.raw")
         recs = parse_wer_raw_with_ref(path)

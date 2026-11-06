@@ -7,7 +7,7 @@ The **audio and text data** under `data/` (and the prompt audio and held-out tar
 > set is **CC-BY-NC-SA 4.0 (non-commercial)** and is sourced from YouTube. If you
 > have a commercial use case, the VoxBlink2 subset is not licensed for it.
 
-## `data/zero_shot/` — FLEURS-R
+## `data/clean/` — FLEURS-R
 
 Built from [`google/fleurs-r`](https://huggingface.co/datasets/google/fleurs-r)
 (a restored version of Google FLEURS).
@@ -17,7 +17,7 @@ Built from [`google/fleurs-r`](https://huggingface.co/datasets/google/fleurs-r)
   Generation Tasks*, [arXiv:2408.06227](https://arxiv.org/abs/2408.06227); built on
   FLEURS (Conneau et al.). See the citation block in the [README](README.md#citation).
 
-## `data/zero_shot_voxblink/` — VoxBlink2
+## `data/in-the-wild/` — VoxBlink2
 
 A stratified subsample of [VoxBlink2](https://voxblink2.github.io/), an in-the-wild
 speaker-recognition corpus of YouTube-derived clips.
@@ -28,11 +28,11 @@ speaker-recognition corpus of YouTube-derived clips.
 - **Source / privacy:** clips originate from public YouTube videos. Upstream
   distributes *annotations only* (YouTube IDs, timestamps, speaker labels) and
   leaves audio retrieval to the user. The selection manifest for this subset lives
-  at `data/zero_shot_voxblink/_stage_a/manifest.tsv`; the prepared audio can be
+  at `data/in-the-wild/_stage_a/manifest.tsv`; the prepared audio can be
   rebuilt from your own VoxBlink2 copy via `scripts/prepare_voxblink2_eval_stage_a.py`
   and `scripts/prepare_voxblink2_eval_stage_b.py` (see the README). For takedown or
   privacy requests, contact the VoxBlink2 maintainers (see their site).
-- **Target recordings:** `data/zero_shot_voxblink/<lang>/target_wav/` holds, for each
+- **Target recordings:** `data/in-the-wild/<lang>/target_wav/` holds, for each
   item, the real recording behind the target text (same speaker as the prompt, a
   different video). They are cut from the same VoxBlink2 clips and ship on
   `Zyphra/ZTTS2-Eval` as the reference for the held-out speaker-similarity score;

@@ -15,8 +15,8 @@ Synthesis mode -- pick the one the served model supports (run_generate_omni.sh s
 
 Usage:
     python scripts/generate_omni.py --server http://127.0.0.1:8091 --mode clone \\
-        --data-dir data/zero_shot/en \\
-        --out-dir results/omni_qwen3-1.7b-base/zero_shot/en --language en
+        --data-dir data/clean/en \\
+        --out-dir results/omni_qwen3-1.7b-base/clean/en --language en
 """
 import argparse
 import base64
@@ -304,7 +304,7 @@ def main():
                 # 'Arabic'. Supported: Auto, ...`, which failed 1500/1500 utterances on
                 # VoxBlink ar/hi. LANG_NAMES is a superset of what some servers take, so
                 # fall back to the server-side detector rather than dropping the cell.
-                # (zero_shot never hit this only because its driver maps just 9 langs.)
+                # (clean never hit this only because its driver maps just 9 langs.)
                 if "Invalid language" not in str(e) or body.get("language") == "Auto":
                     raise
                 print(f"[gen] {uid}: server rejected language "

@@ -8,7 +8,7 @@ language's own real/scramble anchors it is comparable across languages, so the
 explorer draws a small-multiple dot plot (one row per language) on the shared span
 axis. span > 1 means the system is FURTHER from real than the scrambled floor.
 
-Reads results/_mpm_shuffle_floor/zero_shot_<lang>.tsv (and the ground-truth split rows
+Reads results/_mpm_shuffle_floor/clean_<lang>.tsv (and the ground-truth split rows
 in results/_mpm_ground_truth/) and writes
 
     _cache/mpm_dist.json  ->  published to explorer/snapshot/ (publish_snapshot.py)
@@ -55,21 +55,13 @@ def _rows(path):
 def main():
     os.makedirs(CACHE, exist_ok=True)
     per_lang = {}
-    # `zero_shot_*.tsv` also matches `zero_shot_voxblink_<lang>.tsv`, which would yield
-    # a phantom language named "voxblink_<lang>" on the shared span axis. MPM is
-    # FLEURS-R only (docs/mpm_itw_limits.md), so no such file exists today -- skip them
-    # explicitly so enabling VoxBlink MPM cannot silently corrupt this payload.
-    for f in sorted(glob.glob(os.path.join(DIST_DIR, "zero_shot_*.tsv"))):
-        lang = os.path.basename(f)[len("zero_shot_"):-len(".tsv")]
-        if lang.startswith("voxblink"):
-            print(f"  skip {os.path.basename(f)}: not FLEURS-R (see docs/mpm_itw_limits.md)")
-            continue
+    # MPM is FLEURS-R only (docs/mpm_itw_limits.md).
+    for f in sorted(glob.glob(os.path.join(DIST_DIR, "clean_*.tsv"))):
+        lang = os.path.basename(f)[len("clean_"):-len(".tsv")]
         per_lang[lang] = _rows(f)
     # Ground-truth rows are scored separately on a random 50/50 reference split.
-    for f in sorted(glob.glob(os.path.join(GT_DIST_DIR, "zero_shot_*.tsv"))):
-        lang = os.path.basename(f)[len("zero_shot_"):-len(".tsv")]
-        if lang.startswith("voxblink"):
-            continue
+    for f in sorted(glob.glob(os.path.join(GT_DIST_DIR, "clean_*.tsv"))):
+        lang = os.path.basename(f)[len("clean_"):-len(".tsv")]
         per_lang.setdefault(lang, {}).update(_rows(f))
 
     if not per_lang:

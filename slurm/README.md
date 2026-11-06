@@ -19,10 +19,10 @@ bash slurm/submit_eval.sh --engine omni --model all
 
 # one omni model, one language, quick smoke test:
 bash slurm/submit_eval.sh --engine omni --model qwen3-tts-0.6b \
-     --task zero_shot --test_set en --limit 3
+     --task clean --test_set en --limit 3
 
 # the VoxBlink2 task instead of FLEURS-R:
-bash slurm/submit_eval.sh --engine omni --model all --task zero_shot_voxblink
+bash slurm/submit_eval.sh --engine omni --model all --task in-the-wild
 
 # print the sbatch commands without submitting:
 bash slurm/submit_eval.sh --engine omni --model all --dry-run true
@@ -35,7 +35,7 @@ squeue -u $USER -o '%.18i %.9P %.28j %.8T %.10M %R'
 tail -f logs/slurm/ztts-omni-qwen3-tts-0.6b-<jobid>.out
 ```
 
-Outputs land in the usual place, e.g. `results/omni_<model>/zero_shot/<lang>/wavs/`
+Outputs land in the usual place, e.g. `results/omni_<model>/clean/<lang>/wavs/`
 plus the per-lang `wav_res_ref_text.wer`, `spk_simi_scores.txt`, `msr_utmos_mean.txt`.
 
 ## Files
@@ -60,9 +60,9 @@ hard-coded and come from the submitter.
   scheme as `eval_job.sh`) and the allocated GPU pinned as index 0:
   ```bash
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-         bash scripts/run_gt_zero_shot.sh --task zero_shot_voxblink
+         bash scripts/run_gt.sh --task in-the-wild
   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-         env DECODE_DIR=logs/smoke/zero_shot_voxblink bash run_infer_voxblink_eval.sh --test_set en
+         env DECODE_DIR=logs/smoke/in-the-wild bash run_infer_voxblink_eval.sh --test_set en
   ```
 - **`scripts/rescore_all.sh`** — array job (8 GPUs per node, `--requeue`) that fully
   rescores every `results/<system>/<task>/<lang>` leaf — WER with the routed ASR, both
@@ -102,7 +102,7 @@ hard-coded and come from the submitter.
   smallest-first. It prints a `COVERAGE <system> <task> <lang> <got>/<want>` line per
   leaf and exits 1 iff a leaf is left in `logs/slurm/ztts-zonos3-gen-<tag>-failed.txt`.
   ```bash
-  Z3_TASKS="zero_shot_mini zero_shot_voxblink_mini" sbatch --chdir="$(pwd -P)" \
+  Z3_TASKS="clean_mini in-the-wild_mini" sbatch --chdir="$(pwd -P)" \
       --export=ALL --array=0-0 slurm/zonos3_gen_job.sh
   ```
 - **`native_gen_job.sh`** / **`omni_gen_job.sh`** — generation on 8-GPU nodes (array
@@ -129,7 +129,7 @@ hard-coded and come from the submitter.
 - **`submit_release_run.sh`** — the whole release DAG, run from the repo root on the
   login node: build the target recordings (`build_voxblink_targets.py`), upload them to
   the HF dataset when `HF_TOKEN` is set, full rescore (`rescore_all.sh`), the two GT
-  scorings (`run_gt_zero_shot.sh`), the `mpm`, `rhythm`, `pitch_range` and `mpm_gt`
+  scorings (`run_gt.sh`), the `mpm`, `rhythm`, `pitch_range` and `mpm_gt`
   metrics with the right dependencies, and a final job that runs
   `scripts/results_doc/run.sh` and rebuilds `RESULTS_CORESET.md`. Site values come from
   `RELEASE_PARTITION`, `RELEASE_ACCOUNT`, `RELEASE_QOS`; `RELEASE_RESCORE_NODES` (default
@@ -200,5 +200,5 @@ instead of launching one. Run the two modes as separate jobs with
 (expressive) → `results/zonos2_accurate` / `results/zonos2_expressive`.
 
 ```bash
-bash slurm/submit_eval.sh --engine zonos2 --server http://<host>:<port> --task zero_shot
+bash slurm/submit_eval.sh --engine zonos2 --server http://<host>:<port> --task clean
 ```

@@ -64,7 +64,7 @@ class ZhVariantFoldTest(unittest.TestCase):
     """The traditional->simplified fold is applied inside prepare(), i.e. to the
     reference AND the hypothesis. Folding only the hypothesis (the old run_wer.py
     behavior) made a traditional-script reference score ~100% CER regardless of
-    the audio (e.g. data/zero_shot_voxblink/zh uttid_400)."""
+    the audio (e.g. data/in-the-wild/zh uttid_400)."""
 
     TRAD = "這個節目"   # 這個節目
     SIMP = "这个节目"   # 这个节目

@@ -1,7 +1,7 @@
 # scripts/omni_models.sh -- shared vLLM-Omni TTS model registry.
 #
 # SOURCE this (`. scripts/omni_models.sh`); do not execute it. Both generation
-# drivers (run_generate_omni.sh for zero_shot / FLEURS-R, and
+# drivers (run_generate_omni.sh for clean / FLEURS-R, and
 # run_generate_omni_voxblink.sh for the VoxBlink2 set) source this single copy so
 # the model list and per-model policies can never drift apart. Every model added
 # here is available to BOTH tasks.
@@ -21,7 +21,7 @@ NEW_MODELS="glm-tts ming-tts moss-tts higgs-audio-v3 drama-3 breeze-tts-2"
 # RETIRED -- kept in model_spec() so an explicit --model still works, but out of both
 # sweep lists so `--model all` can never resurrect them, and their results/ trees were
 # deleted:
-#   moss-tts-nano  decode bug -- 3 usable utterances out of 1279 on zero_shot/en
+#   moss-tts-nano  decode bug -- 3 usable utterances out of 1279 on clean/en
 #   indextts2      its diffusion DiT flash-attn kernel PTX-mismatches the driver; the
 #                  server reaches READY, then the first request kills the engine -> 0 wavs
 

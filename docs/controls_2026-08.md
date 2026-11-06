@@ -17,7 +17,7 @@ Scripts: `scripts/control_scorer_swap.sh`, `scripts/control_spk_embedder.sh`,
 ranked systems are Qwen3-TTS-0.6b/1.7b — same model family, plausibly shared training
 data and tokenizer. Does the scorer favor its own family?
 
-**Design.** Rescore the *same audio* for `zero_shot/{en,zh}` with Whisper-large-v3
+**Design.** Rescore the *same audio* for `clean/{en,zh}` with Whisper-large-v3
 (forced language) instead of Qwen3-ASR, for the two qwen3 systems plus a four-system
 cohort (fish-s2-pro, omnivoice-reftext, voxcpm2, zonos2_accurate) and GT. Readout is
 **difference-in-differences**: a scorer swap moves every system's WER a little (a
@@ -109,7 +109,7 @@ Two concrete consequences, both applied:
 
 The control's per-utterance outputs are retained as `spk_simi_scores.vox2.txt` beside
 the published files for anyone who wants to re-derive this. One leaf
-(`cosyvoice3/zero_shot_voxblink/th`) failed the 98 % coverage gate under the held-out
+(`cosyvoice3/in-the-wild/th`) failed the 98 % coverage gate under the held-out
 model — 6 of 176 generations are too short for its convolution stack, a known
 cosyvoice3 failure mode on unsupported Thai — and was excluded from the τ above rather
 than scored on a biased survivor subset.
@@ -482,6 +482,110 @@ omni_voxtral-tts, whose output noise had hidden its pauses: rank 2 → 31 of 31 
 CSVs are kept at `results/_prosody_pre_c8_20261101/`. The prosody index, refit on one
 snapshot with only the pause values swapped, barely moves (Spearman +0.999, at most 0.9
 points): paired pauses are one In-The-Wild item of the pauses aspect.
+
+---
+
+## C9 — Edge non-speech scored as rhythm · **ADOPTED (rhythm re-scored)**
+
+**Question.** Rhythm trimmed each file's edges with the 35 dB energy rule (C8 kept it
+there). Against the Silero speech span, the ZONOS3 variants' pause factors moved most
+(zonos3-rate30-20k_embedding `de` 3.2 → 0.7×). What is in that edge audio?
+
+**Measurement.** Spectrograms of the files where the two edges differ most: the disputed
+audio is almost always before the speech, and in generations it is mostly not silence or
+breath but sound the model produced: steady tones (10 s of a 400 Hz hum in
+zonos3-rate30-20k_reference `de` uttid_113), harmonic hums and broadband bursts as loud
+as the speech, and sometimes the prompt's background music carried over (glm-tts).
+Files with ≥ 1 s of non-speech at an edge (VoxBlink2, ASR-heard files): real recordings
+0.7%; zonos3-rate30-20k_reference 9.9%, zonos3-rate30-20k_embedding 6.8%, the other
+ZONOS3 variants 2.6–3.7%, omni_omnivoice 5.8%, omni_glm-tts 5.1%; ZONOS3 on Clean ≤ 0.8%.
+The energy rule keeps all of it (it is within 35 dB of the peak), and the tokenizer reads
+a held tone as one long run: a stall.
+
+**Design/adoption.** Rhythm cuts each file to its speech span: the first speech onset
+to the last offset of the pinned Silero VAD (`utils/vad.py`, shared with the paired pause
+count; peak-normalized; 30 ms pad). Internal pauses are unchanged; a file in which Silero
+finds no speech is not scored. The anchor cache key includes the edge cut.
+
+**Validation** (`scripts/validate_rhythm_metric.py`, clean `en`, 300 vs 300; rate /
+burstiness / npvi / long_frac as multiples of the null):
+
+| probe | probes re-cut by the 35 dB rule | speech span (adopted) |
+|---|---|---|
+| 1 s noise at −20 dB rel. speech RMS on both edges | 5.9 / 13.6 / 7.5 / 10.2 | 1.2 / 1.3 / 1.8 / 0.5 |
+| 1 s steady 200 Hz harmonic hum before the speech | 9.9 / 47.1 / 2.8 / 28.3 | 1.0 / 1.0 / 1.4 / 1.0 |
+
+Tempo, inserted pauses, reversal and the silence/hiss padding probes keep their
+responses ([rhythm.md](rhythm.md)).
+
+**Result.** All 35 Clean and 20 VoxBlink2 languages re-scored. Rankings mostly hold:
+per-language Spearman of old vs new factors has a median of +0.92 for both the pause and
+the pace factor (lowest: Clean `cs` pause +0.62, VoxBlink2 `ja` pace +0.70). The
+largest In-The-Wild corrections are the ZONOS3 embedding variants, whose lead-in sounds
+had read as stalls: pause factor ×0.44 (zonos3-rate30-20k_embedding, median rank 17 → 6
+of 30) and ×0.59 (zonos3-mini_embedding, 12 → 4). On In-The-Wild the reference ceilings
+barely move (median ×1.01). On Clean they move by language (×0.37–×1.83, median ×0.91):
+the FLEURS-R recordings carry edge clicks and breaths that the energy rule kept, and the
+few utterances they distorted dominate a split-half W2. The factors there change units
+more than order (omni_glm-tts Clean `cs` pause factor 38 → 109 at a ×0.37 ceiling). The
+previous CSVs are kept at `results/_prosody_pre_c9_20261102/`. The lead-in sounds are a
+real defect that no prosody score shows any more, and an ASR transcribes the speech
+after them, so WER may not show them either.
+
+---
+
+## C10 — Non-voice frames in the pitch track · **ADOPTED (pitch range and paired range re-scored)**
+
+**Question.** Pitch range is p90 − p10 of an utterance's pYIN F0 in semitones. Runs
+12 st or more from the utterance median appeared in 7–17% of real utterances and in up to
+60% of some systems' (zonos2_expressive Clean `ja`, +7.0 st of range). Are they octave
+errors to fold back, or does the spread need to be more robust (p75 − p25)?
+
+**Measurement.** Neither: low-band spectrograms show no real pitch break among them.
+Every flagged run is a frame pYIN calls voiced where there is no voice:
+- near-silent pauses, more than 50 dB below the utterance's loudest frame, which pYIN
+  pins at its 400 Hz ceiling. They are 16.7% of zonos2_expressive's voiced frames in
+  Clean `ja`, where its median utterance range falls from 15.7 to 7.1 st without them
+  (real speech: 7.0 st); 0–0.5% in real recordings;
+- steady background hum or music bass (60–130 Hz) between phrases (omni_drama-3 `en`).
+
+Folding would keep them as pitch; p75 − p25 only dampens them. Two neural trackers were
+tried on the same 3,900 utterances. PENN (FCNF0++) does not pin silence, but follows hum
+and music bass in In-The-Wild audio, leaves noisy real speech mostly unvoiced and jumps to
+upper harmonics inside voiced runs. PESTO (`mir-1k_g7`) jumps to the 2nd–7th harmonic
+throughout speech, worst on low voices, Clean included. With the cleanup below, pYIN and
+PENN rank Clean systems alike (Spearman +0.93 `en`, +0.97 `ja`; +0.41 / +0.27 without it);
+on In-The-Wild they agree less (+0.65 / +0.37). Of the 28 largest In-The-Wild
+disagreements inspected on spectrograms, pYIN was right in 14, PENN in 7, both in 3 and
+neither in 4 (music-dominated recordings, a voice below 60 Hz). pYIN's remaining errors
+are pins at its 60 Hz floor on hum and missed steep phrase-final falls.
+
+**Design/adoption.** pYIN stays, and two steps remove non-voice frames before the
+semitone deviations (`utils/pitch_range.py`): voiced frames more than 50 dB below the
+loudest frame are dropped, then every run of consecutive voiced frames whose median lies
+9 st or more from the utterance's voiced median. An excursion inside a voiced run
+survives. Range caches carry a `#method` line, so caches of the old method are recomputed.
+
+**Validation.** WORLD resyntheses of 160 FLEURS-R `en` utterances with a known F0 change:
+contour ×0.5 → 0.52, ×1.5 → 1.44, ×2 → 1.82; register shifts of ±4 and ±7 st → 0.96–1.02,
+for low and high voices alike. A synthetic 4.1 st melody with a 70 Hz hum between
+phrases read 20.75 st before and 4.10 st after (`tests/test_scoring.py`).
+
+**Result.** Pitch range re-scored in all 35 Clean and 20 VoxBlink2 languages, and the
+paired range column with it. The reference ceilings shrink (median ×0.57 Clean, ×0.50
+In-The-Wild): the artifacts also hit some real recordings and widened the reference
+spread, so the factors change units. Rankings change substantially: per-language
+Spearman of old vs new factors has a median of +0.64 on Clean (+0.20…+0.82) and +0.53 on
+In-The-Wild (+0.37…+0.82). The largest corrections are systems whose pauses had read as
+pitch: omni_voxtral-tts (median utterance range 12.9 → 3.5 st in VoxBlink2 `ar`, 12.0 →
+5.5 in Clean `es`), whose near-silent pauses hid a flat delivery; zonos2_expressive (Clean
+`ja`/`ko` 13.2 → 7.4); omni_glm-tts (Clean `ja` 12.1 → 7.0). gemini_3.8-flash keeps its
+wide range (Clean `ja` 11.2 st against 6.6 for real speech; both trackers confirm the
+movement), so its factor rises with the smaller ceiling. The paired range column keeps
+most of its order (median Spearman +0.81, lowest +0.57 in `zh`); the paired duration and
+pause columns are unchanged. The previous CSVs are kept at
+`results/_prosody_pre_c10_20261102/`. In-The-Wild pitch-range differences remain the less
+certain ones ([pitch_range.md](pitch_range.md)).
 
 ---
 

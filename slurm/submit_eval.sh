@@ -12,15 +12,15 @@
 #
 #   # a single omni model, one language, quick smoke test:
 #   bash slurm/submit_eval.sh --engine omni --model qwen3-tts-0.6b \
-#        --task zero_shot --test_set en --limit 3
+#        --task clean --test_set en --limit 3
 #
 #   # zonos2, self-managed server, both modes (accurate="stability" + expressive):
-#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode true  --task zero_shot
-#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode false --task zero_shot
+#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode true  --task clean
+#   bash slurm/submit_eval.sh --engine zonos2 --accurate_mode false --task clean
 #
 #   # zonos2 against an already-running external server instead of self-managing:
 #   bash slurm/submit_eval.sh --engine zonos2 --server http://<host>:<port> \
-#        --task zero_shot
+#        --task clean
 #
 #   # see the sbatch commands without submitting:
 #   bash slurm/submit_eval.sh --engine omni --model all --dry-run true
@@ -29,7 +29,7 @@
 #   --engine      omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
 #                 vibevoice15|audio8                                (default omni)
 #   --model       omni model key or "all"; ignored for zonos2     (default all)
-#   --task        zero_shot | zero_shot_voxblink                  (default zero_shot)
+#   --task        clean | in-the-wild                  (default clean)
 #   --test_set    space-separated langs (quote it), '' = default  (default '')
 #   --workers     concurrent generation requests                  (default 16)
 #   --limit       first N utts per set, 0 = all                   (default 0)
@@ -71,7 +71,7 @@ fi
 
 engine=omni
 model=all
-task=zero_shot
+task=clean
 test_set=
 workers=16
 limit=0
@@ -100,8 +100,8 @@ help_message="usage: bash slurm/submit_eval.sh --engine {omni|zonos2} [--model {
 . utils/parse_options.sh || exit 1
 
 case "${task}" in
-    zero_shot|zero_shot_voxblink) ;;
-    *) echo "error: --task must be zero_shot or zero_shot_voxblink (got '${task}')" 1>&2; exit 1 ;;
+    clean|in-the-wild) ;;
+    *) echo "error: --task must be clean or in-the-wild (got '${task}')" 1>&2; exit 1 ;;
 esac
 
 # Resolve the list of "models" (job units) for the chosen engine.

@@ -413,6 +413,37 @@ table.heat { border-collapse: separate; border-spacing: 0; font-size: 13px; }
 .leg-key { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--mut); padding: 3px 4px; }
 .leg-key svg { flex: none; }
 
+/* index view: the pinned system's breakdown (capability.js drawBreakdown) */
+.ci-breakdown {
+  margin-top: 18px; padding: 14px 16px 12px; max-width: 760px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r);
+}
+.ci-breakdown .bd-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.ci-breakdown h3 { margin: 0; font: 600 15px var(--sans); color: var(--head); }
+.ci-breakdown h3 .dim { color: var(--mut); font-weight: 400; }
+.ci-breakdown .bd-close {
+  background: none; border: 0; color: var(--mut); font: 16px var(--sans); cursor: pointer; padding: 0 4px;
+}
+.ci-breakdown .bd-close:hover { color: var(--ink); }
+.ci-breakdown p { margin: 6px 0 10px; color: var(--mut); font-size: 12.5px; line-height: 1.45; }
+.ci-breakdown table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ci-breakdown th {
+  text-align: right; font: 500 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--mut); padding: 4px 8px; border-bottom: 1px solid var(--rule);
+}
+.ci-breakdown th:first-child, .ci-breakdown td:first-child { text-align: left; padding-left: 0; }
+.ci-breakdown td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--faint); white-space: nowrap; }
+.ci-breakdown tr.grp td { font-weight: 600; color: var(--ink); }
+.ci-breakdown tr.sub td { color: var(--mut); }
+.ci-breakdown tr.sub td:first-child { padding-left: 16px; }
+.ci-breakdown tr.sep td { border-bottom: 0; padding-top: 12px; }
+.ci-breakdown tr.total td { font-weight: 600; border-top: 1px solid var(--rule); border-bottom: 0; }
+.ci-breakdown td.wt { width: 170px; }
+.ci-breakdown .wbar { display: inline-block; vertical-align: middle; width: 90px; height: 6px; margin-left: 8px;
+  background: var(--faint); border-radius: 3px; overflow: hidden; }
+.ci-breakdown .wbar i { display: block; height: 100%; background: var(--primary); }
+.ci-breakdown tr.sub .wbar i { background: var(--mut); }
+
 /* drawer (drill-down) ---------------------------------------------------- */
 .scrim {
   position: fixed; inset: 0; z-index: 70; background: rgba(var(--ink-rgb), .28);

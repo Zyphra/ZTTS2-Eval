@@ -18,7 +18,7 @@
 #
 # Environment (--export=ALL):
 #   OMNI_GEN_MODEL    model key of scripts/omni_models.sh                       (required)
-#   OMNI_GEN_TASKS    space-separated tasks      (default "zero_shot zero_shot_voxblink")
+#   OMNI_GEN_TASKS    space-separated tasks      (default "clean in-the-wild")
 #   OMNI_GEN_LANGS    only these langs; empty = each task's whole basket      (default '')
 #   OMNI_GEN_LIMIT    only the first N utterances per leaf               (default 0 = all)
 #   OMNI_GEN_WORKERS  concurrent requests per server               (default 16, as eval_job)
@@ -44,7 +44,7 @@ set -uo pipefail
 
 [ -f run_generate_omni.sh ] || { echo "[omni-gen] ERROR: run from the repo root (sbatch --chdir)" >&2; exit 1; }
 [ -n "${OMNI_GEN_MODEL:-}" ] || { echo "[omni-gen] ERROR: OMNI_GEN_MODEL is empty" >&2; exit 1; }
-OMNI_GEN_TASKS=${OMNI_GEN_TASKS:-"zero_shot zero_shot_voxblink"}
+OMNI_GEN_TASKS=${OMNI_GEN_TASKS:-"clean in-the-wild"}
 OMNI_GEN_LANGS=${OMNI_GEN_LANGS:-}
 OMNI_GEN_LIMIT=${OMNI_GEN_LIMIT:-0}
 OMNI_GEN_WORKERS=${OMNI_GEN_WORKERS:-16}
@@ -113,7 +113,7 @@ for ((s = 0; s < n_gpu; s++)); do
         mkdir -p "${OMNI_LOG_DIR}"
         port=$(( 20000 + (job % 1000) * 40 + s * 4 ))
         run_leaf() {
-            if [ "$1" = zero_shot_voxblink ]; then
+            if [ "$1" = in-the-wild ]; then
                 bash run_generate_omni_voxblink.sh --model "${OMNI_GEN_MODEL}" --test_set "$2" \
                     --gpu "${s}" --port "${port}" --workers "${OMNI_GEN_WORKERS}" \
                     --limit "${OMNI_GEN_LIMIT}" < /dev/null

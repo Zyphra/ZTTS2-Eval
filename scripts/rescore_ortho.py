@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(REPO, "utils"))
 from text_norm import base_lang, process_one, ORTHO_NORM_LANGS  # noqa: E402
 
 WER_RE = re.compile(r"^WER:\s*([\d.]+)")
-ROOTS = ["results/gt_zero_shot", "results/gt_zero_shot_voxblink"]
+ROOTS = ["results/gt_clean", "results/gt_in-the-wild"]
 
 
 def committed_wer(werf):

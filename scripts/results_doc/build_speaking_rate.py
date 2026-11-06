@@ -25,7 +25,7 @@ whose wav dirs are absent are simply skipped.
 
 Run from the pipeline (run.sh) or standalone:
     python scripts/results_doc/build_speaking_rate.py
-    python scripts/results_doc/build_speaking_rate.py --sets zero_shot --langs en de
+    python scripts/results_doc/build_speaking_rate.py --sets clean --langs en de
 """
 import argparse
 import glob
@@ -52,8 +52,8 @@ from rd_common import write_json_atomic  # noqa: E402
 
 # one label per test_set, mirroring build_reliability.py's dataset labels
 SET_LABEL = {
-    "zero_shot": ("FLEURS-R — read speech", "FLEURS-R"),
-    "zero_shot_voxblink": ("VoxBlink2 — in the wild", "VoxBlink2"),
+    "clean": ("FLEURS-R — read speech", "FLEURS-R"),
+    "in-the-wild": ("VoxBlink2 — in the wild", "VoxBlink2"),
 }
 # quantile function grid: char/s at these probabilities. Interior only (the 0/1
 # tails are the noisy min/max); 49 points draw a smooth ECDF. Shared across series.
@@ -198,7 +198,7 @@ def merge_shards(shard_dir, out_path, base_path=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--sets", nargs="*", default=["zero_shot", "zero_shot_voxblink"])
+    ap.add_argument("--sets", nargs="*", default=["clean", "in-the-wild"])
     ap.add_argument("--langs", nargs="*", default=None, help="subset of langs; default = all present")
     ap.add_argument("--cap", type=float, default=40.0)
     ap.add_argument("--top-db", type=float, default=35.0)

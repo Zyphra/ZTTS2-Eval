@@ -6,9 +6,9 @@
 # loops every language of the task through it, then stops it. Pass --server <URL>
 # to use an already-running server instead (no launch/stop).
 #
-#   bash run_generate_zonos3.sh --speaker_mode reference --task zero_shot_mini --test_set "en ja" --limit 4
-#   bash run_generate_zonos3.sh --speaker_mode embedding --task zero_shot --gpu 2
-#   bash run_generate_zonos3.sh --speaker_mode reference --server http://127.0.0.1:1920 --task zero_shot_voxblink
+#   bash run_generate_zonos3.sh --speaker_mode reference --task clean_mini --test_set "en ja" --limit 4
+#   bash run_generate_zonos3.sh --speaker_mode embedding --task clean --gpu 2
+#   bash run_generate_zonos3.sh --speaker_mode reference --server http://127.0.0.1:1920 --task in-the-wild
 #
 # Writes wavs to <out_root>/<task>/<lang>/wavs/. Score afterwards with the hint
 # printed at the end.
@@ -22,7 +22,7 @@
 #   --gpu           GPU index for the launched server             (default 0)
 #   --port          preferred port for the launched server        (default 1920)
 #   --speaker_mode  reference | embedding                         (required)
-#   --task          task group                                    (default zero_shot)
+#   --task          task group                                    (default clean)
 #   --test_set      languages within --task   (default: every language of the task)
 #   --out_root      results root              (default results/zonos3-mini_<speaker_mode>)
 #   --workers       concurrent requests per language              (default 16)
@@ -43,7 +43,7 @@ server=""
 gpu=0
 port=1920
 speaker_mode=
-task=zero_shot
+task=clean
 test_set=
 out_root=
 workers=16

@@ -52,7 +52,7 @@ def conditions(wav):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--test-sets", nargs="*", default=["zero_shot", "zero_shot_voxblink"])
+    ap.add_argument("--test-sets", nargs="*", default=["clean", "in-the-wild"])
     ap.add_argument("--langs", nargs="*", default=["en"])
     ap.add_argument("--n", type=int, default=40, help="clips per (set, lang), taken in sorted order")
     ap.add_argument("--out", default=os.path.join(REPO, "assets", "probes", "utmos_level.csv"))

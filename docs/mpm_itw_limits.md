@@ -1,13 +1,13 @@
 # Why MPM span is FLEURS-R only
 
-MPM span is computed for `zero_shot` (FLEURS-R) and **not** for `zero_shot_voxblink`
+MPM span is computed for `clean` (FLEURS-R) and **not** for `in-the-wild`
 (VoxBlink2). That exclusion is deliberate and gated in three places:
 
 | file | gate |
 |---|---|
-| `slurm/submit_metrics.sh` | only `zero_shot` rows enter `mpm.tsv` |
+| `slurm/submit_metrics.sh` | only `clean` rows enter `mpm.tsv` |
 | `slurm/submit_ground_truth_metrics.sh` | same gate on the GT 50/50 split |
-| `scripts/results_doc/build_results.py` | `mpm_model` is set only for `zero_shot` |
+| `scripts/results_doc/build_results.py` | `mpm_model` is set only for `clean` |
 
 This page records the measurements behind it, because "we didn't run it" and "it does
 not work there" are very different claims and the code alone cannot tell them apart.
@@ -188,14 +188,6 @@ Pre-fix TSVs are archived at `results/_mpm_shuffle_floor/pre_p95_20260829/`; see
 `docs/controls_2026-08.md`. Published MPM numbers are not comparable across this change.
 Since 2026-10-31 leading/trailing silence is also trimmed before featurization (cache tag
 `v5`; [controls C6](controls_2026-08.md)), which changes every span again.
-
-## A latent bug in the explorer payload, if MPM is ever enabled for VoxBlink
-
-`scripts/results_doc/build_mpm_dist.py` globs `zero_shot_*.tsv` and derives the
-language by stripping that prefix. A file named `zero_shot_voxblink_en.tsv` matches and
-yields `lang = "voxblink_en"` — a phantom 36th language silently mixed onto the shared
-span axis. Anyone enabling VoxBlink MPM must write to a separate directory or tighten
-that glob.
 
 ## Reproducing
 

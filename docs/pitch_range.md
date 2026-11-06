@@ -12,17 +12,28 @@ similarity, and it cannot tell a flat delivery from a lively one.
 ## Method
 
 1. Load the wav at 16 kHz and trim lead/trail silence (`librosa.effects.trim`,
-   `top_db=35`, as for char/s and rhythm). Audio shorter than 0.5 s (8,000 samples)
+   `top_db=35`, as for char/s). Audio shorter than 0.5 s (8,000 samples)
    after trimming is not scored.
 2. F0 track: `librosa.pyin`, 60–400 Hz, `frame_length=1024`, `hop_length=320` (20 ms).
    A width-3 median filter over the voiced frames removes single-frame octave blips.
-3. Semitones around the utterance's **own** voiced median: `12·log2(f0 / median)`.
+3. Remove the frames pYIN calls voiced where there is no voice (since 2026-11,
+   [controls C10](controls_2026-08.md)): voiced frames more than 50 dB below the
+   utterance's loudest frame (near-silent pauses, which pYIN pins at its 400 Hz
+   ceiling), then every run of consecutive voiced frames whose median lies 9 st or more
+   from the utterance's voiced median (background hum or music bass far below the
+   voice). An excursion inside a voiced run survives; a separate run an octave off does
+   not.
+4. Semitones around the utterance's **own** voiced median: `12·log2(f0 / median)`.
    An utterance with fewer than 10 voiced frames is unusable. This is what removes the
    register: a low and a high voice with the same intonation give the same values.
-4. Per-utterance **pitch range** = p90 − p10 of those semitone deviations.
-5. Per (set, language) the metric is the 2-Wasserstein distance between a system's
+5. Per-utterance **pitch range** = p90 − p10 of those semitone deviations.
+6. Per (set, language) the metric is the 2-Wasserstein distance between a system's
    distribution of per-utterance ranges and the reference's. The reference is the
    **prompt recordings** of the same uids (`data/<set>/<lang>/prompt_wav.scp`).
+
+Validation on WORLD resyntheses of 160 FLEURS-R `en` utterances with a known F0 change
+(median measured / baseline range): contour ×0.5 → 0.52, ×1.5 → 1.44, ×2 → 1.82;
+register shifts of ±4 and ±7 st → 0.96–1.02, for low and high voices alike.
 
 The CSV has one row per system: `n`, `median_st` (median range in semitones),
 `median_ratio` (system median / reference median; below 1 = flatter than real speech —
@@ -55,13 +66,14 @@ them (the smallest ITW language, vi, has 108).
 `--min-utts` (default 100, capped at 80 % of the sample) is the minimum number of
 usable utterances for a system to be scored, so small languages such as vi, uk, th and
 nl are scored rather than skipped. Per-utterance ranges are cached as
-`uid<TAB>range` TSVs (empty = unusable wav): `<leaf>/pitch_range.tsv` per system,
+`uid<TAB>range` TSVs (empty = unusable wav) under a `#method` line
+(`utils.pitch_range.METHOD`): `<leaf>/pitch_range.tsv` per system,
 `results/_pitch_range_ref/<set>_<lang>.tsv` for the reference. Only missing uids are
-computed.
+computed, and a cache written by another method is discarded.
 
 ```bash
-python scripts/pitch_range_dist.py --test-set zero_shot_voxblink --lang en
-python scripts/pitch_range_dist.py --test-set zero_shot --lang de --models omni_voxcpm2
+python scripts/pitch_range_dist.py --test-set in-the-wild --lang en
+python scripts/pitch_range_dist.py --test-set clean --lang de --models omni_voxcpm2
 ```
 
 In the results report the headline column is `x_ceiling` (**Pitch range ×ceil**); the
@@ -70,7 +82,7 @@ tradeoff figure plots its macro average over the language basket against WER.
 ## Paired prosody on the In-The-Wild set
 
 Every ITW item has a real recording of the same speaker saying the *target* sentence
-(`data/zero_shot_voxblink/<lang>/target_wav.scp`). The distribution metrics above
+(`data/in-the-wild/<lang>/target_wav.scp`). The distribution metrics above
 cannot use it, because W2 ignores which utterance is which. `paired_itw.py` compares
 each generation with its real recording, utterance by utterance, on the same 500-uid
 sample:
@@ -86,12 +98,12 @@ the bias — positive = longer, more pauses, wider pitch range than the real rec
 versions `dur_abs_med`, `pause_abs_mean`, `range_abs_med` (how far off a typical
 utterance is). The report shows the absolute ones (**Dur |log2|**, **Pause Δ**,
 **Pitch-range |log2|**); 0 = the generation matches the real recording.
-The real-recording ground truth (`gt_zero_shot_voxblink`) is not a row: it *is* the
+The real-recording ground truth (`gt_in-the-wild`) is not a row: it *is* the
 reference.
 
 `paired_itw.py` reads the same `<leaf>/pitch_range.tsv` caches as
 `pitch_range_dist.py` and caches the real recordings' ranges in
-`results/_pitch_range_ref/zero_shot_voxblink_<lang>_target.tsv`, so run the two in one
+`results/_pitch_range_ref/in-the-wild_<lang>_target.tsv`, so run the two in one
 job, in that order (the `pitch_range` jobs of `slurm/submit_metrics.sh` do):
 
 ```bash
@@ -104,6 +116,10 @@ python scripts/paired_itw.py --lang en
   contours are equal; the carpet view below is the check for shape.
 - pYIN fails on whispery, creaky or very noisy audio; those utterances drop out
   (`n` in the CSV shows how many survived).
+- On In-The-Wild audio F0 is ambiguous under background music and other voices. After
+  the step-3 cleanup pYIN and the neural tracker PENN rank Clean systems alike
+  (Spearman +0.93 `en`, +0.97 `ja`) but In-The-Wild systems only loosely (+0.65 `en`,
+  +0.37 `ja`), so In-The-Wild pitch-range differences are the less certain ones.
 - The unpaired metric matches distributions of *different* utterances (the references
   are prompts, not the targets); only the paired metrics are utterance-aligned.
 - A 500-item sample makes per-language values noisier than a metric computed on every
@@ -111,7 +127,7 @@ python scripts/paired_itw.py --lang en
 
 ## The melody carpet — the contour view
 
-![melody carpet](../assets/plots/pitch_carpet_zero_shot_voxblink_en.png)
+![melody carpet](../assets/plots/pitch_carpet_in-the-wild_en.png)
 
 `scripts/plot_pitch_carpet.py` — the pitch sibling of the rhythm pause carpet
 (`docs/rhythm.md`), showing the contour that a single number per utterance compresses.
@@ -123,12 +139,13 @@ octave blips, unvoiced gaps show the pale thread). Amber ink where the contour l
 median per-utterance p10–p90 range in semitones — the same quantity as `median_st` —
 flattest first.
 
-Reading (VoxBlink/en, the carpet's 70-uid sample): fish-s2-pro compresses melody
-hardest (5.5 st vs GT 8.4) with qwen3-1.7b next (6.2) — the same RL/ASR-flattening
-fingerprint the rhythm views show — while zonos2-expressive overshoots real speech
-(9.8). **kokoro's contour is normal (7.2)** even though its preset voice does not match
+Reading (VoxBlink/en, the 28 strips drawn): fish-s2-pro compresses melody hardest
+(5.5 st vs GT 6.9) with voxcpm2 next (5.8) — the same RL/ASR-flattening fingerprint the
+rhythm views show — while zonos2-expressive (8.0) and vibevoice-7b (8.2) overshoot real
+speech. **kokoro's contour is normal (7.4)** even though its preset voice does not match
 the prompt speaker's register: the per-utterance median normalization is what separates
-"wrong voice" from "monotone delivery".
+"wrong voice" from "monotone delivery". (Before the step-3 cleanup this view read GT at
+8.4 and zonos2-expressive at 9.8: pYIN's pitch in silent pauses widened both.)
 
 Practical notes: F0 tracks are npz-cached per system under
 `results/pitch_perutt_<set>_<lang>/` (first pass ~25–50 min CPU at 48 workers, no GPU;

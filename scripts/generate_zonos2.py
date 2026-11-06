@@ -7,7 +7,7 @@ to be scored by run_infer_zonos2_eval.sh.
 
 Usage:
     python scripts/generate_zonos2.py \\
-        --data-dir data/zero_shot/en --out-dir results/zero_shot/en --language en_us
+        --data-dir data/clean/en --out-dir results/clean/en --language en_us
 """
 import argparse
 import base64

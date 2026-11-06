@@ -63,15 +63,38 @@ class CapabilityIndexFitTest(unittest.TestCase):
             self.fit(obs, (("lo", 100.0), ("hi", 50.0)))
 
 
+class BreakdownTest(unittest.TestCase):
+    def test_parts_add_up_to_the_index(self):
+        # Noisy scores, so every group pulls on the fit; two test sets, four dimensions.
+        obs, _ = synthetic({"s0": -1.5, "s1": 0.0, "s2": 0.8, "s3": 2.0}, {})
+        rng = np.random.default_rng(1)
+        obs = [(s, it.replace("|t|", "|clean|" if k % 3 else "|in-the-wild|"), d,
+                float(np.clip(p + rng.normal(0, 0.08), 0, 1)))
+               for k, (s, it, d, p) in enumerate(obs)]
+        metrics = {f"m{k}": (ci.DIMENSIONS[k], None, "", None) for k in range(4)}
+        P = ci.Problem(obs)
+        x = P.fit(P.si, P.ii, P.y, P.w, P.x0())
+        C = P.unpack(x)[0]
+        a, b = ci.anchor_map(P.systems, C, (("s3", 100.0), ("s0", 50.0)))
+        for i, part in enumerate(ci.breakdown(P, x, a, b, obs, metrics, ci.DIMENSIONS)):
+            index = a + b * C[i]
+            dims, sets = part["dimensions"], part["sets"]
+            self.assertAlmostEqual(sum(g["points"] for g in dims), index, delta=0.3)
+            self.assertAlmostEqual(sum(g["points"] for g in sets), index, delta=0.3)
+            self.assertAlmostEqual(sum(g["weight"] for g in dims), 1.0, delta=0.005)
+            for g in dims:
+                self.assertAlmostEqual(sum(m["points"] for m in g["metrics"]), g["points"], delta=0.15)
+
+
 class CharSecItemsTest(unittest.TestCase):
     def test_char_s_counts_only_leaves_the_snapshot_scored(self):
         # A partial generation that build_results' coverage gate dropped still gets a
         # speaking-rate series; it must not credit the system with that language.
-        sr = {"panels": [{"key": "zero_shot|ar", "set": "zero_shot", "lang": "ar", "series": [
-            {"name": "gt_zero_shot", "d_ref": 0.2, "x_ceiling": 1.0, "split": "random 50/50"},
+        sr = {"panels": [{"key": "clean|ar", "set": "clean", "lang": "ar", "series": [
+            {"name": "gt_clean", "d_ref": 0.2, "x_ceiling": 1.0, "split": "random 50/50"},
             {"name": "partial", "d_ref": 0.4, "x_ceiling": 1.5}]}]}
-        rows = [{"model": "partial", "task": "zero_shot", "set": "en"},
-                {"model": "partial", "task": "zero_shot", "set": "ALL"}]
+        rows = [{"model": "partial", "task": "clean", "set": "en"},
+                {"model": "partial", "task": "clean", "set": "ALL"}]
         names = {o[0] for o in ci.charsec_observations(sr, ci.scored_leaves(rows))}
         self.assertEqual(names, {ci.REAL})
 

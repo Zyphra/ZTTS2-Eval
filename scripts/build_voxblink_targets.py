@@ -5,7 +5,7 @@ Published ITW speaker similarity used to compare each generation with the prompt
 conditioned on, which rewards copying that one recording (channel, mic, session) as much
 as the voice. The primary score instead compares against a DIFFERENT real recording of
 the same speaker: the recording behind the item's target text, stored at
-`data/zero_shot_voxblink/<lang>/target_wav/<uid>.wav` (ships on the HF dataset
+`data/in-the-wild/<lang>/target_wav/<uid>.wav` (ships on the HF dataset
 Zyphra/ZTTS2-Eval; rebuilt from raw VoxBlink2 by scripts/extract_voxblink_gt.py).
 
 Every uid of the current `text` is validated against `_stage_a/manifest.tsv`, joined on
@@ -16,15 +16,15 @@ prompt_text exactly as extract_voxblink_gt.py does:
     (catches a stale or misaligned extraction).
 
 Output per language:
-  data/zero_shot_voxblink/<lang>/target_wav.scp          <uid> <repo-relative wav>
-  data/zero_shot_voxblink/<lang>/target_provenance.json  pairing rule, counts, exclusions
-  data/zero_shot_voxblink_{mini,delta}/<lang>/target_wav.scp   the panel subset
+  data/in-the-wild/<lang>/target_wav.scp          <uid> <repo-relative wav>
+  data/in-the-wild/<lang>/target_provenance.json  pairing rule, counts, exclusions
+  data/in-the-wild_{mini,delta}/<lang>/target_wav.scp   the panel subset
 
 The reference wav shares the generation's target text, so content is matched for
 generations but not for the ceiling (real prompt vs. real target).
 
 Usage:
-    python scripts/build_voxblink_targets.py --import-from results/gt_zero_shot_voxblink
+    python scripts/build_voxblink_targets.py --import-from results/gt_in-the-wild
     python scripts/build_voxblink_targets.py --langs en zh
 """
 import argparse
@@ -41,7 +41,7 @@ sys.path.insert(0, REPO)
 from utils.benchmark import ITW_LANGS, data_uids  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
 
-TASK = "zero_shot_voxblink"
+TASK = "in-the-wild"
 DATA_ROOT = f"data/{TASK}"
 PANELS = (f"data/{TASK}_mini", f"data/{TASK}_delta")
 DUR_TOL_S = 0.05

@@ -21,5 +21,5 @@ kokoro,kokoro,kokoro,1,partial,8,1.0000,1.0000,,0,
 neutts-2e,neutts-2e,neutts,1,partial,1,1.0000,1.0000,,0,
 vibevoice-rt-0.5b,vibevoice-rt-0.5b,vibevoice,1,partial,10,1.0000,1.0000,,0,
 indextts2,omni_indextts2,indextts,0,partial,0,,,,0,
-GT,gt_zero_shot_voxblink,reference,0,reference,20,1.0000,1.0000,,1,hi:1
-GT-whisper,whisper_zero_shot_voxblink,reference,0,reference,20,1.0000,1.0000,,0,
+GT,gt_in-the-wild,reference,0,reference,20,1.0000,1.0000,,1,hi:1
+GT-whisper,whisper_in-the-wild,reference,0,reference,20,1.0000,1.0000,,0,

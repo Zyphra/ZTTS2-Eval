@@ -38,7 +38,7 @@ from tufte_common import PAPER, INK, MUT, GREY, MID, BLUE  # noqa: E402
 from plot_rhythm_scatter import SHORT  # noqa: E402
 from plot_rhythm_carpet import PANELS, AMBER  # noqa: E402
 from speaking_rate_dist import find_systems  # noqa: E402
-from utils.pitch_range import (SR, HOP, f0_track, semitone_dev,  # noqa: E402
+from utils.pitch_range import (SR, HOP, METHOD, f0_track, semitone_dev,  # noqa: E402
                                utt_range_st)
 
 ST_CLIP = 6.0      # semitone display band: ±6 st around the utterance median
@@ -47,26 +47,26 @@ ST_BIG = 4.0       # |dev| beyond this is a big melodic move -> amber ink
 
 
 def load_tracks(cache_dir, raw, wav_dir, uids, workers):
-    """{uid: f0 array} for one system, npz-cached."""
+    """{uid: f0 array} for one system, npz-cached; a cache from another METHOD is redone."""
     os.makedirs(cache_dir, exist_ok=True)
     p = os.path.join(cache_dir, raw.replace("/", "__") + "_f0.npz")
     if os.path.isfile(p):
         z = np.load(p, allow_pickle=False)
-        if all(u in z for u in uids):
+        if "__method__" in z and str(z["__method__"]) == METHOD and all(u in z for u in uids):
             return {u: z[u] for u in uids if z[u].size}
     paths = [os.path.join(wav_dir, u + ".wav") for u in uids]
     with ProcessPoolExecutor(workers) as ex:
         res = list(ex.map(f0_track, paths, chunksize=1))
     tracks = {u: (f0 if f0 is not None else np.zeros(0, dtype=np.float32))
               for u, f0 in zip(uids, res)}
-    np.savez_compressed(p, **tracks)
+    np.savez_compressed(p, __method__=np.array(METHOD), **tracks)
     return {u: f for u, f in tracks.items() if f.size}
 
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--test-set", default="zero_shot_voxblink")
+    ap.add_argument("--test-set", default="in-the-wild")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--n-utts", type=int, default=70,
                     help="uids to sample & F0-cache (keep at 70: cache key)")

@@ -30,7 +30,7 @@ import sys
 # point at your copy of the dataset.
 AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
 
-# Languages from the existing zero_shot subset (parity), plus the most populous
+# Languages from the existing clean subset (parity), plus the most populous
 # additional VoxBlink2 languages. The last 6 are v2 additions with enough
 # high-agreement speakers in the enriched pool to sustain a large sample.
 DEFAULT_LANGS = [
@@ -158,7 +158,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--enriched", default=os.environ.get("VOXBLINK2_ENRICHED"),
                     required="VOXBLINK2_ENRICHED" not in os.environ)
-    ap.add_argument("--output-dir", default="data/zero_shot_voxblink/_stage_a")
+    ap.add_argument("--output-dir", default="data/in-the-wild/_stage_a")
     ap.add_argument("--langs", default=",".join(DEFAULT_LANGS))
     ap.add_argument("--speakers-per-lang", type=int, default=2000,
                     help="Cross-video speakers to draw per language (Stage B keeps "

@@ -17,7 +17,7 @@ Reads runlen_hist from the --dump-dir npz files written by rhythm_dist.py.
 
 Usage:
     python scripts/plot_rhythm_ridgeline.py
-    python scripts/plot_rhythm_ridgeline.py --test-set zero_shot --lang en
+    python scripts/plot_rhythm_ridgeline.py --test-set clean --lang en
 """
 import argparse
 import glob
@@ -36,7 +36,7 @@ FRAME_MS = 20.0
 LONG_MS = 200.0
 
 # display order is computed (sorted by pause-time share); this is just the set
-WANT = ["gt_zero_shot_voxblink", "kokoro", "omni_voxcpm2", "omni_qwen3-tts-1.7b",
+WANT = ["gt_in-the-wild", "kokoro", "omni_voxcpm2", "omni_qwen3-tts-1.7b",
         "omni_fish-s2-pro", "moss-tts", "vibevoice-7b", "zonos2_accurate",
         "omni_voxtral-tts", "omni_omnivoice", "zonos2_expressive", "omni_glm-tts"]
 
@@ -75,7 +75,7 @@ def pause_share(hist):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--test-set", default="zero_shot_voxblink")
+    ap.add_argument("--test-set", default="in-the-wild")
     ap.add_argument("--lang", default="en")
     ap.add_argument("-o", "--out", default=None)
     args = ap.parse_args()

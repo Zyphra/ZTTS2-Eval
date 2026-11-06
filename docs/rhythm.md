@@ -5,8 +5,12 @@
 
 ## Method
 
-1. Trim lead/trail silence (librosa, `--top-db 35`, same as char/s). Internal
-   pauses are kept — they are rhythm.
+1. Cut each file to its speech span: first to last Silero VAD speech segment
+   (`utils/vad.py`, pinned v6.2.3, 30 ms pad). Internal pauses are kept — they
+   are rhythm. Until 2026-11 this was the 35 dB energy trim shared with char/s,
+   which kept any edge sound within 35 dB of the peak: noise floors, and the
+   tones, hums and bursts some systems generate before speaking, all scored as
+   stalls ([controls C9](controls_2026-08.md)).
 2. mHuBERT-147 (multilingual, 147 langs) layer-9 features, 20 ms frames.
 3. k-means (k=100 default) fitted on frames from the **reference set** and
    cached to `~/.cache/ztts2_eval/rhythm` (same anchor pattern as the MPM
@@ -47,33 +51,39 @@ both as multiples of the real-speech split-half ceiling. Rows carry a
 `benchmark_version` column, and only the uids of the current `text` are scored.
 Contour is covered by [pitch_range.md](pitch_range.md).
 
-## Validation (constructed ground truth, zero_shot/en, 300v300 split)
+## Validation (constructed ground truth, clean/en, 300v300 split)
 
 Per the metric-validation post-mortems (FPD), rankings-vs-listeners across ~12
 systems have no power; the metric is instead validated on perturbations with a
 known answer. Cells = W2 d_ref as a multiple of the untouched-half null
-(`results/rhythm_validation_zero_shot_en_k100.csv`):
+(`results/rhythm_validation_clean_en_k100.csv`):
 
 | probe | rate | burstiness | npvi | long_frac | verdict |
 |---|--:|--:|--:|--:|---|
 | null | 1.0× | 1.0× | 1.0× | 1.0× | baseline |
-| tempo ±25 % (WSOLA) | **13.7–14.7×** | 9.3–9.7× | 13.9–15.8× | 2.6–6.1× | detected, monotone medians (30.0 → 33.6 / 26.0) |
-| 2 × 300 ms pauses | 3.3× | **5.3×** | 3.8× | **6.1×** | detected on the targeted dims |
-| white noise @ 20 dB SNR | 1.0× | 0.5× | 1.1× | 1.5× | **robust** — not a quality metric in disguise |
-| time reversal | 6.9× | 1.2× | 5.0× | 1.5× | detected (see below) |
-| 1 s lead+trail digital silence | 1.0× | 0.9× | 0.7× | 0.9× | **padding-immune** (the Allosaurus-SR footgun) |
-| 1 s lead+trail hiss (−45 dB rel RMS) | 1.0× | 0.9× | 0.8× | 0.9× | **padding-immune** even for the realistic vocoder-floor case |
+| tempo ±25 % (WSOLA) | **12.2–14.4×** | 6.9–8.8× | 10.4–12.9× | 2.1–5.2× | detected, monotone medians (30.5 → 34.0 / 26.5) |
+| 2 × 300 ms pauses | 4.1× | **6.2×** | 3.5× | **5.8×** | detected on the targeted dims |
+| white noise @ 20 dB SNR | 1.7× | 1.2× | 2.7× | 0.5× | **near the null** — not a quality metric in disguise (see below) |
+| time reversal | 6.8× | 0.9× | 4.3× | 0.9× | detected (see below) |
+| 1 s lead+trail digital silence | 1.0× | 1.0× | 1.4× | 1.3× | **padding-immune** (the Allosaurus-SR footgun) |
+| 1 s lead+trail hiss (−45 dB rel RMS) | 1.1× | 1.0× | 1.2× | 1.4× | **padding-immune** even for the realistic vocoder-floor case |
+| 1 s lead+trail noise (−20 dB rel RMS) | 1.2× | 1.3× | 1.8× | 0.5× | **immune to audible noise edges** (5.9–13.6× under the old 35 dB trim) |
+| 1 s 200 Hz hum before the speech | 1.0× | 1.0× | 1.4× | 1.0× | **immune to generated lead-in tones** (up to 47× under the old trim) |
 
 - **The noise row is the key control.** TTSDS's Hubert-token speaking rate
   reproduced ~40 % of a tempo response with constant-rate white noise; this
-  metric sits at the null under noise.
-- **The padding rows close the Allosaurus-SR footgun** (its "speaking rate"
+  metric stays near the null under noise. The row varies from split to split:
+  over seeds 0–2 it reads 1.1–1.7× (rate) and 1.3–2.7× (npvi), and the earlier
+  35 dB-trim version read 0.9–2.4× and 1.1–1.8× — an order of magnitude below
+  the tempo response either way.
+- **The edge rows close the Allosaurus-SR footgun** (its "speaking rate"
   ranked lead/trail silence, ρ +0.6 with padding). Every wav — reference,
-  system, probe — passes through `librosa.effects.trim(top_db=35)` in
-  `load_dir` before tokenization, and the probes verify the trim actually
-  works: pad-then-trim is a no-op even when the padding is −45 dB hiss rather
-  than digital zeros. Internal pauses are untouched by design — they are the
-  `burstiness`/`long_frac` signal.
+  system, probe — is cut to its Silero speech span in `load_dir` before
+  tokenization, and the probes verify the cut works: pad-then-cut is a no-op for
+  digital silence, −45 dB hiss, audible −20 dB noise and a steady hum. The old
+  35 dB energy trim passed the first two but kept the last two, scoring them as
+  stalls ([controls C9](controls_2026-08.md)). Internal pauses are untouched by
+  design — they are the `burstiness`/`long_frac` signal.
 - **Reversal is detected**, unlike a mean-F0 pitch score (the retired mean-F0
   metric scored backwards GT at 97.2). Reversed transients re-segment the token stream. Strictly this means
   the dims are not *pure* timing — they also see segmentation stability — but
@@ -84,7 +94,7 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
 
 ## The one-picture summary
 
-![flattening vs stalling](../assets/plots/rhythm_flatten_vs_stall_zero_shot_voxblink_en.png)
+![flattening vs stalling](../assets/plots/rhythm_flatten_vs_stall_in-the-wild_en.png)
 
 `scripts/plot_rhythm_scatter.py` — burstiness std_ratio (log x, 1.0 = same
 spread as real speech) against pause incidence. GT anchors the middle; the
@@ -96,7 +106,7 @@ visibly holds the small WERs (1.6–2.8), the erratic corner the blow-ups.
 
 ## The intuition views: held-time spectrum + barcode
 
-![held-time ridgeline](../assets/plots/rhythm_dwelltime_ridgeline_zero_shot_voxblink_en.png)
+![held-time ridgeline](../assets/plots/rhythm_dwelltime_ridgeline_in-the-wild_en.png)
 
 `scripts/plot_rhythm_ridgeline.py` — the rhythm analogue of a pitch
 ridgeline. Each ridge is the distribution of *listening time* over mHuBERT
@@ -115,7 +125,7 @@ dominated by 1-2-frame segments and every system looks identical; (2) start
 the x-axis at 50 ms — below that sits the universal 20-40 ms phone body,
 which carries no between-system signal and visually drowns the tail.
 
-![pause carpet](../assets/plots/rhythm_carpet_zero_shot_voxblink_en.png)
+![pause carpet](../assets/plots/rhythm_carpet_in-the-wild_en.png)
 
 `scripts/plot_rhythm_carpet.py` — the middle ground between the two: small
 multiples, one panel per system, the SAME 70 utterances (same uids, same
@@ -144,7 +154,7 @@ in the length distribution the pathology lives: omnivoice-noref/glm-tts
 concentrate red in their shortest strips (stalled truncations), and fish's
 single runaway sits at the very bottom as its longest strip.
 
-![rhythm barcode](../assets/plots/rhythm_barcode_zero_shot_voxblink_en.png)
+![rhythm barcode](../assets/plots/rhythm_barcode_in-the-wild_en.png)
 
 `scripts/plot_rhythm_barcode.py` — the honest anecdote: the SAME VoxBlink
 utterance (same text, same prompt; GT = the real recording) as one rhythm
@@ -159,7 +169,7 @@ legible, and the carpet inherited the idea as thread/knot thickness.) The uid is
 ≥200 ms segments among shared uids). Tokenizes ~8 wavs on the fly against the
 cached k-means anchor, so it needs a GPU.
 
-## What the dims measure on real systems (zero_shot/en, 22 systems)
+## What the dims measure on real systems (clean/en, 22 systems)
 
 Descriptive only — n=22 system-level rank correlations carry CIs of roughly
 ±0.4, so none of this is a validated claim (that is what the perturbation
@@ -194,7 +204,7 @@ matrix above is for):
   at ρ≈0.02–0.09 and matched/shuffled |Δ| ≈ 0.97 — the expected null. fish and
   qwen3-1.7b track best (rate ρ≈0.39/0.42, matched/shuffled ≈0.74/0.77);
   zonos2-accurate is weaker (ρ≈0.25). W2 alone is blind to this axis.
-- **Real-speech null on VoxBlink/en** (`results/rhythm_zero_shot_voxblink_en.csv`):
+- **Real-speech null on VoxBlink/en** (`results/rhythm_in-the-wild_en.csv`):
   the GT baseline there holds *real target recordings* (a different sample from
   the prompts, unlike FLEURS where GT wavs are the prompts and get skipped) and
   scores 1.2–1.5× at matched geometry with std_ratio ≈ 0.93–1.01 — at the
@@ -204,7 +214,7 @@ matrix above is for):
   Real VoxBlink speech pauses in 31 % of utterances; fish 12 %, qwen3-1.7b
   10 %, voxcpm2 9 %, kokoro 2 %. FLEURS-R is professionally read (GT long_pct
   8.7 %), so read-speech references partially mask the rhythm-flattening —
-  fish's near-ceiling zero_shot showing was set-flattery as much as geometry
+  fish's near-ceiling clean showing was set-flattery as much as geometry
   flattery.
 
 ## Gotchas (hard-won, do not rediscover)
@@ -219,7 +229,7 @@ matrix above is for):
   compressed (±25 % tempo → ∓12–13 % measured). Monotone and detectable, but
   not proportional.
 - **k=100 beats k=500** on every probe (k=500: tempo speed-up only 1.6× null,
-  pause probe barely visible; `results/rhythm_validation_zero_shot_en_k500.csv`,
+  pause probe barely visible; `results/rhythm_validation_clean_en_k500.csv`,
   measured with the broken phase-vocoder probes but the gap is large).
   More clusters = more spurious boundaries = shorter, noisier runs.
 - **`long_frac` threshold must sit below the physical pause length**: a 300 ms

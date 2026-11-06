@@ -12,7 +12,7 @@ Generation is single-stream per model instance, so the leaf is spread over --wor
 processes, each with its own model and --threads CPU threads.
 
     ~/.venvs/pocket-tts/bin/python scripts/generate_pocket_tts.py --language en \\
-        --data-dir data/zero_shot/en --out-dir results/pocket-tts/zero_shot/en
+        --data-dir data/clean/en --out-dir results/pocket-tts/clean/en
 """
 import argparse
 import multiprocessing

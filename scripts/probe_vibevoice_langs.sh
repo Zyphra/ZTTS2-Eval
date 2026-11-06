@@ -31,7 +31,7 @@ set +u
 [ -f scripts/serve_asr.sh ] || { echo "[probe] ERROR: not at repo root"; exit 1; }
 
 MODEL="${PROBE_MODEL:-7b}"
-TASK="${PROBE_TASK:-zero_shot}"
+TASK="${PROBE_TASK:-clean}"
 N="${PROBE_N:-50}"
 # A spread across scripts and families: Latin (de es fr it pt), Cyrillic (ru),
 # CJK-adjacent (ja ko), Indic (hi), Arabic (ar). Deliberately includes languages the

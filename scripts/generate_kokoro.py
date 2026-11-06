@@ -13,7 +13,7 @@ writes <out-dir>/wavs/<uttid>.wav (24 kHz), ready for run_infer_zonos2_eval.sh.
 
 Run with the dedicated Kokoro venv (scripts/setup_kokoro_env.sh):
     ~/.venvs/kokoro/bin/python scripts/generate_kokoro.py \\
-        --data-dir data/zero_shot/en --out-dir results/kokoro/zero_shot/en \\
+        --data-dir data/clean/en --out-dir results/kokoro/clean/en \\
         --lang-code a --voice af_heart
 """
 import argparse

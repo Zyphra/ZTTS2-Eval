@@ -47,7 +47,7 @@ SCHEMES = {"redmaroon": (RED, DARKRED), "yellowred": (AMBER, RED)}
 # panels are re-sorted at plot time by the share computed on the sampled
 # utterances (so the printed number and the grid position always agree)
 PANELS = ["kokoro", "omni_voxcpm2", "omni_qwen3-tts-1.7b", "omni_fish-s2-pro",
-          "moss-tts", "gt_zero_shot_voxblink", "zonos2_accurate",
+          "moss-tts", "gt_in-the-wild", "zonos2_accurate",
           "omni_voxtral-tts", "vibevoice-7b", "omni_omnivoice",
           "zonos2_expressive", "omni_glm-tts"]
 
@@ -61,7 +61,7 @@ def segments(labels):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--test-set", default="zero_shot_voxblink")
+    ap.add_argument("--test-set", default="in-the-wild")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--n-utts", type=int, default=70)
     ap.add_argument("--seed", type=int, default=0)
@@ -81,7 +81,7 @@ def main():
     dirs = {p: systems[p] for p in PANELS if p in systems}
 
     ref_dir = os.path.join(REPO, "data", args.test_set, args.lang, "waveform")
-    key = anchor_key(ref_dir, 9, 100, 0, 35.0, LONG_FRAMES)
+    key = anchor_key(ref_dir, 9, 100, 0, LONG_FRAMES)
     tok = Tokenizer(9)
     tok.set_centroids(np.load(CACHE_DIR / f"{key}.npz")["centroids"])
 
@@ -92,10 +92,10 @@ def main():
     uids = list(rng.choice(common, min(args.n_utts, len(common)), replace=False))
 
     # shared row order: by the real recording's trimmed duration
-    gt_dir = dirs["gt_zero_shot_voxblink"]
+    gt_dir = dirs["gt_in-the-wild"]
     gt_dur = {}
     for u in uids:
-        _, w = _load_trim((os.path.join(gt_dir, u + ".wav"), 35.0))
+        _, w = _load_trim(os.path.join(gt_dir, u + ".wav"))
         gt_dur[u] = len(w) / 16000 if w is not None else 0.0
     uids.sort(key=lambda u: gt_dur[u])
 
@@ -104,7 +104,7 @@ def main():
     for raw in PANELS:
         rows, pause_t, total_t = [], 0.0, 0.0
         for i, u in enumerate(uids):
-            _, w = _load_trim((os.path.join(dirs[raw], u + ".wav"), 35.0))
+            _, w = _load_trim(os.path.join(dirs[raw], u + ".wav"))
             if w is None or len(w) < 8000:
                 continue
             segs = segments(tok.labels(w))

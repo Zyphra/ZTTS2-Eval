@@ -39,8 +39,8 @@ def _fmt_stats(n_langs, n_utts):
 def plates_spec():
     """(section tag, title, blurb, [(png, caption, reading-note), ...]) — the
     dataset statistics are computed from the .raw inputs, not hard-coded."""
-    clean = _series_stats("results/gt_zero_shot/*/wav_res_ref_text.wer.raw")
-    vox = _series_stats("results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw")
+    clean = _series_stats("results/gt_clean/*/wav_res_ref_text.wer.raw")
+    vox = _series_stats("results/gt_in-the-wild/*/wav_res_ref_text.wer.raw")
     return [
         ("A", "FLEURS-R — clean read-aloud",
          f"{_fmt_stats(*clean)}. Edits reconstructed from "

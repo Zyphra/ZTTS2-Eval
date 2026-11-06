@@ -3,7 +3,7 @@
 Regenerates the multilingual voice-cloning test set from google/fleurs-r (a
 higher-quality restoration of FLEURS):
 
-  - zero_shot/<lang>   mono-lingual cloning; prompt and target are different
+  - clean/<lang>   mono-lingual cloning; prompt and target are different
                        utterances of the same language.
 
 Only the FLEURS-derived subset is regenerated; the overwrite guard protects any
@@ -49,7 +49,7 @@ except ImportError:
     sys.exit("The 'huggingface_hub' package is required. Run `uv sync`.")
 
 # FLEURS-R per-language directory name (data/<cfg>/...) per benchmark language code.
-# The first 9 are the original zero_shot langs; the rest are a curated higher-resource
+# The first 9 are the original clean langs; the rest are a curated higher-resource
 # tier (VoxBlink2-parity langs + widely-supported additions). All configs below are
 # present in google/fleurs-r. Note: VoxBlink2's `tl` (Tagalog) maps to FLEURS `fil`
 # (Filipino), which is the closest available config, so the two sets align.
@@ -169,7 +169,7 @@ def load_wav(path):
 def prompt_candidates(records, min_dur, max_dur, rng):
     """Shuffled duration-filtered records whose prompt wav exists (no audio loaded yet).
 
-    Records must carry an 'audio_dir' key (set per split in build_zero_shot).
+    Records must carry an 'audio_dir' key (set per split in build_fleurs_r).
     """
     pool = [r for r in records if min_dur <= r["num_samples"] / SR <= max_dur]
     pool = [r for r in pool
@@ -227,7 +227,7 @@ def write_subset(data_root, subset_dir, lang_dir, prompts, targets):
     print(f"[ok] {subset_dir}/{lang_dir}: wrote {n} items -> {out_dir}")
 
 
-def build_zero_shot(lang, count, args, rng):
+def build_fleurs_r(lang, count, args, rng):
     """Build one language dir. count=None means 'max out' the pooled splits.
 
     Prompts and targets are disjoint utterances (zero-shot cloning), so the
@@ -268,7 +268,7 @@ def build_zero_shot(lang, count, args, rng):
         prompts, targets = [prompts[k] for k in keep], [targets[k] for k in keep]
         print(f"[pick] {lang}: N={n} (ceiling {n_max}: prompts_pool={len(cands)}, "
               f"records={total}, splits={args.splits})")
-        write_subset(args.data_root, "zero_shot", lang, prompts, targets)
+        write_subset(args.data_root, "clean", lang, prompts, targets)
     finally:
         for tmp in tmps:
             shutil.rmtree(tmp, ignore_errors=True)
@@ -277,7 +277,7 @@ def build_zero_shot(lang, count, args, rng):
 def main():
     global MAX_WORDS
     ap = argparse.ArgumentParser(
-        description="Regenerate the FLEURS-R-derived zero_shot subset.")
+        description="Regenerate the FLEURS-R-derived clean subset.")
     ap.add_argument("--langs", nargs="+", default=None,
                     help="language codes (default: all curated langs)")
     ap.add_argument("--data-root", default="data", help="repo data directory")
@@ -312,7 +312,7 @@ def main():
 
     # Fail-fast overwrite guard -- protects any pre-existing subset dirs.
     for lang in langs:
-        text_path = os.path.join(args.data_root, "zero_shot", lang, "text")
+        text_path = os.path.join(args.data_root, "clean", lang, "text")
         if os.path.exists(text_path) and not args.overwrite:
             sys.exit(f"ERROR: {text_path} already exists. Pass --overwrite to regenerate.")
 
@@ -320,7 +320,7 @@ def main():
           f"splits={args.splits} seed={args.seed}")
     for lang in langs:
         rng = random.Random(args.seed + sum(ord(c) for c in lang))
-        build_zero_shot(lang, args.count, args, rng)
+        build_fleurs_r(lang, args.count, args, rng)
     print("[done]")
 
 

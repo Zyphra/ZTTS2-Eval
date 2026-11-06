@@ -49,7 +49,7 @@ Run it from the repo root (so `results/` and `data/` resolve), or pass `--root`.
   One panel per (test-set, language): char/s is only comparable within a language.
 - **Per-utterance (joined by `uid`):** the leaf result dir —
   `results/<model>/<task>/<lang>/` for model generations, or the flat
-  `results/<model>/<lang>/` for the GT/whisper baselines (e.g. `gt_zero_shot/en`) —
+  `results/<model>/<lang>/` for the GT/whisper baselines (e.g. `gt_clean/en`) —
   reading `wav.scp`, `wav_res_ref_text.wer`, `msr_utmos_scores.txt`,
   `spk_simi_scores.txt`, and optionally `pause_metadata.tsv`.
 - **Targets / reference voice:** `data/<task>/<lang>/` — `text`, `prompt_text`, `prompt_wav.scp`
@@ -151,15 +151,19 @@ data via `<script src>`.
   scored on every language; their index is still on the common scale, with a wider
   interval. The axis spans the point estimates, so an interval running past it is cut at
   the edge with an arrowhead (the tooltip has the full range). **over time** plots the
-  same index against each system's public release date (`rd_common.RELEASES`, source in
-  the tooltip), with the frontier: the best public system scored on every language
-  released by then. Zyphra systems are orange; not-yet-public ones are hollow, dated by
-  their planned release; real speech is the dashed level at 100. **parameters** plots
+  same index against each system's release date (`rd_common.RELEASES`, source in
+  the tooltip), with the frontier: the best system scored on every language
+  released by then. Zyphra systems are orange; real speech is the dashed level at 100. **parameters** plots
   the index against each system's published model size (`rd_common.PARAMS`: the LM /
   backbone the developer names, codecs excluded; log scale) with the size frontier, the
   best system scored on every language at or below that size. Mixture-of-experts models
-  sit at their total parameters; the active count is in the tooltip.
-- **coreset panels** (`zero_shot_mini`, `zero_shot_delta`, and the VoxBlink twins —
+  sit at their total parameters; the active count is in the tooltip. Clicking a system (any
+  mode) pins it and opens its **breakdown** under the chart: per dimension (with its
+  metrics) and per test set, the level that group's scores alone would place it at, the
+  group's weight (its share of the information the fit has about the system, which is not
+  the equal per-dimension residual weighting), and points = weight × level, which add up
+  to the index.
+- **coreset panels** (`clean_mini`, `clean_delta`, and the VoxBlink twins —
   see [../docs/coreset.md](../docs/coreset.md)) appear as ordinary tasks, captioned
   in the picker with their kind and size. They are *not* ordinary boards:
   - Cells are the **weighted** panel estimator, `Σ w·y` over the language's selected
@@ -191,6 +195,10 @@ data via `<script src>`.
     paired aggregate (`score_panel.py`), not in these cells.
   - The drawer follows suit — it shows only the panel's utterances (for a baseline,
     its full leaf filtered down), weights its summary, and prints each item's `w`.
+    A derived mini row needs a leaf on disk: `results/<model>/<task>_mini` is then a
+    symlink to the system's own `<task>` dir. That alias is for browsing only;
+    `utils.benchmark.is_panel_alias` makes scoring and `build_results.py` skip it (the
+    row stays derived), so delete the symlink before generating a real panel run.
 - **reliability** view: the `tufte_*` plates live — pick a dataset (TTS systems, read
   speech or in the wild, listed first and opened by default; then the GT sets FLEURS-R /
   VoxBlink2 / ASR-backend) and a chart type (p99 · CI, survival overlay, small

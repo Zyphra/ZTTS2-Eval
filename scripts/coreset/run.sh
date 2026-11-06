@@ -68,10 +68,10 @@ echo "=== 5. select the four shipped panels ==="
 
 echo "=== 6. export panels as runnable task directories ==="
 P=assets/coreset/panels
-"${PY}" scripts/coreset/export_panel.py "${P}/clean_mini_${MINI_SELECTOR}_k${CLEAN_MINI_K}.json" --task zero_shot_mini           --overwrite
-"${PY}" scripts/coreset/export_panel.py "${P}/itw_mini_${MINI_SELECTOR}_k${ITW_MINI_K}.json"     --task zero_shot_voxblink_mini  --overwrite
-"${PY}" scripts/coreset/export_panel.py "${P}/clean_delta_delta_k${CLEAN_DELTA_K}.json"          --task zero_shot_delta          --overwrite
-"${PY}" scripts/coreset/export_panel.py "${P}/itw_delta_delta_k${ITW_DELTA_K}.json"              --task zero_shot_voxblink_delta --overwrite
+"${PY}" scripts/coreset/export_panel.py "${P}/clean_mini_${MINI_SELECTOR}_k${CLEAN_MINI_K}.json" --task clean_mini           --overwrite
+"${PY}" scripts/coreset/export_panel.py "${P}/itw_mini_${MINI_SELECTOR}_k${ITW_MINI_K}.json"     --task in-the-wild_mini  --overwrite
+"${PY}" scripts/coreset/export_panel.py "${P}/clean_delta_delta_k${CLEAN_DELTA_K}.json"          --task clean_delta          --overwrite
+"${PY}" scripts/coreset/export_panel.py "${P}/itw_delta_delta_k${ITW_DELTA_K}.json"              --task in-the-wild_delta --overwrite
 
 echo "=== 7. regenerate RESULTS_CORESET.md from the CSVs + shipped panels ==="
 "${PY}" scripts/coreset/gen_results_md.py > RESULTS_CORESET.md.tmp
@@ -83,11 +83,11 @@ cat <<'EOF'
 === done ===
 Run a system on a panel with the unmodified pipeline, e.g.:
 
-  bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot_mini --test_set en
-  DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot_mini \
-    bash run_infer_zonos2_eval.sh --task zero_shot_mini --test_set en
+  bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
+  DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
+    bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
 
 Then read the weighted estimate of the FULL benchmark score:
 
-  python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/zero_shot_mini
+  python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
 EOF

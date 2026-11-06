@@ -15,7 +15,7 @@
 #
 #   bash run_generate_omni.sh --model all
 #   bash run_generate_omni.sh --model qwen3-tts-0.6b
-#   bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot --test_set "en" --limit 3
+#   bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean --test_set "en" --limit 3
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
 #   --model      model key (see ALL_MODELS below) or "all"   (default all)
@@ -95,7 +95,7 @@ done
 # --- test sets --------------------------------------------------
 sets_for() {
     case "$1" in
-        zero_shot)              echo "zh en ja ko de es fr it ru" ;;
+        clean)              echo "zh en ja ko de es fr it ru" ;;
         *) echo "" ;;
     esac
 }
@@ -104,15 +104,15 @@ sets_for() {
 # entry); the generator falls back to per-utterance auto-detect for any miss.
 lang_for() {
     case "$1/$2" in
-        zero_shot/zh) echo zh ;;
-        zero_shot/en) echo en ;;
-        zero_shot/ja) echo ja ;;
-        zero_shot/ko) echo ko ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr ;;
-        zero_shot/it) echo it ;;
-        zero_shot/ru) echo ru ;;
+        clean/zh) echo zh ;;
+        clean/en) echo en ;;
+        clean/ja) echo ja ;;
+        clean/ko) echo ko ;;
+        clean/de) echo de ;;
+        clean/es) echo es ;;
+        clean/fr) echo fr ;;
+        clean/it) echo it ;;
+        clean/ru) echo ru ;;
         *) echo "" ;;
     esac
 }
@@ -126,7 +126,7 @@ export OMNI_GPU="${gpu}"
 . scripts/serve_omni.sh
 trap 'stop_omni_server' EXIT INT TERM
 
-tasks="${task:-zero_shot}"
+tasks="${task:-clean}"
 
 # Snapshot PYTHONPATH so per-model additions (extra_pythonpath) can be reset each
 # iteration instead of accumulating across models in a `--model all` sweep.
@@ -233,4 +233,4 @@ done
 echo
 echo "generation done -> results/omni_<model>/"
 echo "score it with run_infer_zonos2_eval.sh, e.g.:"
-echo "  DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot bash run_infer_zonos2_eval.sh"
+echo "  DECODE_DIR=results/omni_qwen3-tts-0.6b/clean bash run_infer_zonos2_eval.sh"

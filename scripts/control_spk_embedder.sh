@@ -26,9 +26,9 @@ PY="${PY:-.venv/bin/python}"
 
 n_ok=0; n_fail=0; n_skip=0
 for lg in ${LANGS}; do
-  pscp="data/zero_shot_voxblink/${lg}/prompt_wav.scp"
+  pscp="data/in-the-wild/${lg}/prompt_wav.scp"
   [ -f "${pscp}" ] || { echo "[skip] ${lg}: no prompt scp"; continue; }
-  for d in results/*/zero_shot_voxblink/"${lg}" results/gt_zero_shot_voxblink/"${lg}"; do
+  for d in results/*/in-the-wild/"${lg}" results/gt_in-the-wild/"${lg}"; do
     [ -d "${d}" ] || continue
     [ -s "${d}/wav.scp" ] || { echo "[skip] ${d} (no wav.scp)"; n_skip=$((n_skip+1)); continue; }
     out="${d}/spk_simi_scores.vox2.txt"

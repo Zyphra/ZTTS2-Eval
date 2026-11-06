@@ -14,8 +14,8 @@
 # matching <out_root>/<task>/ directory.
 #
 #   bash run_generate_zonos2.sh                        # all sets, self-managed server
-#   bash run_generate_zonos2.sh --task zero_shot --gpu 0
-#   bash run_generate_zonos2.sh --task zero_shot --test_set en --limit 3
+#   bash run_generate_zonos2.sh --task clean --gpu 0
+#   bash run_generate_zonos2.sh --task clean --test_set en --limit 3
 #   bash run_generate_zonos2.sh --accurate_mode false # expressive mode
 #   bash run_generate_zonos2.sh --server http://host:1919   # external server
 #
@@ -160,7 +160,7 @@ fi
 # rebuilt (de es fr it ru) -- they exist under data/ and we want to score them.
 sets_for() {
     case "$1" in
-        zero_shot)              echo "en zh de es fr it ja ko ru" ;;
+        clean)              echo "en zh de es fr it ja ko ru" ;;
         *) echo "" ;;
     esac
 }
@@ -174,15 +174,15 @@ sets_for() {
 # synthesised (byte-tokenised) audio. No language is skipped.
 lang_for() {
     case "$1/$2" in
-        zero_shot/en) echo en_us ;;
-        zero_shot/zh) echo cmn ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr_fr ;;
-        zero_shot/it) echo it ;;
-        zero_shot/ja) echo ja ;;
-        zero_shot/ko) echo ko ;;
-        zero_shot/ru) echo "" ;;   # no TN code -> default en_us, byte-synthesised
+        clean/en) echo en_us ;;
+        clean/zh) echo cmn ;;
+        clean/de) echo de ;;
+        clean/es) echo es ;;
+        clean/fr) echo fr_fr ;;
+        clean/it) echo it ;;
+        clean/ja) echo ja ;;
+        clean/ko) echo ko ;;
+        clean/ru) echo "" ;;   # no TN code -> default en_us, byte-synthesised
         *) echo "" ;;
     esac
 }
@@ -193,17 +193,17 @@ lang_for() {
 # (no norm) until checked.
 norm_lang_for() {
     case "$1/$2" in
-        zero_shot/en) echo en ;;
-        zero_shot/zh) echo zh ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr ;;
-        zero_shot/it) echo it ;;
+        clean/en) echo en ;;
+        clean/zh) echo zh ;;
+        clean/de) echo de ;;
+        clean/es) echo es ;;
+        clean/fr) echo fr ;;
+        clean/it) echo it ;;
         *) echo "" ;;            # ja, ko, ru -> no norm
     esac
 }
 
-tasks="${task:-zero_shot}"
+tasks="${task:-clean}"
 
 for tk in ${tasks}; do
     names="${test_set:-$(sets_for ${tk})}"
@@ -243,4 +243,4 @@ done
 
 echo
 echo "generation done -> ${out_root}/"
-echo "score zero_shot with:  DECODE_DIR=${out_root}/zero_shot bash run_infer_zonos2_eval.sh --task zero_shot --test_set \"$(sets_for zero_shot)\""
+echo "score clean with:  DECODE_DIR=${out_root}/clean bash run_infer_zonos2_eval.sh --task clean --test_set \"$(sets_for clean)\""

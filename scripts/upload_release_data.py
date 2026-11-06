@@ -2,7 +2,7 @@
 """Publish the benchmark-v2 audio changes to the HF dataset Zyphra/ZTTS2-Eval.
 
   1. Upload the held-out ITW target recordings
-     (data/zero_shot_voxblink/<lang>/target_wav/*.wav).
+     (data/in-the-wild/<lang>/target_wav/*.wav).
   2. Delete the prompt wavs of the items removed by the prompt/target near-duplicate
      filter (data/near_duplicates_removed.json), so a fresh `download_data.py` matches the
      committed prompt_wav.scp files.
@@ -42,7 +42,7 @@ def main():
     api = HfApi()
 
     api.upload_large_folder(repo_id=REPO_ID, repo_type="dataset", folder_path=str(DATA),
-                            allow_patterns=["zero_shot_voxblink/*/target_wav/*.wav"])
+                            allow_patterns=["in-the-wild/*/target_wav/*.wav"])
 
     in_repo = set(api.list_repo_files(REPO_ID, repo_type="dataset"))
     stale = sorted(removed_prompt_paths() & in_repo)

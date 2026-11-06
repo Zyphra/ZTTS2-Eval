@@ -1,0 +1,9 @@
+{
+  "source_task": "in-the-wild",
+  "lang": "it",
+  "reference": "real recording of the item's target text (same speaker, different video from the prompt)",
+  "n_items": 607,
+  "n_references": 607,
+  "n_speakers": 607,
+  "excluded": {}
+}

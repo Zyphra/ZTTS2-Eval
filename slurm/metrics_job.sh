@@ -108,7 +108,7 @@ PYEOF
         .venv/bin/python scripts/pitch_range_dist.py \
             --test-set "${task}" --lang "${lang}" \
             --workers "${SLURM_CPUS_PER_TASK:-28}"
-        if [ "${task}" = zero_shot_voxblink ]; then
+        if [ "${task}" = in-the-wild ]; then
             # Same job as pitch_range_dist so the shared per-leaf pitch caches never race.
             .venv/bin/python scripts/paired_itw.py --lang "${lang}" \
                 --workers "${SLURM_CPUS_PER_TASK:-28}"

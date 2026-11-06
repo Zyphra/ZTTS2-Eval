@@ -2,8 +2,8 @@
 """Generate RESULTS_CURRENT.md from the JSON snapshot built by build_results.py.
 
 Model-agnostic: discovers whichever models are present in the snapshot (no
-hardcoded checkpoint list) and emits, for the two ZTTS2-Eval sets -- zero_shot
-(Clean, FLEURS-R, 35 languages) and zero_shot_voxblink (ITW, VoxBlink2, 20
+hardcoded checkpoint list) and emits, for the two ZTTS2-Eval sets -- clean
+(Clean, FLEURS-R, 35 languages) and in-the-wild (ITW, VoxBlink2, 20
 languages) -- a headline section (accuracy-vs-prosody figure plus one table per
 conditioning class), per-language metric tables, and the methodology notes.
 
@@ -33,8 +33,8 @@ from rd_common import (  # noqa: E402
     COND_LEGEND, COND_MARKER, condition, index_records, label, load_snapshot,
     macro, marked_label, n_covered, rec_value)
 
-CLEAN, ITW = "zero_shot", "zero_shot_voxblink"
-GT_NAME = {CLEAN: "gt_zero_shot", ITW: "gt_zero_shot_voxblink"}
+CLEAN, ITW = "clean", "in-the-wild"
+GT_NAME = {CLEAN: "gt_clean", ITW: "gt_in-the-wild"}
 
 # Conditioning classes in headline order: title, marker.
 CLASS_ORDER = (
@@ -238,8 +238,7 @@ def render(recs, dedup=None, cap_index=None):
           "by definition. Few languages = wide interval.\n")
         W("Over time, each system at its public release date (sources in "
           "`rd_common.RELEASES`; variants of one checkpoint share its date). The line is the "
-          "frontier: the best public system scored on every language released by that date. "
-          "Hollow points are not yet public and are dated by their planned release.\n")
+          "frontier: the best system scored on every language released by that date.\n")
         W("![Capability index over time](assets/plots/capability_index_time.png)\n")
 
         def index_table(p):
@@ -320,7 +319,7 @@ def render(recs, dedup=None, cap_index=None):
 
     # --- 1. Coverage matrix ----------------------------------------------------
     W("## 1. Coverage matrix\n")
-    W("| Model | zero_shot | voxblink |")
+    W("| Model | clean | voxblink |")
     W("|---|:-:|:-:|")
     all_models = sorted({r["model"] for r in recs}, key=_sort_key)
     for m in all_models:
@@ -363,13 +362,13 @@ def render(recs, dedup=None, cap_index=None):
                     "with-transcript": "with-transcript clone"}[cls]
         W(f"| `{marked_label(m)}` | {cond_classes[cls]} | {cls_disp} | {prov} |")
     W("")
-    W("Seeding: `zonos2_*` and `zonos3-mini_*` runs are fixed-seed (0); vLLM-Omni-served systems pass no")
-    W("seed or temperature (unseeded server-default sampling); native recipes note")
-    W("their sampling defaults above.\n")
+    W("Seeding: `zonos2_*` and `zonos3-mini_*` runs are fixed-seed (0); `elevenlabs_*` requests send")
+    W("seed 0 (provider best-effort); vLLM-Omni-served systems and the other hosted APIs pass no")
+    W("seed (unseeded server-default sampling); native recipes note their sampling defaults above.\n")
 
     # --- 2. Clean WER ------------------------------------------------------------
     zs_models = models_for(recs, CLEAN)
-    # GT anchor: the gt_zero_shot baseline rows carry task="" (flat dir), so
+    # GT anchor: the gt_clean baseline rows carry task="" (flat dir), so
     # models_for() misses them — append explicitly; _sort_key buckets gt_* last.
     if GT_NAME[CLEAN] not in zs_models and \
             any(r["model"] == GT_NAME[CLEAN] and not r["task"] for r in recs):
@@ -485,8 +484,8 @@ def render(recs, dedup=None, cap_index=None):
     W("![Voxblink per-bin WER_CLIP heatmaps](assets/plots/voxblink_perbin_heatmaps.png)\n")
     W("Same WER_CLIP bucketed by REF text-length quantiles per language:\n")
     W("![Voxblink per-text-length WER_CLIP heatmaps](assets/plots/voxblink_perlen_heatmaps.png)\n")
-    W("Per-length on controlled content (`zero_shot`) vs in-the-wild (`voxblink`):\n")
-    W("![Per-length: voxblink vs zero_shot](assets/plots/perlen_zeroshot_vs_voxblink.png)\n")
+    W("Per-length on controlled content (`clean`) vs in-the-wild (`voxblink`):\n")
+    W("![Per-length: voxblink vs clean](assets/plots/perlen_clean_vs_in-the-wild.png)\n")
 
     # --- 6. Methodology ----------------------------------------------------------------
     qwen_l = ", ".join(sorted(QWEN_LANGS))

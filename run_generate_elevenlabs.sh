@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
-# Generate audio with the official ElevenLabs API.
+# Generate audio with ElevenLabs (premade voices, rotated per utterance; no cloning).
+# HTTP client only (no GPU); loops every language of --task through
+# scripts/generate_elevenlabs.py.
 #
-# Generation only -- no GPU / vLLM here. Score the output afterwards with the
-# existing run_infer_zonos2_eval.sh (run separately, see the hint at the end).
+#   uv sync --inexact --extra elevenlabs   # one-time; --inexact keeps the scorer extras
+#   export ELEVENLABS_API_KEY=...
+#   bash run_generate_elevenlabs.sh --task clean_mini --test_set "en ja" --limit 4
+#   bash run_generate_elevenlabs.sh --task in-the-wild
 #
-#   uv sync --extra elevenlabs       # one-time: install elevenlabs into .venv
-#   export ELEVENLABS_API_KEY=...     # your ElevenLabs API key
-#   bash run_generate_elevenlabs.sh                                  # all of zero_shot
-#   bash run_generate_elevenlabs.sh --model v3 --task zero_shot --test_set "en" --limit 5
+# The benchmark language is each data dir's basename; the client maps it to the
+# provider's language code. Writes wavs to <out_root>/<task>/<lang>/wavs/ and
+# skips existing wavs, so re-running retries failures. Score afterwards with the
+# hint printed at the end.
 #
-# Run it directly -- it picks up .venv/bin/python automatically. Do NOT wrap it
-# in a bare `uv run`: that re-syncs and drops the optional 'elevenlabs' extra. If
-# you must, use `uv run --extra elevenlabs bash run_generate_elevenlabs.sh ...`.
+# Run it directly (it picks up .venv/bin/python); a bare `uv run` re-syncs and
+# drops the optional extra.
 #
-# Like the Gemini engine, this uses preset voices (no zero-shot cloning).
+# Only one instance per provider account may run at a time (they share its
+# concurrency limit).
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --model      v3 | multilingual-v2                  (default v3)
-#   --task       restrict to one task group (default: zero_shot zero_shot_voxblink)
-#   --test_set   restrict to names within --task       (optional; needs --task)
-#   --workers    concurrent elevenlabs requests per set (default 2; free/Starter cap)
-#   --limit      only the first N utterances per set    (default 0 = all)
-#   --overwrite  regenerate existing wavs               (default false)
+#   --model      v4                                           (default v4)
+#   --task       task group                                   (default clean)
+#   --test_set   languages within --task   (default: every language of the task)
+#   --out_root   results root              (default results/elevenlabs_<model>)
+#   --workers    concurrent requests per language             (default 4)
+#   --seed       generation seed, provider best-effort        (default 0)
+#   --limit      only the first N utterances per set          (default 0 = all)
+#   --overwrite  regenerate existing wavs                     (default false)
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
@@ -29,97 +35,63 @@ if [ ! -f utils/parse_options.sh ]; then
     exit 1
 fi
 
-model=v3
-task=
+model=v4
+task=clean
 test_set=
-workers=2
+out_root=
+workers=4
+seed=0
 limit=0
 overwrite=false
 
-help_message="usage: bash run_generate_elevenlabs.sh [--model {v3|multilingual-v2}] [--task T] [--test_set \"...\"] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash run_generate_elevenlabs.sh [--model v4] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--seed N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
-    v3|multilingual-v2) ;;
+    v4) ;;
     *) echo "${help_message}" 1>&2; exit 1 ;;
 esac
-if [ -n "${test_set}" ] && [ -z "${task}" ]; then
-    echo "error: --test_set requires --task" 1>&2
+[ -z "${out_root}" ] && out_root="results/elevenlabs_${model}"
+
+if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+
+names="${test_set:-$(python3 -m utils.benchmark langs "${task}")}"
+if [ -z "${names}" ]; then
+    echo "error: unknown task '${task}'" 1>&2
     exit 1
 fi
 
-# Prefer the project venv's interpreter so this works without activation.
-if [ -x .venv/bin/python ]; then
-    PY=.venv/bin/python
-else
-    PY=python
-fi
+ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 
-# --- test sets ---------------------------------------------------
-sets_for() {
-    case "$1" in
-        zero_shot)              echo "zh en ja ko de es fr it ru" ;;
-        # Full 21 voxblink langs. Codes outside generate_elevenlabs.py's
-        # ELEVEN_LANG table (tl uk vi yo nl for eleven_v3) are handled there:
-        # no language_code is sent and the model auto-detects (with a 400
-        # fallback), so an unsupported code never zeroes out a split.
-        zero_shot_voxblink)     echo "ar de en es fr hi id it ja ko nl pl pt ru th tl tr uk vi yo zh" ;;
-        *) echo "" ;;
-    esac
-}
-
-# --language label for each test set (sent as language_code when en/zh/ja/ko,
-# else ElevenLabs auto-detects from the text).
-lang_for() {
-    case "$1/$2" in
-        zero_shot/zh) echo zh ;;
-        zero_shot/en) echo en ;;
-        zero_shot/ja) echo ja ;;
-        zero_shot/ko) echo ko ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr ;;
-        zero_shot/it) echo it ;;
-        zero_shot/ru) echo ru ;;
-        zero_shot_voxblink/*) echo "$2" ;;   # voxblink test-set name is the lang code
-        *) echo "" ;;
-    esac
-}
-
-tasks="${task:-zero_shot zero_shot_voxblink}"
-
-for tk in ${tasks}; do
-    names="${test_set:-$(sets_for ${tk})}"
-    if [ -z "${names}" ]; then
-        echo "error: unknown task '${tk}'" 1>&2
-        exit 1
+ran=0
+for nm in ${names}; do
+    data_dir="data/${task}/${nm}"
+    out_dir="${out_root}/${task}/${nm}"
+    if [ ! -f "${data_dir}/text" ]; then
+        echo "[skip] ${data_dir}: no 'text' file" 1>&2
+        continue
     fi
-    for nm in ${names}; do
-        data_dir="data/${tk}/${nm}"
-        out_dir="results/elevenlabs_${model}/${tk}/${nm}"
-        if [ ! -f "${data_dir}/text" ]; then
-            echo "[skip] ${data_dir}: no 'text' file" 1>&2
-            continue
-        fi
-
-        lang_opt=""
-        lg="$(lang_for ${tk} ${nm})"
-        [ -n "${lg}" ] && lang_opt="--language ${lg}"
-        ow_opt=""
-        [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
-
-        echo "=== [elevenlabs:${model}] ${data_dir} -> ${out_dir} ${lang_opt} ==="
-        "${PY}" scripts/generate_elevenlabs.py \
-            --model "${model}" \
-            --data-dir "${data_dir}" \
-            --out-dir "${out_dir}" \
-            --workers "${workers}" \
-            --limit "${limit}" \
-            ${lang_opt} ${ow_opt}
-    done
+    echo "=== [elevenlabs:${model}] ${data_dir} -> ${out_dir} ==="
+    "${PY}" scripts/generate_elevenlabs.py \
+        --model "${model}" \
+        --data-dir "${data_dir}" \
+        --out-dir "${out_dir}" \
+        --workers "${workers}" \
+        --seed "${seed}" \
+        --limit "${limit}" \
+        ${ow_opt}
+    ran=$((ran + 1))
 done
 
+if [ "${ran}" -eq 0 ]; then
+    echo "error: nothing generated (no data/${task}/<lang>/text for: ${names})" 1>&2
+    exit 1
+fi
+
+case "${task}" in
+    *voxblink*) scorer=run_infer_voxblink_eval.sh ;;
+    *)          scorer=run_infer_zonos2_eval.sh ;;
+esac
 echo
-echo "generation done -> results/elevenlabs_${model}/"
-echo "score it with run_infer_zonos2_eval.sh, e.g.:"
-echo "  DECODE_DIR=results/elevenlabs_${model}/zero_shot bash run_infer_zonos2_eval.sh"
+echo "generation done -> ${out_root}/"
+echo "score with:  DECODE_DIR=${out_root}/${task} bash ${scorer} --task ${task} --test_set \"${names}\""

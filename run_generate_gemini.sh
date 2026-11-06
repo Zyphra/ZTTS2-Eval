@@ -1,25 +1,42 @@
 #!/usr/bin/env bash
-# Generate audio with native Google Gemini TTS.
+# Generate audio with native Google Gemini TTS (30 prebuilt voices, rotated per utterance).
+# HTTP client only (no GPU); loops every language of --task through
+# scripts/generate_gemini.py.
 #
-# Generation only -- no GPU / vLLM here. Score the output afterwards with the
-# existing run_infer_zonos2_eval.sh (run separately, see the hint at the end).
+#   uv sync --inexact --extra gemini   # one-time; --inexact keeps the scorer extras
+#   export GEMINI_API_KEY=...
+#   bash run_generate_gemini.sh --task clean_mini --test_set "en ja" --limit 4
+#   bash run_generate_gemini.sh --task in-the-wild
 #
-#   uv sync --extra gemini        # one-time: install google-genai into .venv
-#   export GEMINI_API_KEY=...     # your Google API key (or GOOGLE_API_KEY)
-#   bash run_generate_gemini.sh                                  # all test sets
-#   bash run_generate_gemini.sh --model 2.5-pro --task zero_shot --test_set "en" --limit 5
+# The benchmark language is each data dir's basename; the client maps it to the
+# provider's language code. Writes wavs to <out_root>/<task>/<lang>/wavs/ and
+# skips existing wavs, so re-running retries failures. Score afterwards with the
+# hint printed at the end.
 #
-# Run it directly -- it picks up .venv/bin/python automatically. Do NOT wrap it
-# in a bare `uv run`: that re-syncs and drops the optional 'gemini' extra. If you
-# must, use `uv run --extra gemini bash run_generate_gemini.sh ...`.
+# Run it directly (it picks up .venv/bin/python); a bare `uv run` re-syncs and
+# drops the optional extra.
+#
+# --batch true (default) goes through the Gemini Batch API (50% of the unary price,
+# async): pass 1 submits every language's missing utterances without waiting; pass 2
+# runs one waiting client per language CONCURRENTLY, which writes the wavs and
+# resubmits failed requests for up to 4 rounds (and anything pass 1 could not
+# submit, e.g. on the enqueued-token limit). Pass-2 output lines from different
+# languages interleave; each "done:" line names its wav dir. Interrupting is safe:
+# job names live in <out_dir>/batch_jobs.json and the next run re-attaches.
+# --batch false makes one unary call per utterance.
+#
+# Only one instance per provider account may run at a time (they share its
+# rate limits and batch quota).
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --model      3.1-flash | 2.5-flash | 2.5-pro       (default 3.1-flash)
-#   --task       restrict to one task group (optional)
-#   --test_set   restrict to names within --task       (optional; needs --task)
-#   --workers    concurrent gemini requests per set    (default 4)
-#   --limit      only the first N utterances per set    (default 0 = all)
-#   --overwrite  regenerate existing wavs               (default false)
+#   --model      3.8-flash                                    (default 3.8-flash)
+#   --task       task group                                   (default clean)
+#   --test_set   languages within --task   (default: every language of the task)
+#   --out_root   results root              (default results/gemini_<model>)
+#   --batch      true = Batch API, false = unary calls         (default true)
+#   --workers    concurrent unary requests per language       (default 4)
+#   --limit      only the first N utterances per set          (default 0 = all)
+#   --overwrite  regenerate existing wavs                     (default false)
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
@@ -27,91 +44,85 @@ if [ ! -f utils/parse_options.sh ]; then
     exit 1
 fi
 
-model=3.1-flash
-task=
+model=3.8-flash
+task=clean
 test_set=
+out_root=
+batch=true
 workers=4
 limit=0
 overwrite=false
 
-help_message="usage: bash run_generate_gemini.sh [--model {3.1-flash|2.5-flash|2.5-pro}] [--task T] [--test_set \"...\"] [--workers N] [--limit N] [--overwrite true]"
+help_message="usage: bash run_generate_gemini.sh [--model 3.8-flash] [--task T] [--test_set \"...\"] [--out_root D] [--batch true|false] [--workers N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
-    3.1-flash|2.5-flash|2.5-pro) ;;
+    3.8-flash) ;;
     *) echo "${help_message}" 1>&2; exit 1 ;;
 esac
-if [ -n "${test_set}" ] && [ -z "${task}" ]; then
-    echo "error: --test_set requires --task" 1>&2
+if [ "${batch}" != "true" ] && [ "${batch}" != "false" ]; then
+    echo "error: --batch must be true or false (got '${batch}')" 1>&2
+    exit 2
+fi
+[ -z "${out_root}" ] && out_root="results/gemini_${model}"
+
+if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+
+names="${test_set:-$(python3 -m utils.benchmark langs "${task}")}"
+if [ -z "${names}" ]; then
+    echo "error: unknown task '${task}'" 1>&2
     exit 1
 fi
 
-# Prefer the project venv's interpreter so this works without activation.
-if [ -x .venv/bin/python ]; then
-    PY=.venv/bin/python
-else
-    PY=python
-fi
+ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
 
-# --- test sets ---------------------------------------------------
-sets_for() {
-    case "$1" in
-        zero_shot)              echo "zh en ja ko de es fr it ru" ;;
-        *) echo "" ;;
-    esac
-}
-
-# --language label for each test set (used only for voices.txt; Gemini detects
-# the spoken language from the text itself).
-lang_for() {
-    case "$1/$2" in
-        zero_shot/zh) echo zh ;;
-        zero_shot/en) echo en ;;
-        zero_shot/ja) echo ja ;;
-        zero_shot/ko) echo ko ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr ;;
-        zero_shot/it) echo it ;;
-        zero_shot/ru) echo ru ;;
-        *) echo "" ;;
-    esac
-}
-
-tasks="${task:-zero_shot}"
-
-for tk in ${tasks}; do
-    names="${test_set:-$(sets_for ${tk})}"
-    if [ -z "${names}" ]; then
-        echo "error: unknown task '${tk}'" 1>&2
-        exit 1
-    fi
+# One pass over every language; extra args go to generate_gemini.py. With
+# parallel=true every language runs in the background and the pass waits for all.
+run_pass() {
+    local parallel=$1; shift
+    local extra=("$@") args pids="" pid failed=0
+    ran=0
     for nm in ${names}; do
-        data_dir="data/${tk}/${nm}"
-        out_dir="results/gemini_${model}/${tk}/${nm}"
+        data_dir="data/${task}/${nm}"
+        out_dir="${out_root}/${task}/${nm}"
         if [ ! -f "${data_dir}/text" ]; then
             echo "[skip] ${data_dir}: no 'text' file" 1>&2
             continue
         fi
-
-        lang_opt=""
-        lg="$(lang_for ${tk} ${nm})"
-        [ -n "${lg}" ] && lang_opt="--language ${lg}"
-        ow_opt=""
-        [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
-
-        echo "=== [gemini:${model}] ${data_dir} -> ${out_dir} ${lang_opt} ==="
-        "${PY}" scripts/generate_gemini.py \
-            --model "${model}" \
-            --data-dir "${data_dir}" \
-            --out-dir "${out_dir}" \
-            --workers "${workers}" \
-            --limit "${limit}" \
-            ${lang_opt} ${ow_opt}
+        echo "=== [gemini:${model}${extra[*]:+ ${extra[*]}}] ${data_dir} -> ${out_dir} ==="
+        args=(--model "${model}" --data-dir "${data_dir}" --out-dir "${out_dir}"
+              --workers "${workers}" --limit "${limit}" ${ow_opt} "${extra[@]}")
+        if [ "${parallel}" = "true" ]; then
+            "${PY}" scripts/generate_gemini.py "${args[@]}" &
+            pids="${pids} $!"
+        else
+            "${PY}" scripts/generate_gemini.py "${args[@]}"
+        fi
+        ran=$((ran + 1))
     done
-done
+    for pid in ${pids}; do
+        wait "${pid}" || failed=1
+    done
+    [ "${failed}" -eq 0 ] || { echo "error: a generate_gemini.py process failed" 1>&2; exit 1; }
+}
 
+if [ "${batch}" = "true" ]; then
+    run_pass false --batch --batch-no-wait
+    ow_opt=""  # pass 1 already queued the overwrites; pass 2 only collects / resubmits
+    run_pass true --batch
+else
+    run_pass false
+fi
+
+if [ "${ran}" -eq 0 ]; then
+    echo "error: nothing generated (no data/${task}/<lang>/text for: ${names})" 1>&2
+    exit 1
+fi
+
+case "${task}" in
+    *voxblink*) scorer=run_infer_voxblink_eval.sh ;;
+    *)          scorer=run_infer_zonos2_eval.sh ;;
+esac
 echo
-echo "generation done -> results/gemini_${model}/"
-echo "score it with run_infer_zonos2_eval.sh, e.g.:"
-echo "  DECODE_DIR=results/gemini_${model}/zero_shot bash run_infer_zonos2_eval.sh"
+echo "generation done -> ${out_root}/"
+echo "score with:  DECODE_DIR=${out_root}/${task} bash ${scorer} --task ${task} --test_set \"${names}\""

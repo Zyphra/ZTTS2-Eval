@@ -7,12 +7,12 @@
 # 40m checkpoints are gated, so accept their terms first). Writes
 # <out_root>/<task>/<lang>/wavs/.
 #
-#   bash run_generate_phonon.sh                                  # zero_shot, all 5 langs
-#   bash run_generate_phonon.sh --task zero_shot_voxblink --test_set en --limit 3
+#   bash run_generate_phonon.sh                                  # clean, all 5 langs
+#   bash run_generate_phonon.sh --task in-the-wild --test_set en --limit 3
 #
 # Options (Kaldi-style "--name value"):
 #   --model      phonon-40m-multilingual                 (default phonon-40m-multilingual)
-#   --task       zero_shot | zero_shot_voxblink                    (default zero_shot)
+#   --task       clean | in-the-wild                    (default clean)
 #   --test_set   langs to run (quote); '' = all 5 supported          (default '')
 #   --out_root   results root                                (default results/<model>)
 #   --workers    model processes per leaf                               (default 16)
@@ -27,7 +27,7 @@ if [ ! -f utils/parse_options.sh ]; then
 fi
 
 model=phonon-40m-multilingual
-task=zero_shot
+task=clean
 test_set=
 out_root=
 workers=16
@@ -43,8 +43,8 @@ case "${model}" in
     *) echo "error: unknown Phonon model '${model}' (phonon-40m-multilingual)" 1>&2; exit 1 ;;
 esac
 case "${task}" in
-    zero_shot|zero_shot_voxblink) ;;
-    *) echo "error: unsupported task '${task}' (zero_shot | zero_shot_voxblink)" 1>&2; exit 1 ;;
+    clean|in-the-wild) ;;
+    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
 esac
 out_root="${out_root:-results/${model}}"
 PY="${PHONON_VENV:-$HOME/.venvs/phonon}/bin/python"

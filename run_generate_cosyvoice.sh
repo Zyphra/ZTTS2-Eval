@@ -4,16 +4,16 @@
 # scripts/setup_cosyvoice_env.sh -- NOT vLLM-Omni (that cosyvoice3 path was too slow).
 #
 # CosyVoice3 is a WITH-reference-text zero-shot cloner and is multilingual (text-in,
-# no per-language code needed), so it covers all 9 zero_shot languages. Writes wavs to
+# no per-language code needed), so it covers all 9 clean languages. Writes wavs to
 # results/cosyvoice3/<task>/<lang>/wavs/. Score with run_infer_zonos2_eval.sh.
 #
-#   bash run_generate_cosyvoice.sh                          # zero_shot, all 9 langs
+#   bash run_generate_cosyvoice.sh                          # clean, all 9 langs
 #   bash run_generate_cosyvoice.sh --test_set "en zh" --limit 3   # smoke test
-#   bash run_generate_cosyvoice.sh --task zero_shot_voxblink
+#   bash run_generate_cosyvoice.sh --task in-the-wild
 #   bash run_generate_cosyvoice.sh --fp16 true              # ~2x faster, lower precision
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --task       zero_shot | zero_shot_voxblink            (default zero_shot)
+#   --task       clean | in-the-wild            (default clean)
 #   --test_set   langs to run (quote); '' = task default    (default '')
 #   --fp16       load the model in fp16                     (default false)
 #   --speed      speaking-rate multiplier                  (default 1.0)
@@ -28,7 +28,7 @@ if [ ! -f utils/parse_options.sh ]; then
     exit 1
 fi
 
-task=zero_shot
+task=clean
 test_set=
 fp16=false
 speed=1.0
@@ -48,11 +48,11 @@ if [ ! -x "${PY}" ]; then
     exit 1
 fi
 
-# The 9 zero_shot langs (CosyVoice3 is multilingual; no language flag needed).
+# The 9 clean langs (CosyVoice3 is multilingual; no language flag needed).
 sets_for() {
     case "$1" in
-        zero_shot)          echo "en zh de es fr it ja ko ru" ;;
-        zero_shot_voxblink) echo "en zh de es fr it ja ko ru" ;;
+        clean)          echo "en zh de es fr it ja ko ru" ;;
+        in-the-wild) echo "en zh de es fr it ja ko ru" ;;
         *) echo "" ;;
     esac
 }

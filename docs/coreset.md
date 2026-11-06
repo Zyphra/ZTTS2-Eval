@@ -7,10 +7,10 @@ were selected, how accurate they actually are, and — importantly — what they
 
 | Panel | Task name | Items | vs full set | Purpose |
 |---|---|--:|--:|---|
-| Clean Mini | `zero_shot_mini` | 3,500 | 16× | estimate the full Clean score |
-| ITW Mini | `zero_shot_voxblink_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
-| Clean Delta | `zero_shot_delta` | 200 | 287× | detect a change between two checkpoints |
-| ITW Delta | `zero_shot_voxblink_delta` | 192 | 89× | detect a change between two checkpoints |
+| Clean Mini | `clean_mini` | 3,500 | 16× | estimate the full Clean score |
+| ITW Mini | `in-the-wild_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
+| Clean Delta | `clean_delta` | 200 | 287× | detect a change between two checkpoints |
+| ITW Delta | `in-the-wild_delta` | 192 | 89× | detect a change between two checkpoints |
 
 > **After the near-duplicate filter.** The ITW panels were selected at k = 2,000 / 200
 > and exported at 1,941 / 194 items (`k_actual`). Removing the prompt/target
@@ -38,18 +38,18 @@ were selected, how accurate they actually are, and — importantly — what they
 A panel is an ordinary task directory, so nothing in the pipeline changes:
 
 ```bash
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot_mini --test_set en
-DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot_mini \
-  bash run_infer_zonos2_eval.sh --task zero_shot_mini --test_set en
+bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
+DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
+  bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
 
-python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/zero_shot_mini
+python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
 ```
 
 `score_panel.py` applies the published per-item weights and prints the estimate of the
 **full-benchmark** score with a bootstrap CI. Comparing two systems on a Delta panel:
 
 ```bash
-python scripts/coreset/score_panel.py --decode_dir results/A/zero_shot_delta --vs results/B/zero_shot_delta
+python scripts/coreset/score_panel.py --decode_dir results/A/clean_delta --vs results/B/clean_delta
 ```
 
 ### In the explorer
@@ -68,7 +68,7 @@ weighted estimator. The weights sit within about ±10% of uniform on the Mini pa
 the footer looks plausible while being a different estimator; on `zonos2_accurate` /
 `he`, for instance, it reads 10.824 where the panel estimate is 10.808. The per-language
 board cells macro-average to exactly what `score_panel.py` prints (7.432 / 74.792 / 3.110
-for `zonos2_accurate` on `zero_shot_mini`), which is the check to run if either side is
+for `zonos2_accurate` on `clean_mini`), which is the check to run if either side is
 ever changed.
 
 Three further things the explorer does for panels, all about not misreading them:
@@ -94,7 +94,7 @@ Three further things the explorer does for panels, all about not misreading them
   subsample's sampling error is exactly what a reader needs to see. Delta boards say
   outright that their level is biased by construction and only differences may be read.
   They also say that the board is the wrong shape for them: a Delta panel spends k=200
-  across 35 languages, so a per-language cell rests on 3–9 items — on `zero_shot_delta`
+  across 35 languages, so a per-language cell rests on 3–9 items — on `clean_delta`
   / `en` that is 3 items, and all 23 systems tie at 2.564. Delta's power lives in the
   paired aggregate over all 200 items, which is what `score_panel.py` reports.
 

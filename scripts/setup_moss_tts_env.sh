@@ -64,6 +64,6 @@ cat <<EOF
 MOSS-TTS venv ready at ${VENV}.
 Model OpenMOSS-Team/MOSS-TTS (+ MOSS-Audio-Tokenizer) downloads to the HF cache on
 first run. Generate with:
-  bash run_generate_moss_tts.sh                          # zero_shot, all 9 langs
+  bash run_generate_moss_tts.sh                          # clean, all 9 langs
   bash run_generate_moss_tts.sh --test_set en --limit 3  # smoke test
 EOF

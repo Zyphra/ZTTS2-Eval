@@ -6,10 +6,10 @@ sentence up to case/punctuation, or their `text_key`s are >= 0.8 similar
 (utils/text_norm.near_duplicate). Such pairs let a system win by copying the prompt, so
 they are dropped from both full sets and from every coreset panel built on them.
 
-For each of data/zero_shot and data/zero_shot_voxblink, per language:
+For each of data/clean and data/in-the-wild, per language:
   * text, prompt_text, prompt_wav.scp are rewritten without the offending uids
     (original line bytes and order preserved) and their local prompt wavs deleted;
-  * every panel dir (data/zero_shot_{mini,delta}, data/zero_shot_voxblink_{mini,delta})
+  * every panel dir (data/clean_{mini,delta}, data/in-the-wild_{mini,delta})
     whose panel.json["source_task"] matches loses the same uids from text, prompt_text,
     prompt_wav.scp, target_wav.scp (if present) and waveform/ symlinks, its per-language
     weights are renormalised to sum 1 and k_actual is decremented.
@@ -26,9 +26,9 @@ sys.path.insert(0, REPO)
 from utils.text_norm import near_duplicate, text_key  # noqa: E402
 
 DATA = os.path.join(REPO, "data")
-TASKS = ("zero_shot", "zero_shot_voxblink")
-PANELS = ("zero_shot_mini", "zero_shot_delta", "zero_shot_voxblink_mini",
-          "zero_shot_voxblink_delta")
+TASKS = ("clean", "in-the-wild")
+PANELS = ("clean_mini", "clean_delta", "in-the-wild_mini",
+          "in-the-wild_delta")
 CRITERION = "text_key equal or SequenceMatcher ratio >= 0.8 (utils/text_norm.near_duplicate)"
 
 
@@ -159,7 +159,7 @@ def main():
             lst.extend({"uid": u, "prompt_wav": w, "ratio": r} for u, w, r in hits
                        if u not in seen)
         print(f"{task}: removed {n}" + "".join(f"; {p}: {c}" for p, c in panel_n.items()))
-        if dups and task == "zero_shot_voxblink":
+        if dups and task == "in-the-wild":
             print("  per lang: " + " ".join(f"{l}={len(h)}" for l, h in dups.items()))
     with open(log_path, "w") as f:
         json.dump(log, f, indent=1, sort_keys=True)

@@ -5,7 +5,7 @@ metric files (no re-scoring). WER + CI come from each leaf's
 `msr_utmos_mean.txt` / `msr_utmos_ci.txt` (written by score_msr_utmos.py).
 
     python scripts/report_gt.py                 # both GT sets
-    python scripts/report_gt.py --set clean     # gt_zero_shot only
+    python scripts/report_gt.py --set clean     # gt_clean only
     python scripts/report_gt.py --sort lang     # sort by lang instead of WER
 
 Backend column B: Q = the lang stayed on Qwen3-ASR (QWEN_LANGS), W = re-scored
@@ -20,7 +20,7 @@ import sys
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO)
 from utils.benchmark import QWEN_LANGS  # noqa: E402
-SETS = {"clean": "gt_zero_shot", "voxblink": "gt_zero_shot_voxblink"}
+SETS = {"clean": "gt_clean", "voxblink": "gt_in-the-wild"}
 
 WER_RE = re.compile(r"^WER:\s*([\d.]+)")
 WER_CI_RE = re.compile(r"WER_CI95:\s*\[([\d.]+),\s*([\d.]+)\]")

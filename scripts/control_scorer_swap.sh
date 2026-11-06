@@ -3,7 +3,7 @@
 #
 # Qwen3-ASR-1.7B is the WER scorer for QWEN_LANGS (en zh ko th vi hi fa) and two
 # ranked systems are Qwen3-TTS-0.6b/1.7b -- same model family, plausibly shared
-# corpora/tokenizer. This control rescores zero_shot en+zh for the qwen3 systems
+# corpora/tokenizer. This control rescores clean en+zh for the qwen3 systems
 # AND a cohort (fish, omnivoice-reftext, voxcpm2, zonos2_accurate, GT) with
 # Whisper-large-v3 forced-language instead, writing to ALTERNATE filenames
 # (*.whisperctl.*) so published scores are untouched. The readout is
@@ -23,7 +23,7 @@ set +u
 [ -f scripts/serve_asr.sh ] || { echo "[ctl-scorer] ERROR: not at repo root"; exit 1; }
 
 LANGS="${CTL_LANGS:-en zh}"
-MODELS="${CTL_MODELS:-omni_qwen3-tts-1.7b omni_qwen3-tts-0.6b omni_fish-s2-pro omni_omnivoice-reftext omni_voxcpm2 zonos2_accurate gt_zero_shot}"
+MODELS="${CTL_MODELS:-omni_qwen3-tts-1.7b omni_qwen3-tts-0.6b omni_fish-s2-pro omni_omnivoice-reftext omni_voxcpm2 zonos2_accurate gt_clean}"
 
 job_id="${SLURM_JOB_ID:-$$}"
 port_base=$(( 21000 + (job_id % 1000) * 40 ))
@@ -48,8 +48,8 @@ repo="$(pwd -P)"
 n_ok=0; n_fail=0
 for m in ${MODELS}; do
   for lg in ${LANGS}; do
-    # GT baselines are flat (results/gt_zero_shot/<lang>), systems are nested.
-    if [ "${m}" = gt_zero_shot ]; then dd="${repo}/results/${m}/${lg}"; else dd="${repo}/results/${m}/zero_shot/${lg}"; fi
+    # GT baselines are flat (results/gt_clean/<lang>), systems are nested.
+    if [ "${m}" = gt_clean ]; then dd="${repo}/results/${m}/${lg}"; else dd="${repo}/results/${m}/clean/${lg}"; fi
     man="${dd}/wav_res_ref_text"
     if [ ! -f "${man}" ]; then echo "[skip] ${m}/${lg} (no manifest)"; continue; fi
     out_raw="${dd}/wav_res_ref_text.whisperctl.raw"

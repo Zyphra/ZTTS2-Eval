@@ -1,6 +1,6 @@
-"""Extract the held-out target recordings for the zero_shot_voxblink eval.
+"""Extract the held-out target recordings for the in-the-wild eval.
 
-Stage-B produced `data/zero_shot_voxblink/<lang>/{text, prompt_text, prompt_wav.scp,
+Stage-B produced `data/in-the-wild/<lang>/{text, prompt_text, prompt_wav.scp,
 waveform/prompt_audio_*.wav}` from a stratified pick of `_stage_a/manifest.tsv`. The
 TARGET audio (the real recording behind `text`, same speaker as the prompt, different
 video) is the reference for held-out speaker similarity and for the ground-truth
@@ -19,7 +19,7 @@ Then validate and write target_wav.scp / target_provenance.json with:
     python scripts/build_voxblink_targets.py
 
 Usage:
-    python scripts/extract_voxblink_gt.py [--data-root data/zero_shot_voxblink]
+    python scripts/extract_voxblink_gt.py [--data-root data/in-the-wild]
 """
 import argparse
 import csv
@@ -31,7 +31,7 @@ import soundfile as sf
 # Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
 # point at your copy of the dataset.
 AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
-DATA_ROOT = "data/zero_shot_voxblink"
+DATA_ROOT = "data/in-the-wild"
 SR = 16000  # stage_b writes 16 kHz PCM16; keep consistent.
 
 

@@ -21,7 +21,7 @@ import tufte_common as tc
 
 ap = argparse.ArgumentParser(description=__doc__,
                              formatter_class=argparse.RawDescriptionHelpFormatter)
-tc.add_common_args(ap, "results/gt_zero_shot/*/wav_res_ref_text.wer.raw",
+tc.add_common_args(ap, "results/gt_clean/*/wav_res_ref_text.wer.raw",
                    "ztts_reliability_smallmultiples_tufte.png")
 ap.add_argument("--cols", type=int, default=0, help="panel columns (0 = auto ~sqrt)")
 ap.add_argument("--blowup", type=int, default=40,

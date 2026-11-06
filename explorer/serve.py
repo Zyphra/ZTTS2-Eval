@@ -321,10 +321,10 @@ def uid_sort_key(uid):
 def _data_task(model, task):
     """The data/ task family for this leaf. Model-generation rows carry an explicit
     `task`; the GT/whisper baseline dirs fold it into the model name
-    (`gt_zero_shot`, `gt_zero_shot_voxblink`), so recover it from the suffix."""
+    (`gt_clean`, `gt_in-the-wild`), so recover it from the suffix."""
     if task:
         return task
-    for t in ("zero_shot_voxblink", "zero_shot"):
+    for t in ("in-the-wild", "clean"):
         if model.endswith(t):
             return t
     return task
@@ -337,7 +337,7 @@ def build_utterances(model, task, lang, offset=0, limit=10 ** 9, panel=None):
     results/<model>/<lang>/ for the GT/whisper baselines (empty task) — mirroring
     scripts/results_doc/build_results.py.
 
-    `panel` names a coreset panel task (`zero_shot_mini`, ...). It restricts the rows
+    `panel` names a coreset panel task (`clean_mini`, ...). It restricts the rows
     to that panel's items and attaches each one's weight `w`, which is what the board's
     weighted estimate is built from — needed because the GT/Whisper baselines are only
     ever scored on the full source task, so their panel view is that full leaf filtered
@@ -434,7 +434,11 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
         if uid in pause:
             row["pause_alpha"] = pause[uid].get("effective_alpha", pause[uid].get("auto_alpha"))
         if uid in gen:
-            row["gen_url"] = "/api/audio?path=" + urllib.parse.quote(gen[uid])
+            # Generated audio is <leaf>/wavs/<file> (scripts/lib_infer_scoring.sh). The
+            # wav.scp path records where the leaf lived when it was scored (another
+            # checkout, a pre-rename task dir), so only its file name is used.
+            wav = os.path.join(rdir, "wavs", os.path.basename(gen[uid]))
+            row["gen_url"] = "/api/audio?path=" + urllib.parse.quote(wav)
         if uid in prompt_scp:
             row["prompt_url"] = "/api/audio?path=" + urllib.parse.quote(prompt_scp[uid])
         rows.append(row)

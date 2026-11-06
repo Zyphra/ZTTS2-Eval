@@ -22,7 +22,14 @@ Two modes (--mode):
     trip per utterance. voices.txt records the reference clip name.
 
 Models (--model):
-    sonic-3.5  sonic-3.5   latest Sonic (default)
+    sonic-3.6  sonic-3.6-2026-08-27   pinned stable Sonic 3.6 snapshot (default)
+
+The benchmark language is the basename of --data-dir; it is sent as `language`
+where Sonic supports it (nb->no, fil->tl). ca/fa are unsupported: no `language`
+is sent and clones are created with language en.
+
+Clone mode's startup/final purge deletes EVERY live evtmp-* voice on the
+account: run only one clone-mode instance per account at a time.
 
 Requires the optional 'cartesia' extra and a Cartesia API key:
     uv sync --extra cartesia
@@ -30,13 +37,12 @@ Requires the optional 'cartesia' extra and a Cartesia API key:
 
 Usage:
     # preset voices (default)
-    python scripts/generate_cartesia.py --model sonic-3.5 \\
-        --data-dir data/zero_shot/en --out-dir results/cartesia_sonic-3.5/zero_shot/en \\
-        --language en
+    python scripts/generate_cartesia.py --model sonic-3.6 \\
+        --data-dir data/clean/en --out-dir results/cartesia_sonic-3.6/clean/en
     # zero-shot cloning of the prompt speaker
-    python scripts/generate_cartesia.py --model sonic-3.5 --mode clone \\
-        --data-dir data/zero_shot/en \\
-        --out-dir results/cartesia_sonic-3.5_clone/zero_shot/en --language en
+    python scripts/generate_cartesia.py --model sonic-3.6 --mode clone \\
+        --data-dir data/clean/en \\
+        --out-dir results/cartesia_sonic-3.6_clone/clean/en
 """
 import argparse
 import os
@@ -47,24 +53,22 @@ import requests
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.genclient import (  # noqa: E402
-    bytes_to_wav, detect_lang, format_error, load_test_set, normalize_lang,
-    pick_voice, run_generate_loop, with_retry)
+    apply_limit, benchmark_lang, bytes_to_wav, format_error, load_test_set,
+    pick_voice, run_generate_loop, with_retry, write_gen_meta)
 
 
 # --- model ids ---------------------------------------------------------------
 # Keys are version-tagged so each model's output lands in a distinct
 # results/cartesia_<key>/ tree (never conflate two models in one dir).
-DEFAULT_MODEL = "sonic-3.5"
-MODEL_IDS = {
-    "sonic-3.5": "sonic-3.5",
-}
+DEFAULT_MODEL = "sonic-3.6"
+MODEL_IDS = {"sonic-3.6": "sonic-3.6-2026-08-27"}  # pinned stable snapshot
 
 # --- endpoints ---------------------------------------------------------------
 TTS_URL = "https://api.cartesia.ai/tts/bytes"   # returns raw audio bytes
 CLONE_URL = "https://api.cartesia.ai/voices/clone"   # POST multipart -> {id,...}
 VOICE_URL = "https://api.cartesia.ai/voices/{id}"    # DELETE temp clone (cleanup)
 VOICES_LIST_URL = "https://api.cartesia.ai/voices/"  # GET catalogue (stale-clone purge)
-CARTESIA_VERSION = "2026-03-01"                 # required Cartesia-Version header
+CARTESIA_VERSION = "2026-08-14"                 # required Cartesia-Version header
 
 # Request a complete WAV (PCM_16) so soundfile can read the result directly.
 SAMPLE_RATE = 44100   # Sonic's native rate
@@ -100,11 +104,14 @@ CARTESIA_VOICES = {
 }
 VOICE_NAMES = list(CARTESIA_VOICES)
 
-# Cartesia (Sonic) supported language codes; --language values that map outside
-# this set are dropped (Sonic auto-handles, but most test sets are in-set).
-CARTESIA_LANGS = {
-    "en", "fr", "de", "es", "pt", "zh", "ja", "hi",
-    "it", "ko", "nl", "pl", "ru", "sv", "tr",
+# Benchmark language -> Sonic 3.6 `language` code. ca and fa are unsupported
+# (absent): no `language` is sent and clones fall back to en.
+CARTESIA_LANG = {
+    **{lg: lg for lg in (
+        "en", "fr", "de", "es", "pt", "zh", "ja", "hi", "it", "ko", "nl", "pl",
+        "ru", "sv", "tr", "bg", "ro", "ar", "cs", "el", "fi", "hr", "ms", "sk",
+        "da", "uk", "hu", "vi", "th", "he", "id", "tl")},
+    "nb": "no", "fil": "tl",
 }
 
 
@@ -113,15 +120,15 @@ def synth(headers, model_id, text, voice_id, lang, timeout, retries, base_delay)
     payload = {
         "model_id": model_id,
         "transcript": text,
-        "voice": {"id": voice_id, "mode": "id"},
+        "voice": {"id": voice_id},
         "output_format": {
             "container": CONTAINER,
             "encoding": ENCODING,
             "sample_rate": SAMPLE_RATE,
         },
     }
-    if lang in CARTESIA_LANGS:
-        payload["language"] = lang
+    if lang in CARTESIA_LANG:
+        payload["language"] = CARTESIA_LANG[lang]
 
     def _call():
         r = requests.post(TTS_URL, headers=headers, json=payload, timeout=timeout)
@@ -138,7 +145,7 @@ def clone_voice(auth_headers, clip_path, name, lang, timeout, retries, base_dela
 
     Uses multipart POST /voices/clone -- note `auth_headers` must NOT set
     Content-Type (requests adds the multipart boundary itself)."""
-    clone_lang = lang if lang in CARTESIA_LANGS else "en"
+    clone_lang = CARTESIA_LANG.get(lang, "en")
 
     def _call():
         with open(clip_path, "rb") as fh:
@@ -218,9 +225,6 @@ def main():
                     help="test-set dir with 'text', 'prompt_text', 'prompt_wav.scp'")
     ap.add_argument("--out-dir", required=True,
                     help="output dir; wavs are written to <out-dir>/wavs/")
-    ap.add_argument("--language", default="",
-                    help="target language code (en/zh/ja/ko/de/...); sent to the "
-                         "API and used to label voices.txt")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--workers", type=int, default=4, help="concurrent cartesia requests")
     ap.add_argument("--timeout", type=float, default=300.0,
@@ -257,17 +261,12 @@ def main():
     # Intersect so the uttid set matches the other engines (each test-set dir
     # has all three files); Cartesia itself only needs the target text.
     texts, prompts, prompt_texts, uids = load_test_set(args.data_dir)
-    if args.limit > 0:
-        uids = uids[:args.limit]
-
-    forced_lang = normalize_lang(args.language)
-    if args.language and forced_lang and forced_lang not in CARTESIA_LANGS:
-        # Never gate silently: the label is kept for voices.txt, but Sonic
-        # won't be sent an unsupported `language` (it auto-detects instead).
-        print(f"[warn] --language '{args.language}' -> '{forced_lang}' is not in "
-              f"Sonic's supported set ({','.join(sorted(CARTESIA_LANGS))}); the "
-              f"API request omits `language` (server auto-detects); voices.txt "
-              f"keeps the label")
+    uids = apply_limit(uids, args.limit)
+    lang = benchmark_lang(args.data_dir)
+    if lang not in CARTESIA_LANG:
+        # Never gate silently: Sonic is not sent a `language` for this split.
+        print(f"[warn] '{lang}' is not supported by Sonic; the API request omits "
+              f"`language`{' and clones use en' if args.mode == 'clone' else ''}")
 
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
@@ -278,15 +277,12 @@ def main():
 
     # voice manifest -- deterministic, so write it upfront. In preset mode the
     # voice is a rotated public name; in clone mode it is the reference clip.
-    lang_for = {}
     voice_for = {}
     clip_for = {}
     missing_clips = 0
     vpath = os.path.join(args.out_dir, "voices.txt")
     with open(vpath, "w", encoding="utf-8") as f:
         for uid in uids:
-            lg = forced_lang or detect_lang(texts[uid])
-            lang_for[uid] = lg
             if args.mode == "clone":
                 clip = prompts[uid]
                 clip_for[uid] = clip
@@ -295,11 +291,20 @@ def main():
                 voice_for[uid] = os.path.splitext(os.path.basename(clip))[0]
             else:
                 voice_for[uid] = pick_voice(uid, VOICE_NAMES)
-            f.write(f"{uid}\t{voice_for[uid]}\t{lg}\n")
+            f.write(f"{uid}\t{voice_for[uid]}\t{lang}\n")
     print(f"[cartesia:{args.model}:{args.mode}] voice assignments -> {vpath}")
     if args.mode == "clone" and missing_clips:
         print(f"[warn] {missing_clips}/{len(uids)} prompt_wav clips not found on disk "
               f"(those utterances will fail to clone)")
+
+    # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
+    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
+        write_gen_meta(args.out_dir, provider="cartesia", model=model_id,
+                       endpoint=TTS_URL, voice_mode=args.mode, language=lang,
+                       language_sent=CARTESIA_LANG.get(lang),
+                       output_format={"container": CONTAINER, "encoding": ENCODING,
+                                      "sample_rate": SAMPLE_RATE},
+                       api_version=CARTESIA_VERSION)
 
     if args.mode == "clone" and not args.no_purge:
         purge_stale_clones(auth_headers, args.timeout)  # sweep prior crashes
@@ -315,17 +320,17 @@ def main():
                     # A missing local file is permanent -- don't burn retries on it.
                     return uid, f"error: prompt wav missing ({clip})", 0.0
                 vid = clone_voice(auth_headers, clip, f"evtmp-{uid}",
-                                  lang_for[uid], args.timeout, args.retries,
+                                  lang, args.timeout, args.retries,
                                   args.retry_base_delay)
                 try:
-                    raw = synth(headers, model_id, texts[uid], vid, lang_for[uid],
+                    raw = synth(headers, model_id, texts[uid], vid, lang,
                                 args.timeout, args.retries, args.retry_base_delay)
                     dur = bytes_to_wav(raw, out_path)
                 finally:
                     delete_voice(auth_headers, vid, args.timeout)
             else:
                 voice_id = CARTESIA_VOICES[voice_for[uid]]
-                raw = synth(headers, model_id, texts[uid], voice_id, lang_for[uid],
+                raw = synth(headers, model_id, texts[uid], voice_id, lang,
                             args.timeout, args.retries, args.retry_base_delay)
                 dur = bytes_to_wav(raw, out_path)
             return uid, "ok", dur

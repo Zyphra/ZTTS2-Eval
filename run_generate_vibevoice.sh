@@ -17,11 +17,11 @@
 # mapping lives in voice_for() below. (demo/voices also ships an undocumented
 # `in-Samuel_man`; it is not one of the nine named languages, so we leave it out.)
 #
-#   bash run_generate_vibevoice.sh                            # zero_shot, all 10 langs
+#   bash run_generate_vibevoice.sh                            # clean, all 10 langs
 #   bash run_generate_vibevoice.sh --test_set "en de"         # a subset
 #   bash run_generate_vibevoice.sh --limit 3                  # smoke
 #
-# Options: --task (zero_shot|zero_shot_voxblink), --test_set (default = all supported),
+# Options: --task (clean|in-the-wild), --test_set (default = all supported),
 #          --speaker (rotate|Carter|...|Spk0|Spk1), --out_root, --limit, --overwrite.
 set -e
 
@@ -29,7 +29,7 @@ if [ ! -f utils/parse_options.sh ]; then
     echo "error: run this from the repo root" 1>&2; exit 1
 fi
 
-task=zero_shot
+task=clean
 test_set=
 speaker=rotate
 out_root="results/vibevoice-rt-0.5b"

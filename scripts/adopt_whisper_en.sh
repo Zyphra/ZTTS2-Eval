@@ -40,8 +40,8 @@ repo="$(pwd -P)"
 if [ -n "${ADOPT_LEAVES:-}" ]; then
   leaves="${ADOPT_LEAVES}"
 else
-  leaves=$(ls -d results/*/zero_shot/en results/*/zero_shot_voxblink/en \
-                 results/gt_zero_shot/en results/gt_zero_shot_voxblink/en 2>/dev/null \
+  leaves=$(ls -d results/*/clean/en results/*/in-the-wild/en \
+                 results/gt_clean/en results/gt_in-the-wild/en 2>/dev/null \
            | grep -v "^results/whisper_" | grep -v "^results/_")
 fi
 n_ok=0; n_fail=0; n_skip=0

@@ -19,7 +19,7 @@ os.makedirs(CACHE, exist_ok=True)
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import data_langs, discover_systems, write_json_atomic  # noqa: E402
 
-DATA = os.path.join(REPO_ROOT, "data", "zero_shot_voxblink")
+DATA = os.path.join(REPO_ROOT, "data", "in-the-wild")
 MAN = f"{DATA}/_stage_a/manifest.tsv"
 MSR_CACHE = f"{DATA}/_msr_utmos_cache.tsv"
 ROOT_RES = os.path.join(REPO_ROOT, "results")
@@ -98,8 +98,8 @@ def parse_wer_raw_clipped(path):
 # missing from it (which is how the cache came to hold only the baselines).
 # Labels and discovery are the shared scripts/results_doc/rd_common.py versions, so
 # this cache's keys match gen_md.py's labels exactly.
-BASELINES = {"gt": "gt_zero_shot_voxblink", "whisper": "whisper_zero_shot_voxblink"}
-VOX_TASK = "zero_shot_voxblink"
+BASELINES = {"gt": "gt_in-the-wild", "whisper": "whisper_in-the-wild"}
+VOX_TASK = "in-the-wild"
 
 MODELS = dict(BASELINES)
 MODELS.update(discover_systems(VOX_TASK))

@@ -125,7 +125,7 @@ We release two evaluation sets:
   sv, da, fi, el, hu, ro, uk, nb, he, bg, hr, sk, ca, ms, fa). Each language is
   sampled to the maximum its FLEURS-R train+test pool allows with prompt and
   target kept disjoint (1,196–2,089 utterances per language, 57,366 total). Lives at
-  `data/zero_shot/<lang>/`. The prompt is a duration-filtered clip; the target
+  `data/clean/<lang>/`. The prompt is a duration-filtered clip; the target
   is the *text* of a random other utterance of the same language — FLEURS-R
   metadata carries no speaker IDs, so no speaker or session pairing is implied.
 * **In-The-Wild set (VoxBlink2)** — a subsample of
@@ -137,7 +137,7 @@ We release two evaluation sets:
   dominate the distribution. Each language is sampled up to 1,500 prompts (the 7
   largest languages keep 1,463–1,496 after the near-duplicate filter below; smaller
   languages take their available ceiling, down to 108 — 17,155 prompts total). Lives
-  at `data/zero_shot_voxblink/<lang>/`. The large
+  at `data/in-the-wild/<lang>/`. The large
   per-language N is deliberate: TTS error metrics are tail-driven — dominated by
   rare catastrophic generations — so more samples give a materially more stable
   estimate.
@@ -168,7 +168,7 @@ target_wav.scp  # In-The-Wild only: "<uttid> <path_to_real_target.wav>"
 target_wav/     # In-The-Wild only: <uttid>.wav (held-out real recording of the same speaker)
 ```
 
-The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/download_data.py` (both sets), or a subset with `--tasks zero_shot_voxblink --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
+The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/download_data.py` (both sets), or a subset with `--tasks in-the-wild --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
 
 ## Metrics
 
@@ -224,7 +224,9 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   ([controls C7](docs/controls_2026-08.md)). Lower is better; the reference split-half
   distance is the finite-sample ceiling.
 * **Rhythm** — per-utterance timing statistics of the run-length distribution of
-  deduplicated mHuBERT-147 k-means tokens, scored as the 2-Wasserstein distance to
+  deduplicated mHuBERT-147 k-means tokens, on each file cut to its Silero speech span
+  (so generated lead-in tones or noise do not read as stalls; [controls
+  C9](docs/controls_2026-08.md)), scored as the 2-Wasserstein distance to
   the reference at split-half geometry and reported as a multiple of the real-speech
   split-half ceiling (`× ceiling`; 1 = as close to real speech as two halves of real
   speech are to each other). Two dimensions are reported: the **pause/stall factor**
@@ -232,7 +234,9 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   better. See [docs/rhythm.md](docs/rhythm.md).
 * **Pitch range** — per-utterance register-normalized pitch range: p90 − p10 of the
   voiced F0 (pYIN) in semitones around the utterance's own median, so it measures
-  how much the melody moves and ignores whether the voice is high or low. Scored as
+  how much the melody moves and ignores whether the voice is high or low. Frames pYIN
+  calls voiced without a voice (near-silent pauses, background hum) are removed first
+  ([controls C10](docs/controls_2026-08.md)). Scored as
   the 2-Wasserstein distance to the prompt recordings at split-half geometry, in
   `× ceiling`, on a fixed 500-utterance sample per (set, language). Lower is better.
   See [docs/pitch_range.md](docs/pitch_range.md).
@@ -253,7 +257,7 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   on the In-The-Wild set: the anchors collapse on in-the-wild audio
   ([docs/mpm_itw_limits.md](docs/mpm_itw_limits.md)).
 
-The `gt_zero_shot*` rows use a reproducible, disjoint random 50/50 split of each
+The `gt_clean` and `gt_in-the-wild` rows use a reproducible, disjoint random 50/50 split of each
 reference corpus rather than comparing ground truth with itself. Seed and
 language determine the split; `slurm/submit_ground_truth_metrics.sh` refreshes
 the char/s and MPM halves. For rhythm and pitch range the split-half ceiling is the
@@ -349,22 +353,22 @@ uv sync --extra omni --extra scorers && source .venv/bin/activate
 
 # 2. fetch the audio for the set you'll run: prompts + held-out target recordings
 #    (drop the flags for everything, 24 GB+)
-python scripts/download_data.py --tasks zero_shot_voxblink --langs en
+python scripts/download_data.py --tasks in-the-wild --langs en
 
 # 3. generate the English slice of the In-The-Wild Mini coreset panel (50 items)
 #    with one local model
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot_voxblink_mini --test_set en
+bash run_generate_omni.sh --model qwen3-tts-0.6b --task in-the-wild_mini --test_set en
 
 # 4. score that DECODE_DIR (script name is historical and model-agnostic). It
 #    auto-starts/stops the ASR servers and routes each language to Qwen3-ASR or
 #    Whisper-large-v3 as the published numbers do; both co-locate on GPU 0 by
 #    default (same settings as slurm/eval_job.sh). It also scores speaker
 #    similarity against the held-out real recordings.
-DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot_voxblink_mini \
-    bash run_infer_voxblink_eval.sh --task zero_shot_voxblink_mini --test_set en
+DECODE_DIR=results/omni_qwen3-tts-0.6b/in-the-wild_mini \
+    bash run_infer_voxblink_eval.sh --task in-the-wild_mini --test_set en
 
 # 5. weighted estimate of the FULL In-The-Wild score, with a bootstrap CI
-python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/zero_shot_voxblink_mini
+python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/in-the-wild_mini
 
 # 6. browse results in the explorer
 python scripts/results_doc/build_results.py    # builds the explorer snapshot from results/
@@ -410,7 +414,7 @@ restrict the set. It requires HuggingFace access to `google/fleurs-r`
 
 ### VoxBlink2 set
 
-The released `data/zero_shot_voxblink/` directories are already prepared: they
+The released `data/in-the-wild/` directories are already prepared: they
 include the target/reference text, manifest, the `target_wav.scp` /
 `target_provenance.json` index of the held-out recordings, and the MSR-UTMOS binning
 cache used by the evaluation scripts; the prompt audio and the held-out target
@@ -441,15 +445,15 @@ bash run_infer_voxblink_eval.sh
 ```
 
 ```bash
-# Characters/s distributional distance (defaults to zero_shot/en)
+# Characters/s distributional distance (defaults to clean/en)
 python scripts/speaking_rate_dist.py
-python scripts/speaking_rate_dist.py --test-set zero_shot_voxblink --lang en
+python scripts/speaking_rate_dist.py --test-set in-the-wild --lang en
 
 # mHuBERT rhythm (GPU): pause/stall and pace factors vs the real-speech ceiling
-python scripts/rhythm_dist.py --test-set zero_shot_voxblink --lang en
+python scripts/rhythm_dist.py --test-set in-the-wild --lang en
 
 # register-normalized pitch range (CPU; fixed 500-utterance sample)
-python scripts/pitch_range_dist.py --test-set zero_shot_voxblink --lang en
+python scripts/pitch_range_dist.py --test-set in-the-wild --lang en
 
 # per-utterance paired prosody vs the real recording (In-The-Wild only; run after
 # pitch_range_dist.py, it shares the pitch caches)
@@ -458,16 +462,16 @@ python scripts/paired_itw.py --lang en
 # UTMOS shift: signed mean shift (dmean, with CI and the reference split-half band)
 # and spread ratio of a system's per-utterance MSR-UTMOS distribution vs. the
 # reference's (needs the msr_utmos_scores.txt leaves); W2 kept as a secondary column
-python scripts/utmos_shift.py --test-set zero_shot_voxblink --lang en
+python scripts/utmos_shift.py --test-set in-the-wild --lang en
 
 # MSR-UTMOS level-sensitivity probe (gain sweep); writes assets/probes/utmos_level.csv
 python scripts/probe_utmos_level.py
 
 # MPM span against the real/scrambled anchors (Clean set only)
 python utils/score_mpm_shuffle_floor.py \
-    --ref-dir data/zero_shot/en/waveform \
-    --synth-dir results/omni_qwen3-tts-1.7b/zero_shot/en/wavs \
-    --out results/_mpm_shuffle_floor/zero_shot_en.tsv
+    --ref-dir data/clean/en/waveform \
+    --synth-dir results/omni_qwen3-tts-1.7b/clean/en/wavs \
+    --out results/_mpm_shuffle_floor/clean_en.tsv
 ```
 
 The explorer exposes characters/s distance and MPM span as dedicated
@@ -501,10 +505,10 @@ holding out entire model families:
 
 | Panel | Task name | Items | vs full | Purpose |
 |---|---|--:|--:|---|
-| Clean Mini | `zero_shot_mini` | 3,500 | 16× | estimate the full Clean score |
-| ITW Mini | `zero_shot_voxblink_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
-| Clean Delta | `zero_shot_delta` | 200 | 287× | detect a change between checkpoints |
-| ITW Delta | `zero_shot_voxblink_delta` | 192 | 89× | detect a change between checkpoints |
+| Clean Mini | `clean_mini` | 3,500 | 16× | estimate the full Clean score |
+| ITW Mini | `in-the-wild_mini` | 1,919 | 8.9× | estimate the full In-The-Wild score |
+| Clean Delta | `clean_delta` | 200 | 287× | detect a change between checkpoints |
+| ITW Delta | `in-the-wild_delta` | 192 | 89× | detect a change between checkpoints |
 
 The In-The-Wild panels were requested at 2,000 / 200 items; they export 1,919 / 192
 after the near-duplicate filter dropped 22 / 2 of their selected items (weights
@@ -521,12 +525,12 @@ figures predate the near-duplicate filter and the enforced-routing rescore.
 They are ordinary task directories, so nothing in the pipeline changes:
 
 ```bash
-bash run_generate_omni.sh --model qwen3-tts-0.6b --task zero_shot_mini --test_set en
-DECODE_DIR=results/omni_qwen3-tts-0.6b/zero_shot_mini \
-    bash run_infer_zonos2_eval.sh --task zero_shot_mini --test_set en
+bash run_generate_omni.sh --model qwen3-tts-0.6b --task clean_mini --test_set en
+DECODE_DIR=results/omni_qwen3-tts-0.6b/clean_mini \
+    bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
 
 # weighted estimate of the FULL benchmark score, with a bootstrap CI
-python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/zero_shot_mini
+python scripts/coreset/score_panel.py --decode_dir results/omni_qwen3-tts-0.6b/clean_mini
 ```
 
 Method, accuracy, and — importantly — the limits (Mini panels resolve tiers, not the
@@ -538,7 +542,7 @@ frontier; Delta panels estimate differences only) are in
 Generation scripts are provided for local/open models (`run_generate_zonos2.sh`,
 `run_generate_zonos3.sh`, `run_generate_omni.sh`) and for hosted providers. For the In-The-Wild set,
 generation scripts are provided as siblings of the FLEURS-R ones
-(`run_generate_*_voxblink.sh`); they pin `task=zero_shot_voxblink`.
+(`run_generate_*_voxblink.sh`); they pin `task=in-the-wild`.
 
 * **`run_generate_omni.sh`** is self-contained — it starts/stops a local
   vLLM-Omni server (`uv sync --extra omni`) and is the recommended starting point.
@@ -571,8 +575,11 @@ generation scripts are provided as siblings of the FLEURS-R ones
 
 ### Hosted providers
 
-Each hosted-provider script installs via an extra and reads its API key from an
-environment variable; install only what you need.
+Each hosted-provider script installs via an extra (`uv sync --inexact --extra <name>`,
+so the scorer extras already in `.venv` stay installed) and reads its API key from an
+environment variable; install only what you need. The wrappers take
+`--task`/`--test_set` like `run_generate_zonos3.sh` (default: every language of the
+task), and only one instance per provider account may run at a time.
 
 | Script | Extra | Env var |
 | --- | --- | --- |
@@ -581,8 +588,15 @@ environment variable; install only what you need.
 | `run_generate_cartesia.sh` | `--extra cartesia` | `CARTESIA_API_KEY` |
 | `run_generate_inworld.sh` | `--extra inworld` | `INWORLD_API_KEY` |
 
-`run_generate_elevenlabs_clone.sh` is the instant-voice-cloning variant (clones
-the prompt voice before synthesis) of `run_generate_elevenlabs.sh`. See
+`run_generate_elevenlabs_clone.sh`, `run_generate_cartesia.sh --mode clone` and
+`run_generate_inworld.sh --clone true` clone each prompt voice per utterance and
+delete the clone after use; Gemini runs on preset voices. `run_generate_gemini.sh`
+uses the Gemini Batch API by default (`--batch true`: half the unary price, async;
+jobs are tracked in `<out_dir>/batch_jobs.json` so an interrupted run re-attaches
+instead of resubmitting). ElevenLabs and Cartesia have no batch TTS endpoint;
+Inworld's `voice:synthesizeBatch` is not used because each item names a voice, so
+every per-utterance clone would have to stay live for the batch's hours-long
+turnaround, against the workspace's live-voice cap. See
 [`.env.example`](.env.example) for the full set of environment variables the
 scripts read.
 

@@ -17,7 +17,7 @@ Server text normalization is on exactly where the server has a normalizer
 
 Usage:
     python scripts/generate_zonos3.py --server http://127.0.0.1:1920 \\
-        --data-dir data/zero_shot/en --out-dir results/zonos3-mini_reference/zero_shot/en \\
+        --data-dir data/clean/en --out-dir results/zonos3-mini_reference/clean/en \\
         --speaker-mode reference
 """
 import argparse
@@ -33,7 +33,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.genclient import (  # noqa: E402
-    apply_limit, format_error, load_test_set, run_generate_loop,
+    apply_limit, benchmark_lang, format_error, load_test_set, run_generate_loop,
     save_wav_atomic, with_retry, write_gen_meta)
 
 DEFAULT_SR = 44100
@@ -58,8 +58,6 @@ def _get_json(url, timeout=10):
 
 
 def main():
-    from utils.benchmark import CLEAN_LANGS, ITW_LANGS
-
     ap = argparse.ArgumentParser(description="Generate TTS audio from a ZONOS3 Mini server.")
     ap.add_argument("--server", default="http://127.0.0.1:1920")
     ap.add_argument("--data-dir", required=True,
@@ -85,9 +83,7 @@ def main():
                     help="regenerate even if the output wav already exists")
     args = ap.parse_args()
 
-    lang = os.path.basename(os.path.normpath(args.data_dir))
-    if lang not in set(CLEAN_LANGS) | set(ITW_LANGS):
-        sys.exit(f"error: {lang!r} is not a benchmark language (data dir {args.data_dir!r})")
+    lang = benchmark_lang(args.data_dir)
     code = TN_LANG.get(lang)
     tn = code is not None
     language = code or "en_us"

@@ -13,13 +13,13 @@
 # Writes wavs to results/kokoro/<task>/<lang>/wavs/. Score afterwards with
 # run_infer_zonos2_eval.sh (DECODE_DIR=results/kokoro/<task>).
 #
-#   bash run_generate_kokoro.sh                              # zero_shot, all supported langs
+#   bash run_generate_kokoro.sh                              # clean, all supported langs
 #   bash run_generate_kokoro.sh --test_set "en zh" --limit 3 # smoke test
-#   bash run_generate_kokoro.sh --task zero_shot_voxblink
+#   bash run_generate_kokoro.sh --task in-the-wild
 #   bash run_generate_kokoro.sh --test_set en --voice am_michael  # override the voice
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --task       zero_shot | zero_shot_voxblink            (default zero_shot)
+#   --task       clean | in-the-wild            (default clean)
 #   --test_set   langs to run (quote); '' = all supported  (default '')
 #   --voice      override the per-language default voice    (optional)
 #   --speed      speaking-rate multiplier                  (default 1.0)
@@ -34,7 +34,7 @@ if [ ! -f utils/parse_options.sh ]; then
     exit 1
 fi
 
-task=zero_shot
+task=clean
 test_set=
 voice=
 speed=1.0

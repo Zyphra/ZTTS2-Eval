@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate Zonos2 audio against the VoxBlink2-derived eval (data/zero_shot_voxblink),
+# Generate Zonos2 audio against the VoxBlink2-derived eval (data/in-the-wild),
 # starting/stopping the TTS server itself (like run_generate_omni_voxblink.sh). By
 # default it launches the upstream Zonos2 Mini-SGLang server (scripts/serve_zonos2.sh)
 # on a local port; pass --server <URL> to talk to an external one instead.
@@ -10,7 +10,7 @@
 #   bash run_generate_zonos2_voxblink.sh --accurate_mode false # expressive mode
 #   bash run_generate_zonos2_voxblink.sh --gen_args "--clean-speaker-background"
 #
-# Score with: DECODE_DIR=results/zonos2/zero_shot_voxblink \
+# Score with: DECODE_DIR=results/zonos2/in-the-wild \
 #             bash run_infer_voxblink_eval.sh
 set -e
 
@@ -23,12 +23,12 @@ server=""
 gpu=0
 port=1919
 model_path=
-# Default to the 9 langs shared with zero_shot; the noisy voxblink-only tail
+# Default to the 9 langs shared with clean; the noisy voxblink-only tail
 # (pt ar hi tr tl pl id th nl uk vi) is off by default. Re-enable via the full list or
 # an explicit --test_set.
 #   full 20: "en zh de es fr it ja ko ru pt ar hi tr tl pl id th nl uk vi"
 test_set="en zh de es fr it ja ko ru"
-out_root="results/zonos2/zero_shot_voxblink"
+out_root="results/zonos2/in-the-wild"
 workers=16     # zonos2 mini-sglang handles many concurrent requests; bump for ~1.6k-prompt run
 limit=0
 stratified_bins=0    # if >0, sample K evenly-spaced utts per lang (voxblink is
@@ -152,7 +152,7 @@ norm_lang_for() {
 }
 
 for nm in ${test_set}; do
-    data_dir="data/zero_shot_voxblink/${nm}"
+    data_dir="data/in-the-wild/${nm}"
     out_dir="${out_root}/${nm}"
     if [ ! -f "${data_dir}/text" ]; then
         echo "[skip] ${data_dir}: no 'text' file" 1>&2; continue

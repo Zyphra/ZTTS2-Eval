@@ -23,19 +23,30 @@ ITW_LANGS = ("en", "zh", "de", "es", "fr", "it", "ja", "ko", "ru", "pt", "ar", "
              "id", "tr", "tl", "pl", "th", "nl", "uk", "vi")
 
 SOURCE_TASK = {
-    "zero_shot": "zero_shot",
-    "zero_shot_mini": "zero_shot",
-    "zero_shot_delta": "zero_shot",
-    "zero_shot_voxblink": "zero_shot_voxblink",
-    "zero_shot_voxblink_mini": "zero_shot_voxblink",
-    "zero_shot_voxblink_delta": "zero_shot_voxblink",
+    "clean": "clean",
+    "clean_mini": "clean",
+    "clean_delta": "clean",
+    "in-the-wild": "in-the-wild",
+    "in-the-wild_mini": "in-the-wild",
+    "in-the-wild_delta": "in-the-wild",
 }
 
 
 def langs_for(task):
     """The frozen language basket of a task (full set or one of its panels)."""
     src = SOURCE_TASK[task]
-    return ITW_LANGS if src == "zero_shot_voxblink" else CLEAN_LANGS
+    return ITW_LANGS if src == "in-the-wild" else CLEAN_LANGS
+
+
+def is_panel_alias(system_dir, task):
+    """True if results/<system>/<panel task> is a symlink to the system's own full-set
+    dir. Such an alias only lets the explorer drawer browse a backfilled panel row
+    (the server filters the leaf to the panel's items). It is not a panel run, so
+    scoring and the results builders skip it."""
+    src = SOURCE_TASK.get(task)
+    path = os.path.join(system_dir, task)
+    return (src is not None and task != src and os.path.islink(path)
+            and os.path.realpath(path) == os.path.realpath(os.path.join(system_dir, src)))
 
 
 # --- ASR routing -----------------------------------------------------------------
@@ -57,7 +68,8 @@ SPK_VARIANT = ("b6", "lm", "vb2+vox2_v0")
 MSR_UTMOS_CKPT = ("https://huggingface.co/sarulab-speech/MSR-UTMOS_w2v2_fold0/resolve/"
                   "2cbd24044e8dabcafc44bf801b19b4d59d557540/model.ckpt")
 MHUBERT = ("utter-project/mHuBERT-147", "7ad3fc0bc5106c58c9c13526abccad527150d135")
-# Silero VAD v6.2.3: speech segments for the paired ITW pause count (scripts/paired_itw.py).
+# Silero VAD v6.2.3 (utils/vad.py): paired ITW pauses (scripts/paired_itw.py) and the rhythm
+# edge cut (scripts/rhythm_dist.py).
 SILERO_VAD = ("snakers4/silero-vad", "5cd7945676eb32225748052e2e6a0580e4686a08")
 
 

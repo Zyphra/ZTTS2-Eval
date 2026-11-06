@@ -7,7 +7,7 @@ loop. CosyVoice3 is a WITH-reference-text zero-shot cloner, so each utterance ne
 the prompt wav AND its transcript (data/<task>/<lang>/prompt_text).
 
     ~/.venvs/cosyvoice/bin/python scripts/generate_cosyvoice.py \\
-        --data-dir data/zero_shot/en --out-dir results/cosyvoice3/zero_shot/en
+        --data-dir data/clean/en --out-dir results/cosyvoice3/clean/en
 """
 import argparse
 import os

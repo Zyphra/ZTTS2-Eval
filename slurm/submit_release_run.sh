@@ -2,11 +2,11 @@
 # Submit the whole benchmark-v2 release compute DAG. Run from the repo root on the login
 # node (the pinned scorer revisions must already be in the shared HF/torch caches).
 #
-#   J_tg  build_voxblink_targets.py --import-from results/gt_zero_shot_voxblink
+#   J_tg  build_voxblink_targets.py --import-from results/gt_in-the-wild
 #   J_hf  upload_release_data.py            (only when HF_TOKEN is set; nothing depends on it)
 #   J_rs  rescore_all.sh  array             (needs J_tg: held-out speaker sim reads target_wav.scp)
-#   J_gc  run_gt_zero_shot.sh --task zero_shot
-#   J_gi  run_gt_zero_shot.sh --task zero_shot_voxblink     (needs J_tg)
+#   J_gc  run_gt.sh --task clean
+#   J_gi  run_gt.sh --task in-the-wild     (needs J_tg)
 #   J_m   mpm + rhythm + pitch_range arrays (need J_rs, J_gc, J_gi)
 #   J_g   mpm_gt array                      (reads only data/; no dependency)
 #   J_fin results_doc/run.sh + RESULTS_CORESET.md           (needs J_m, J_g)
@@ -45,7 +45,7 @@ sb() {
 J_tg=""; J_hf=""
 if [ "${skip_targets}" != "1" ]; then
     J_tg=$(sb --job-name=ztts-targets --cpus-per-task=16 --mem=64G --time=04:00:00 \
-        --wrap ".venv/bin/python scripts/build_voxblink_targets.py --import-from results/gt_zero_shot_voxblink")
+        --wrap ".venv/bin/python scripts/build_voxblink_targets.py --import-from results/gt_in-the-wild")
     if [ -n "${HF_TOKEN:-}" ]; then
         J_hf=$(sb --job-name=ztts-hf-upload --dependency="afterok:${J_tg}" \
             --cpus-per-task=8 --mem=32G --time=10:00:00 \
@@ -60,9 +60,9 @@ if [ -n "${J_tg}" ]; then after_tg=(--dependency="afterok:${J_tg}"); fi
 J_rs=$(sbatch --parsable --chdir="${repo}" --export=ALL ${site_args[@]+"${site_args[@]}"} \
     ${after_tg[@]+"${after_tg[@]}"} --array="0-$((nodes - 1))" scripts/rescore_all.sh)
 J_gc=$(sb --job-name=ztts-gt-clean slurm/score_job.sh \
-    bash scripts/run_gt_zero_shot.sh --task zero_shot)
+    bash scripts/run_gt.sh --task clean)
 J_gi=$(sb --job-name=ztts-gt-itw ${after_tg[@]+"${after_tg[@]}"} slurm/score_job.sh \
-    bash scripts/run_gt_zero_shot.sh --task zero_shot_voxblink)
+    bash scripts/run_gt.sh --task in-the-wild)
 
 # speaking is omitted: the final run.sh step recomputes char/s, GT halves included.
 out=$(METRICS_KINDS="mpm rhythm pitch_range" METRICS_FINALIZE=0 \

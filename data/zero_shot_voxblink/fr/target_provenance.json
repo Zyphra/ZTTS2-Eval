@@ -1,9 +1,0 @@
-{
-  "source_task": "zero_shot_voxblink",
-  "lang": "fr",
-  "reference": "real recording of the item's target text (same speaker, different video from the prompt)",
-  "n_items": 1490,
-  "n_references": 1490,
-  "n_speakers": 1490,
-  "excluded": {}
-}

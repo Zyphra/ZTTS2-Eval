@@ -10,7 +10,7 @@ one capability C_s per system and one (difficulty D_i, slope alpha_i) pair per i
 fit by ridge-penalised non-linear least squares over every observed (system, item)
 score. One slope is pinned to fix the scale; the ridge term fixes the translation.
 
-An item is one metric on one test set in one language (`wer|zero_shot_voxblink|de`).
+An item is one metric on one test set in one language (`wer|in-the-wild|de`).
 A system scored on only some languages is still placed on the common scale, because
 the items it does have carry their own fitted difficulty — the comparison a
 macro-average over different language sets cannot make.
@@ -30,6 +30,10 @@ Scale: capabilities are mapped affinely so two anchor systems sit at fixed value
 (ANCHORS). Confidence intervals: ECI's bootstrap — the system set is held fixed, each
 system's observed items are resampled with replacement (keeping its item count), the
 whole model is refit and re-anchored; 90% percentile interval.
+
+Breakdown (breakdown()): per system, each dimension, metric and test set gets the level
+its scores alone would place the system at and its share of the information the fit has
+about it; weight × level summed over the dimensions (or over the sets) gives the index.
 
 Reads the results snapshot (build_results.py) and the speaking-rate payload
 (build_speaking_rate.py), and writes
@@ -59,7 +63,7 @@ sys.path.insert(0, SCRIPT_DIR)
 from rd_common import (  # noqa: E402
     PARAMS, RELEASES, SNAPSHOT_PATH, load_snapshot, rec_value, write_json_atomic)
 
-TASKS = ("zero_shot", "zero_shot_voxblink")
+TASKS = ("clean", "in-the-wild")
 REAL = "real speech"   # the gt_<task> baselines, merged into one system
 
 # metric -> (dimension, performance in [0, 1] (higher = better), what that is, task
@@ -69,8 +73,8 @@ REAL = "real speech"   # the gt_<task> baselines, merged into one system
 METRICS = {
     "wer":           ("intelligibility", lambda v: 1 - min(v, 100) / 100, "1 − WER_CLIP/100", None),
     "tail50":        ("intelligibility", lambda v: 1 - v / 100, "1 − Tail>50%/100", None),
-    "spk":           ("voice", lambda v: v / 100, "SPK prompt / 100", "zero_shot"),
-    "spk_xutt":      ("voice", lambda v: v / 100, "SPK held-out / 100", "zero_shot_voxblink"),
+    "spk":           ("voice", lambda v: v / 100, "SPK prompt / 100", "clean"),
+    "spk_xutt":      ("voice", lambda v: v / 100, "SPK held-out / 100", "in-the-wild"),
     "msr_utmos":     ("quality", lambda v: (v - 1) / 4, "(MSR-UTMOS − 1) / 4", None),
     "mpm_span":      ("prosody", lambda v: 1 - min(max(v, 0), 1), "1 − MPM span, clipped to [0, 1]", None),
     "rhythm_rate_x": ("prosody", lambda v: min(1, 1 / v), "min(1, 1 / rhythm pace ×ceil)", None),
@@ -87,11 +91,11 @@ _X = lambda v: min(1, 1 / v)
 PROSODY_METRICS = {
     "rhythm_rate_x": ("pace", _X, "min(1, 1 / rhythm pace ×ceil)", None),
     "charsec_x":     ("pace", _X, "min(1, 1 / char/s ×ceil)", None),
-    "paired_dur":    ("pace", lambda v: 1 / (1 + v), "1 / (1 + paired Dur |log2|)", "zero_shot_voxblink"),
+    "paired_dur":    ("pace", lambda v: 1 / (1 + v), "1 / (1 + paired Dur |log2|)", "in-the-wild"),
     "rhythm_x":      ("pauses", _X, "min(1, 1 / rhythm pause ×ceil)", None),
-    "paired_pause":  ("pauses", lambda v: 1 / (1 + v), "1 / (1 + paired Pause Δ)", "zero_shot_voxblink"),
+    "paired_pause":  ("pauses", lambda v: 1 / (1 + v), "1 / (1 + paired Pause Δ)", "in-the-wild"),
     "pitch_range_x": ("pitch", _X, "min(1, 1 / pitch range ×ceil)", None),
-    "paired_range":  ("pitch", lambda v: 1 / (1 + v), "1 / (1 + paired Range |log2|)", "zero_shot_voxblink"),
+    "paired_range":  ("pitch", lambda v: 1 / (1 + v), "1 / (1 + paired Range |log2|)", "in-the-wild"),
     "mpm_span":      ("contour", lambda v: 1 - min(max(v, 0), 1), "1 − MPM span, clipped to [0, 1]", None),
 }
 ASPECTS = ("pace", "pauses", "pitch", "contour")
@@ -224,6 +228,64 @@ def anchor_map(systems, C, anchors=ANCHORS):
     return lo_v - b * c_lo, b
 
 
+def breakdown(P, x_hat, a, b, obs, metrics, dims):
+    """Per system, how much each dimension, each of its metrics and each test set
+    decides its index, and where each would put the system on its own.
+
+    The fit places C_s where the gradient of the system's own weighted residuals
+    vanishes (up to the tiny ridge term). Linearise each group g of those
+    observations at C_s, Gauss-Newton style: H_g = Σ w·(σ'α)² is the information the
+    group carries about C_s, g_g = Σ w·(σ − y)·σ'α its pull. Alone, the group would
+    move C_s to C_s − g_g / H_g (its `level`), and since Σ_g g_g ≈ 0,
+
+        C_s ≈ Σ_g (H_g / Σ H) · (C_s − g_g / H_g).
+
+    Mapped to the index scale, `weight` = H_g / Σ H times `level` gives the group's
+    `points`, which sum to the index. Items near the system's level and with steep
+    slopes carry the most information, so equal residual weights per dimension do not
+    make equal weights here. A group whose items are all saturated carries no
+    information: weight 0, level None.
+    """
+    C, D, A = P.unpack(x_hat)
+    dim = np.array([o[2] for o in obs])
+    metric = np.array([o[1].split("|")[0] for o in obs])
+    task = np.array([o[1].split("|")[1] for o in obs])
+    z = A[P.ii] * (C[P.si] - D[P.ii])
+    s = 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+    J = s * (1 - s) * A[P.ii]
+    G, H = P.w * (s - P.y) * J, P.w * J * J
+
+    def part(rows, key):
+        h, g = float(H[rows].sum()), float(G[rows].sum())
+        level = a + b * (C[P.si[rows][0]] - g / h) if h > 0 else None
+        return {"key": key, "h": h, "level": level, "n": int(rows.size)}
+
+    def finish(p, total):
+        w = p.pop("h") / total
+        p["points"] = round(w * p["level"], 1) if p["level"] is not None else 0.0
+        p["weight"] = round(w, 3)
+        p["level"] = None if p["level"] is None else round(p["level"], 1)
+        return p
+
+    out = []
+    for i in range(P.nS):
+        own = P.si == i
+        total = float(H[own].sum())
+        groups = []
+        for d in dims:
+            rows = np.flatnonzero(own & (dim == d))
+            if not rows.size:
+                continue
+            g = finish(part(rows, d), total)
+            g["metrics"] = [finish(part(np.flatnonzero(own & (metric == m)), m), total)
+                            for m in metrics if (own & (metric == m)).any() and metrics[m][0] == d]
+            groups.append(g)
+        sets = [finish(part(np.flatnonzero(own & (task == t)), t), total)
+                for t in TASKS if (own & (task == t)).any()]
+        out.append({"dimensions": groups, "sets": sets})
+    return out
+
+
 # --- bootstrap (worker processes) -------------------------------------------
 _P = None
 
@@ -270,6 +332,7 @@ def build_index(obs, metrics, dims, args):
     for s, item, dim, _ in obs:
         _, task, lang = item.split("|")
         langs.setdefault(s, {t: set() for t in TASKS})[task].add(lang)
+    parts = breakdown(P, x_hat, a, b, obs, metrics, dims)
     systems = []
     for i in np.argsort(-index):
         s = P.systems[i]
@@ -281,10 +344,11 @@ def build_index(obs, metrics, dims, args):
             "anchor": s in dict(ANCHORS),
             "n_items": int(n.sum()),
             "langs": {t: len(langs[s][t]) for t in TASKS},
-            **({"release": RELEASES[s][0], "release_source": RELEASES[s][1],
-                "prerelease": RELEASES[s][2]} if s in RELEASES else {}),
+            **({"release": RELEASES[s][0], "release_source": RELEASES[s][1]}
+               if s in RELEASES else {}),
             **({"params": {"total": PARAMS[s][0], "active": PARAMS[s][1],
                            "source": PARAMS[s][2]}} if s in PARAMS else {}),
+            "breakdown": parts[i],
         })
     n_langs = {t: len({it.split("|")[2] for it in P.items if it.split("|")[1] == t}) for t in TASKS}
     return {

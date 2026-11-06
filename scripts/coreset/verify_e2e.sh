@@ -20,7 +20,7 @@
 #          --chdir="$(pwd)" --output=logs/slurm/ztts-coreset-e2e-%j.out \
 #          scripts/coreset/verify_e2e.sh
 #
-# Override with: E2E_SYSTEMS="zonos2_accurate kokoro", E2E_TASK=zero_shot_mini,
+# Override with: E2E_SYSTEMS="zonos2_accurate kokoro", E2E_TASK=clean_mini,
 #                E2E_LANGS="en de fr" (default: every language the panel has).
 #
 # This is a gate: any scoring failure, any system with no scored leaves, fails the job.
@@ -28,7 +28,7 @@ set -euo pipefail
 [ -f scripts/serve_asr.sh ] || cd "$(dirname "$0")/../.." || exit 1
 [ -f scripts/serve_asr.sh ] || { echo "[e2e] ERROR: not at repo root"; exit 1; }
 
-E2E_TASK=${E2E_TASK:-zero_shot_mini}
+E2E_TASK=${E2E_TASK:-clean_mini}
 # One system that was in the selection pool, one from a family held out of it.
 E2E_SYSTEMS=${E2E_SYSTEMS:-"zonos2_accurate kokoro"}
 

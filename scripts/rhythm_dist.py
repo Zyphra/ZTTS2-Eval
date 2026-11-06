@@ -41,7 +41,7 @@ mHuBERT-147 is multilingual (147 langs), matching this benchmark's language
 spread — unlike an English-only hubert-base. The HF repo ships only
 the encoder, so centroids are fitted here: MiniBatchKMeans on frames sampled
 from the REFERENCE set, cached to ~/.cache/ztts2_eval/rhythm keyed by
-(ref wav list, layer, k, seed, top_db). Every system in one (set, lang) is
+(ref wav list, layer, k, seed, edge trim). Every system in one (set, lang) is
 scored against the SAME cached anchor. Token IDs therefore differ across
 languages — irrelevant, since every comparison is within-language (as with
 char/s and MPM).
@@ -52,17 +52,21 @@ WHAT IT DELIBERATELY DOES NOT DO
    spectral quality are invisible (MPM / Pitch cover those).
 2. It matches DISTRIBUTIONS, not per-utterance identity: W2 is
    permutation-invariant across utterances (same caveat as char/s).
-3. Lead/trail silence is trimmed (librosa, --top-db); INTERNAL pauses are kept
-   — they are rhythm. A system that never pauses or stalls mid-sentence
-   diverges from the reference on burstiness / long_frac.
+3. Lead/trail non-speech is cut at the Silero speech span (utils/vad.py: first
+   speech onset to last offset, 30 ms pad); INTERNAL pauses are kept — they are
+   rhythm. A system that never pauses or stalls mid-sentence diverges from the
+   reference on burstiness / long_frac. Not the 35 dB energy rule: that keeps any
+   edge sound within 35 dB of the peak — noise floors, and the tones, hums and
+   bursts some systems generate before speaking — and scored it as a stall
+   (docs/controls_2026-08.md C9). Those lead-ins are a defect, but not rhythm.
 
 Validated by constructed perturbations (scripts/validate_rhythm_metric.py):
 run that before trusting a change to this file.
 
 Usage
 -----
-    python scripts/rhythm_dist.py                      # zero_shot / en
-    python scripts/rhythm_dist.py --test-set zero_shot_voxblink --lang en
+    python scripts/rhythm_dist.py                      # clean / en
+    python scripts/rhythm_dist.py --test-set in-the-wild --lang en
     python scripts/rhythm_dist.py --models omni_voxcpm2 --out /tmp/x.csv
 
 Reference is data/<test_set>/<lang>/waveform; systems are discovered with the
@@ -84,7 +88,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 from speaking_rate_dist import w2, w2_fair, ceiling, find_systems, utt_of  # noqa: E402,F401
-from utils.benchmark import BENCHMARK_VERSION, MHUBERT, data_uids  # noqa: E402
+from utils import vad  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION, MHUBERT, SILERO_VAD, data_uids  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ztts2_eval/rhythm"))
 MODEL_ID, MODEL_REV = MHUBERT   # pinned (utils/benchmark.py)
@@ -95,20 +100,20 @@ DIMS = ("rate", "burstiness", "npvi", "long_frac")
 
 # ---------------------------------------------------------------- audio I/O
 
-def _load_trim(args):
-    """Worker: load 16 kHz mono, trim lead/trail silence. Returns float32 or None."""
-    path, top_db = args
+def _load_trim(path):
+    """Worker: load 16 kHz mono, cut to the speech span. (path, float32) or (path, None)
+    when unreadable or the VAD finds no speech."""
     try:
         wav, _ = librosa.load(path, sr=SR)
-        if wav.size == 0:
+        span = vad.speech_span(wav)
+        if span is None:
             return path, None
-        wav, _ = librosa.effects.trim(wav, top_db=top_db)
-        return path, wav.astype(np.float32)
+        return path, wav[span[0]:span[1]].astype(np.float32)
     except Exception:
         return path, None
 
 
-def load_dir(wav_dir, top_db, workers, limit=0, uids=None):
+def load_dir(wav_dir, workers, limit=0, uids=None):
     """Trimmed wavs of a dir; with `uids`, only files whose uid is in that set (so items
     removed from the benchmark never enter an anchor or a system score)."""
     files = sorted(glob.glob(os.path.join(wav_dir, "*.wav")))
@@ -117,8 +122,9 @@ def load_dir(wav_dir, top_db, workers, limit=0, uids=None):
         files = [f for f in files if utt_of(f) in uids]
     if limit:
         files = files[:limit]
+    vad.load()                                     # once, before the pool forks
     with ProcessPoolExecutor(workers) as ex:
-        res = list(ex.map(_load_trim, [(f, top_db) for f in files], chunksize=4))
+        res = list(ex.map(_load_trim, files, chunksize=4))
     return [(p, w) for p, w in res if w is not None and len(w) >= int(0.5 * SR)]
 
 
@@ -228,26 +234,28 @@ def dims_for_wavs(tok, wavs, long_frames, desc="", with_uids=False):
 
 # ------------------------------------------------------------------ anchor
 
-def anchor_key(ref_dir, layer, k, seed, top_db, long_frames, uids=None):
+def anchor_key(ref_dir, layer, k, seed, long_frames, uids=None):
     # Key over the ref dir CONTENTS (names + sizes + mtimes), not names alone:
     # regenerating a wav in place must invalidate the anchor (same fix as
     # utils/score_mpm_shuffle_floor._key). The list is the uid-FILTERED one, so
-    # removing items from the benchmark invalidates it too. v3 bumps past v2 entries.
+    # removing items from the benchmark invalidates it too. The edge trim (pinned Silero
+    # revision + pad) is in the key: it decides which frames the anchor is fitted on.
     keep = None if uids is None else set(uids)
     wavs = sorted(p for p in Path(ref_dir).iterdir() if p.suffix.lower() == ".wav"
                   and (keep is None or utt_of(str(p)) in keep))
     content = "\n".join(f"{p.name}\t{p.stat().st_size}\t{p.stat().st_mtime_ns}"
                         for p in wavs)
+    trim = f"silero:{SILERO_VAD[1]}:{vad.EDGE_PAD_S}"
     h = hashlib.md5((content +
-                     f"|{layer}|{k}|{seed}|{top_db}|{long_frames}|v3").encode())
+                     f"|{layer}|{k}|{seed}|{trim}|{long_frames}|v4").encode())
     return h.hexdigest()[:16]
 
 
-def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers, uids=None):
+def build_anchor(tok, ref_dir, layer, k, seed, long_frames, workers, uids=None):
     """Return (centroids, {dim: ref values}, {dim: ceiling}); disk-cached."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     uids = None if uids is None else set(uids)
-    key = anchor_key(ref_dir, layer, k, seed, top_db, long_frames, uids)
+    key = anchor_key(ref_dir, layer, k, seed, long_frames, uids)
     npz = CACHE_DIR / f"{key}.npz"
     if npz.exists():
         z = np.load(npz)
@@ -258,7 +266,7 @@ def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers, uid
         return cents, ref, ceil
 
     print(f"[build] rhythm anchor {key} from {ref_dir}")
-    wavs = load_dir(ref_dir, top_db, workers, uids=uids)
+    wavs = load_dir(ref_dir, workers, uids=uids)
     if len(wavs) < 100:
         raise SystemExit(f"only {len(wavs)} usable reference wavs in {ref_dir}")
     rng = np.random.default_rng(seed)
@@ -276,7 +284,7 @@ def build_anchor(tok, ref_dir, layer, k, seed, top_db, long_frames, workers, uid
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--test-set", default="zero_shot")
+    ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--models", nargs="*", default=None)
     ap.add_argument("--out", default=None,
@@ -286,7 +294,6 @@ def main():
                          "training targets were clustered from)")
     ap.add_argument("--kmeans-k", type=int, default=100)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--top-db", type=float, default=35.0)
     ap.add_argument("--long-ms", type=float, default=200.0,
                     help="run length (ms) above which frames count as long_frac mass")
     ap.add_argument("--min-utts", type=int, default=100)
@@ -305,7 +312,7 @@ def main():
 
     tok = Tokenizer(args.layer)
     cents, ref, ceil = build_anchor(tok, ref_dir, args.layer, args.kmeans_k,
-                                    args.seed, args.top_db, long_frames, args.workers,
+                                    args.seed, long_frames, args.workers,
                                     uids=bench_uids)
     tok.set_centroids(cents)
 
@@ -316,7 +323,7 @@ def main():
     systems = find_systems(args.test_set, args.lang, args.models)
     rows = []
     for name, wav_dir in sorted(systems.items()):
-        wavs = load_dir(wav_dir, args.top_db, args.workers, uids=bench_uids)
+        wavs = load_dir(wav_dir, args.workers, uids=bench_uids)
         if len(wavs) < args.min_utts:
             continue
         sysd, uids, runlen_hist = dims_for_wavs(tok, wavs, long_frames,

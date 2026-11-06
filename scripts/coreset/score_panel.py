@@ -18,8 +18,8 @@ Two numbers are reported, deliberately:
 For a Delta panel only differences between two systems are meaningful; the tool refuses
 to print an absolute level for one.
 
-    python scripts/coreset/score_panel.py --decode_dir results/zonos2_accurate/zero_shot_mini
-    python scripts/coreset/score_panel.py --decode_dir A --vs results/other/zero_shot_delta
+    python scripts/coreset/score_panel.py --decode_dir results/zonos2_accurate/clean_mini
+    python scripts/coreset/score_panel.py --decode_dir A --vs results/other/clean_delta
 """
 
 import argparse
@@ -40,7 +40,7 @@ METRIC_KEY = {"wer_clip": "wer_clip", "spk": "spk", "msr": "msr"}
 # Metrics where a SMALLER value is the better one (error rates). Everything else
 # (spk, msr) is higher-is-better. Drives the direction of the paired "A wins" readout.
 LOWER_BETTER = {"wer", "wer_clip"}
-SET_OF_TASK = {"zero_shot": "clean", "zero_shot_voxblink": "itw"}
+SET_OF_TASK = {"clean": "clean", "in-the-wild": "itw"}
 
 
 def read_panel_manifest(task):

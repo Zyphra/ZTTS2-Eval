@@ -1,6 +1,6 @@
 """Stage B of the VoxBlink2-derived eval: score each prompt candidate from the
 Stage-A manifest with MSR-UTMOS, stratified-sample across MOS bins per language,
-and emit `data/zero_shot_voxblink/<lang>/{text,prompt_text,prompt_wav.scp,waveform/}`
+and emit `data/in-the-wild/<lang>/{text,prompt_text,prompt_wav.scp,waveform/}`
 in the layout the existing scoring pipeline (run_infer_zonos2_eval.sh) expects.
 
 Stratification is by *prompt* MSR-UTMOS — the audio we feed the TTS — across
@@ -14,8 +14,8 @@ already-scored candidates.
 
 Usage:
   python scripts/prepare_voxblink2_eval_stage_b.py \\
-      [--manifest data/zero_shot_voxblink/_stage_a/manifest.tsv] \\
-      [--output-dir data/zero_shot_voxblink] \\
+      [--manifest data/in-the-wild/_stage_a/manifest.tsv] \\
+      [--output-dir data/in-the-wild] \\
       [--target-total 1500] [--n-bins 5] [--device cuda]
 """
 import argparse
@@ -215,8 +215,8 @@ def materialize(chosen, output_dir):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--manifest", default="data/zero_shot_voxblink/_stage_a/manifest.tsv")
-    ap.add_argument("--output-dir", default="data/zero_shot_voxblink")
+    ap.add_argument("--manifest", default="data/in-the-wild/_stage_a/manifest.tsv")
+    ap.add_argument("--output-dir", default="data/in-the-wild")
     ap.add_argument("--target-total", type=int, default=1500,
                     help="max prompts per language (round-robin across MSR-UTMOS bins)")
     ap.add_argument("--n-bins", type=int, default=5)

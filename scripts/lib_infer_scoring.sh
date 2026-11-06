@@ -132,6 +132,17 @@ leaf_current() {  # <data dir> <decode dir>
 score_lang_dir() {  # <data dir (text/prompt_wav.scp)> <decode dir (wavs/)> <lang>
     local dd="$1" sd="$2" lg="$3" failed=0
 
+    # results/<sys>/<panel>/ symlinked to the full set (utils.benchmark.is_panel_alias)
+    # only serves the explorer drawer; scoring it would rewrite the full leaf's files.
+    if "${PY:-python3}" -c 'import os, sys
+from utils.benchmark import is_panel_alias
+t = os.path.dirname(os.path.normpath(sys.argv[1]))
+sys.exit(0 if is_panel_alias(os.path.dirname(t), os.path.basename(t)) else 1)' "${sd}"; then
+        echo "[score] ERROR: ${sd} is a symlink to the full set, not a panel run; remove the symlink to score the panel" 1>&2
+        SCORE_FAILS=$((SCORE_FAILS + 1))
+        return 1
+    fi
+
     if leaf_current "${dd}" "${sd}"; then
         echo "[skip] ${sd} already scored"
         return 0

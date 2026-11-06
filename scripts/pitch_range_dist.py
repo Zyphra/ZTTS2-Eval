@@ -12,8 +12,8 @@ pYIN is slow, so every system is scored on a FIXED sample of at most --n-utts ui
 (set, lang): utils.benchmark.sample_uids (seeded, shared with scripts/paired_itw.py).
 The reference is the PROMPT recordings of those uids (data/<set>/<lang>/prompt_wav.scp).
 
-    python scripts/pitch_range_dist.py --test-set zero_shot_voxblink --lang en
-    python scripts/pitch_range_dist.py --test-set zero_shot --lang de --models omni_voxcpm2
+    python scripts/pitch_range_dist.py --test-set in-the-wild --lang en
+    python scripts/pitch_range_dist.py --test-set clean --lang de --models omni_voxcpm2
 
 Caches (uid<TAB>range, empty = unusable wav): results/_pitch_range_ref/<set>_<lang>.tsv
 for the reference and <leaf>/pitch_range.tsv per system leaf. Output CSV columns:
@@ -53,7 +53,7 @@ def values(rng_map):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--test-set", default="zero_shot")
+    ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--models", nargs="*", default=None, help="subset of systems; default all")
     ap.add_argument("--out", default=None,

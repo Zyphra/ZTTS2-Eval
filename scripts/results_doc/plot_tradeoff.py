@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """WER-vs-prosody tradeoff figures: assets/plots/tradeoff_<task>.png.
 
-One figure per task (zero_shot = Clean, zero_shot_voxblink = ITW), two panels:
+One figure per task (clean = Clean, in-the-wild = ITW), two panels:
 
   x: macro WER_CLIP (log scale)      y: macro rhythm pause factor (left) or
                                         macro pitch-range factor (right), both in
@@ -29,7 +29,7 @@ from utils.benchmark import langs_for  # noqa: E402
 from rd_common import (  # noqa: E402
     condition, index_records, label, load_snapshot, macro)
 
-TASKS = (("zero_shot", "Clean (FLEURS-R)"), ("zero_shot_voxblink", "ITW (VoxBlink2)"))
+TASKS = (("clean", "Clean (FLEURS-R)"), ("in-the-wild", "ITW (VoxBlink2)"))
 PANELS = (("rhythm_x", "Rhythm pause factor (x split-half ceiling)"),
           ("pitch_range_x", "Pitch-range distance (x split-half ceiling)"))
 CLASS_MARKER = {"with-transcript": "o", "no-transcript": "^", "x-vector": "D", "preset": "s"}

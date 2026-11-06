@@ -5,7 +5,7 @@
 # Run from the repo root, inside the venv:
 #   uv run bash scripts/wer_groundtruth.sh <data-dir> <lang> <out-dir>
 # e.g.
-#   uv run bash scripts/wer_groundtruth.sh data/zero_shot/en en results/gt_zero_shot_en
+#   uv run bash scripts/wer_groundtruth.sh data/clean/en en results/gt_clean_en
 set -e
 
 data_dir=$1          # test-set dir with prompt_wav.scp + prompt_text

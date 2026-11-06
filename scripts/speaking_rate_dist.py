@@ -33,7 +33,7 @@ TWO THINGS IT DELIBERATELY DOES NOT DO
    sides, so it is permutation-invariant: a system that reads fast sentences
    slowly and slow sentences fast, with the right overall spread, scores the
    same as one that gets every sentence right. A matched variant is possible
-   against results/gt_zero_shot/<lang>/wavs (GT renditions of the SAME uttids,
+   against results/gt_clean/<lang>/wavs (GT renditions of the SAME uttids,
    unlike the prompts used as reference here) with a derangement floor. Not
    implemented; untested whether it changes the ranking.
 
@@ -63,17 +63,17 @@ speech, no transcription) is not filtered.
 
 Usage
 -----
-    python scripts/speaking_rate_dist.py                      # zero_shot / en
-    python scripts/speaking_rate_dist.py --test-set zero_shot_voxblink --lang en
-    python scripts/speaking_rate_dist.py --models gt_zero_shot --out /tmp/x.csv
+    python scripts/speaking_rate_dist.py                      # clean / en
+    python scripts/speaking_rate_dist.py --test-set in-the-wild --lang en
+    python scripts/speaking_rate_dist.py --models gt_clean --out /tmp/x.csv
 
 Reference is data/<test_set>/<lang>/waveform, keyed to prompt_text; systems are
 scored against data/<test_set>/<lang>/text. Both sets use the uttid_N uid scheme
 (reference file prompt_audio_N.wav -> uttid_N; system file uttid_N.wav), so utt_of
 serves both. Two results layouts are walked (see find_systems):
 the nested per-model form results/<sys>/<test_set>/<lang>/wavs, and this tree's
-flat baseline form results/<backend>_<test_set>/<lang>/wavs (gt_zero_shot,
-whisper_zero_shot, ...). NB in this tree gt_zero_shot's wavs are symlinks back to
+flat baseline form results/<backend>_<test_set>/<lang>/wavs (gt_clean,
+whisper_clean, ...). NB in this tree gt_clean's wavs are symlinks back to
 the reference PROMPT audio but are scored against the TARGET text (a different
 sentence), so its char/s is prompt-duration over target-length -- a degenerate
 baseline that sits well above the ceiling, not at it. d_ref only becomes a real
@@ -315,8 +315,8 @@ def boot_ci(x, ref, n_boot=400, seed=0):
 def is_reference_audio(wav_dir, test_set, lang, probe=8):
     """True when a "system"'s wavs ARE the reference prompt recordings.
 
-    On FLEURS-R, results/gt_zero_shot/<lang>/wavs/uttid_N.wav symlinks straight back
-    to data/zero_shot/<lang>/waveform/prompt_audio_N.wav — so that baseline speaks
+    On FLEURS-R, results/gt_clean/<lang>/wavs/uttid_N.wav symlinks straight back
+    to data/clean/<lang>/waveform/prompt_audio_N.wav — so that baseline speaks
     prompt_text, while every real system speaks the target text. Pairing its durations
     with the target text measures len(one sentence) / duration(a different one), which
     inflates d_ref without moving the median; pairing them with prompt_text instead
@@ -353,9 +353,9 @@ def find_systems(test_set, lang, only=None):
       - nested (ZTTS1 / per-model gens):  results/<sys>/<test_set>/<lang>/wavs
         (and results/<group>/<sys>/<test_set>/<lang>/wavs) -> name = <sys> / <group>/<sys>
       - flat (ZTTS2 baselines): results/<backend>_<test_set>/<lang>/wavs, e.g.
-        gt_zero_shot, whisper_zero_shot -> name = the full dir (backend kept).
-        The `*<test_set>` glob keeps the two test-sets disjoint: results/*zero_shot
-        does not match gt_zero_shot_voxblink, and vice versa.
+        gt_clean, whisper_clean -> name = the full dir (backend kept).
+        The `*<test_set>` glob keeps the two test-sets disjoint: results/*clean
+        does not match gt_in-the-wild, and vice versa.
     """
     results_root = os.path.join(REPO, "results")
     out = {}
@@ -386,7 +386,7 @@ def find_systems(test_set, lang, only=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--test-set", default="zero_shot")
+    ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--models", nargs="*", default=None, help="subset of system dirs; default = all found")
     ap.add_argument("--out", default=None, help="CSV path; default results/speaking_rate_<set>_<lang>.csv")

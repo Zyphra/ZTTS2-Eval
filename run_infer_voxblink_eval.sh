@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Score generated audio against the VoxBlink2-derived zero-shot eval
-# (data/zero_shot_voxblink/<lang>). Mirrors run_infer_zonos2_eval.sh but
-# pins task=zero_shot_voxblink. Defaults to the frozen ITW basket (utils/benchmark.py,
-# `python3 -m utils.benchmark langs zero_shot_voxblink`).
+# (data/in-the-wild/<lang>). Mirrors run_infer_zonos2_eval.sh but
+# pins task=in-the-wild. Defaults to the frozen ITW basket (utils/benchmark.py,
+# `python3 -m utils.benchmark langs in-the-wild`).
 #
 #   bash run_infer_voxblink_eval.sh                            # all ITW langs
 #   bash run_infer_voxblink_eval.sh --test_set "en zh ja"
-#   DECODE_DIR=results/zonos2/zero_shot_voxblink bash run_infer_voxblink_eval.sh
+#   DECODE_DIR=results/zonos2/in-the-wild bash run_infer_voxblink_eval.sh
 #
 # Exits non-zero when any language's scoring step failed (after attempting the
 # remaining languages), so SLURM jobs surface scoring failures instead of
@@ -16,7 +16,7 @@
 # parse_options.sh) probe optionally-unset environment variables.
 set -eo pipefail
 
-task=zero_shot_voxblink
+task=in-the-wild
 test_set=""   # empty -> the task's basket, resolved after option parsing
 . utils/parse_options.sh || exit 1;
 [ -n "${test_set}" ] || test_set=$(python3 -m utils.benchmark langs "${task}")

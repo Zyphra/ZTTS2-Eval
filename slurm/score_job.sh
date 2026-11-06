@@ -3,9 +3,9 @@
 # ASR/Whisper port window and the cgroup GPU pinned (the one allocated GPU is index 0).
 #
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-#          bash scripts/run_gt_zero_shot.sh --task zero_shot
+#          bash scripts/run_gt.sh --task clean
 #   sbatch --chdir="$(pwd -P)" --export=ALL slurm/score_job.sh \
-#          env DECODE_DIR=logs/smoke/zero_shot_voxblink bash run_infer_voxblink_eval.sh --test_set en
+#          env DECODE_DIR=logs/smoke/in-the-wild bash run_infer_voxblink_eval.sh --test_set en
 #
 # Partition / account / QoS come from the submitter (sbatch flags or SBATCH_* env); none
 # is hard-coded here.

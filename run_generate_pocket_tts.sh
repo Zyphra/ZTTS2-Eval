@@ -5,12 +5,12 @@
 # CPU torch wheel; see that script) with the gated kyutai/pocket-tts weights
 # pre-downloaded to the HF cache (loaded offline). Writes <out_root>/<task>/<lang>/wavs/.
 #
-#   bash run_generate_pocket_tts.sh                               # zero_shot, all 6 langs
-#   bash run_generate_pocket_tts.sh --task zero_shot_voxblink --test_set en --limit 3
+#   bash run_generate_pocket_tts.sh                               # clean, all 6 langs
+#   bash run_generate_pocket_tts.sh --task in-the-wild --test_set en --limit 3
 #
 # Options (Kaldi-style "--name value"):
 #   --model      pocket-tts                                          (default pocket-tts)
-#   --task       zero_shot | zero_shot_voxblink                              (default zero_shot)
+#   --task       clean | in-the-wild                              (default clean)
 #   --test_set   langs to run (quote); '' = all 6 supported          (default '')
 #   --out_root   results root                                (default results/<model>)
 #   --workers    model processes per leaf                               (default 16)
@@ -25,7 +25,7 @@ if [ ! -f utils/parse_options.sh ]; then
 fi
 
 model=pocket-tts
-task=zero_shot
+task=clean
 test_set=
 out_root=
 workers=16
@@ -38,8 +38,8 @@ help_message="usage: bash run_generate_pocket_tts.sh [--task T] [--test_set \"..
 
 [ "${model}" = pocket-tts ] || { echo "error: unknown model '${model}' (pocket-tts)" 1>&2; exit 1; }
 case "${task}" in
-    zero_shot|zero_shot_voxblink) ;;
-    *) echo "error: unsupported task '${task}' (zero_shot | zero_shot_voxblink)" 1>&2; exit 1 ;;
+    clean|in-the-wild) ;;
+    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
 esac
 out_root="${out_root:-results/${model}}"
 PY="${POCKET_TTS_VENV:-$HOME/.venvs/pocket-tts}/bin/python"

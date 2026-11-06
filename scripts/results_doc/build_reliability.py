@@ -45,27 +45,27 @@ DATASETS = [
     {
         "key": "clean", "kind": "gt",
         "label": "FLEURS-R — read speech",
-        "globs": ["results/gt_zero_shot/*/wav_res_ref_text.wer.raw"],
+        "globs": ["results/gt_clean/*/wav_res_ref_text.wer.raw"],
         "label_scheme": "lang", "rename": None,
     },
     {
         "key": "voxblink", "kind": "gt",
         "label": "VoxBlink2 — in the wild",
-        "globs": ["results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw"],
+        "globs": ["results/gt_in-the-wild/*/wav_res_ref_text.wer.raw"],
         "label_scheme": "lang", "rename": None,
     },
     {
         "key": "backend", "kind": "gt",
         "label": "ASR backend — English GT",
-        "globs": ["results/gt_zero_shot/en/wav_res_ref_text.wer.raw",
-                  "results/whisper_zero_shot/en/wav_res_ref_text.wer.raw"],
+        "globs": ["results/gt_clean/en/wav_res_ref_text.wer.raw",
+                  "results/whisper_clean/en/wav_res_ref_text.wer.raw"],
         "label_scheme": "set",
-        "rename": "gt_zero_shot=Qwen3-ASR,whisper_zero_shot=Whisper",
+        "rename": "gt_clean=Qwen3-ASR,whisper_clean=Whisper",
     },
 ]
 
 # Model-wise reliability: one series per TTS system, from the model's own
-# re-transcribed WER leaves (results/<engine>_<model>/zero_shot/<lang>/...).
+# re-transcribed WER leaves (results/<engine>_<model>/clean/<lang>/...).
 # A single "models" dataset with an all-languages picker:
 #   "All languages" (the default `series`) aggregates over the 9-language basket
 #     every "complete" run shares — restricted to systems covering all 9, so the
@@ -127,9 +127,9 @@ def _assemble(key, label, kind, E, meta, rng):
     }
 
 
-def _load_models(langs, require_full, task="zero_shot"):
+def _load_models(langs, require_full, task="clean"):
     """Per-model edit arrays over a fixed `langs` basket, for one generation task
-    (`zero_shot` = FLEURS-R read speech, `zero_shot_voxblink` = in-the-wild).
+    (`clean` = FLEURS-R read speech, `in-the-wild` = in-the-wild).
 
     Returns (E, meta) keyed by a display name (engine prefix stripped), plus a
     ground-truth floor series ("ground truth") over the same languages. When
@@ -166,7 +166,7 @@ def _load_models(langs, require_full, task="zero_shot"):
     return out_E, out_meta
 
 
-def _all_model_langs(task="zero_shot"):
+def _all_model_langs(task="clean"):
     """Every language any model actually produced for `task`, ordered basket-first."""
     files = []
     for eng in MODEL_ENGINE_GLOBS:
@@ -194,7 +194,7 @@ def _model_basket(task):
             if sum(1 for s in per_model.values() if l in s) >= 2]
 
 
-def _model_dataset(key, label, rng, task="zero_shot"):
+def _model_dataset(key, label, rng, task="clean"):
     """Model-wise dataset for one generation task: a fair cross-language aggregate
     plus every language.
 
@@ -255,8 +255,8 @@ def main():
     # model-wise datasets: one series per TTS system, with an all-languages picker.
     # One per generation task that has model outputs (read speech + in-the-wild).
     for key, label, task in [
-        ("models", "TTS systems — read speech", "zero_shot"),
-        ("models_voxblink", "TTS systems — in the wild", "zero_shot_voxblink"),
+        ("models", "TTS systems — read speech", "clean"),
+        ("models_voxblink", "TTS systems — in the wild", "in-the-wild"),
     ]:
         d = _model_dataset(key, label, rng, task=task)
         if d is None:

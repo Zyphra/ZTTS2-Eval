@@ -42,7 +42,7 @@ from jiwer import process_words
 KNOWN_LANGS = {
     "en", "zh", "de", "es", "fr", "it", "ar",
     "ja", "ko", "ru", "hi", "id", "th", "tl", "tr", "pl", "pt",
-    # 2026-07 new-language expansion (all live under results/gt_zero_shot)
+    # 2026-07 new-language expansion (all live under results/gt_clean)
     "bg", "ca", "cs", "da", "el", "fa", "fi", "fil", "he", "hr", "hu",
     "ms", "nb", "nl", "ro", "sk", "sv", "uk", "vi", "yo",
 }

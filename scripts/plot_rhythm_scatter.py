@@ -12,7 +12,7 @@ Reads results/rhythm_<set>_<lang>.csv (scripts/rhythm_dist.py output).
 
 Usage:
     python scripts/plot_rhythm_scatter.py
-    python scripts/plot_rhythm_scatter.py --test-set zero_shot --lang en
+    python scripts/plot_rhythm_scatter.py --test-set clean --lang en
 """
 import argparse
 import csv
@@ -28,7 +28,7 @@ from tufte_common import PAPER, INK, MUT, GREY, MID, RED, BLUE
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SHORT = {
-    "gt_zero_shot_voxblink": "GT (real speech)",
+    "gt_in-the-wild": "GT (real speech)",
     "omni_fish-s2-pro": "fish-s2-pro",
     "omni_glm-tts": "glm-tts",
     "omni_higgs-audio-v3": "higgs-v3",
@@ -98,7 +98,7 @@ def load(csv_path, test_set, lang):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--test-set", default="zero_shot_voxblink")
+    ap.add_argument("--test-set", default="in-the-wild")
     ap.add_argument("--lang", default="en")
     ap.add_argument("-o", "--out", default=None)
     args = ap.parse_args()

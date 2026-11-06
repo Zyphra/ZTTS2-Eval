@@ -17,7 +17,7 @@ Languages: English and Chinese only (HF tags `en`, `zh`; the card's limitations 
 outputs").
 
     ~/.venvs/vibevoice15/bin/python scripts/generate_vibevoice15.py \\
-        --data-dir data/zero_shot/en --out-dir results/vibevoice-1.5b/zero_shot/en
+        --data-dir data/clean/en --out-dir results/vibevoice-1.5b/clean/en
 """
 import argparse
 import os

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Score generated audio against the FLEURS-R zero-shot eval
-# (data/zero_shot/<lang>). Pins task=zero_shot; defaults to the frozen Clean basket
-# (utils/benchmark.py, `python3 -m utils.benchmark langs zero_shot`). The script name
+# (data/clean/<lang>). Pins task=clean; defaults to the frozen Clean basket
+# (utils/benchmark.py, `python3 -m utils.benchmark langs clean`). The script name
 # is historical and model-agnostic — it scores any compatible DECODE_DIR.
 #
 #   bash run_infer_zonos2_eval.sh                              # all Clean langs
 #   bash run_infer_zonos2_eval.sh --test_set "en zh de es fr it ja ko ru"
-#   DECODE_DIR=results/zonos2_zero_shot bash run_infer_zonos2_eval.sh
+#   DECODE_DIR=results/zonos2_clean bash run_infer_zonos2_eval.sh
 #
 # GPU placement is handled by scripts/serve_asr.sh -- if ASR_GPU is unset it
 # auto-picks a GPU with enough free memory. Override with: export ASR_GPU=N.
@@ -20,11 +20,11 @@
 # parse_options.sh) probe optionally-unset environment variables.
 set -eo pipefail
 
-task=zero_shot
+task=clean
 test_set=""   # empty -> the task's basket, resolved after option parsing
 # Override task / test_set on the CLI, e.g.:
-#   bash run_infer_zonos2_eval.sh --task zero_shot --test_set "en zh de es fr it ja ko ru"
-#   bash run_infer_zonos2_eval.sh --task zero_shot_mini   # a coreset panel (its own langs)
+#   bash run_infer_zonos2_eval.sh --task clean --test_set "en zh de es fr it ja ko ru"
+#   bash run_infer_zonos2_eval.sh --task clean_mini   # a coreset panel (its own langs)
 
 . utils/parse_options.sh || exit 1;
 [ -n "${test_set}" ] || test_set=$(python3 -m utils.benchmark langs "${task}")

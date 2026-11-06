@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Re-score the zero_shot/en leaves that were left as smoke-test stubs: the wavs are
+# Re-score the clean/en leaves that were left as smoke-test stubs: the wavs are
 # complete (1279) but only 3-8 utterances ever got scored, and the resume guard in
 # run_infer_zonos2_eval.sh ("WER: line present AND spk file non-empty") means a normal
 # re-run skips them forever. Deletes the stale score files and re-scores all three
 # metrics. No regeneration -- the audio is already on disk.
 #
-#   results/omni_qwen3-tts-0.6b/zero_shot/en     wer=3  spk=4  msr=3   wavs=1279
-#   results/omni_omnivoice-reftext/zero_shot/en  wer=8  spk=9  msr=8   wavs=1279
-#   results/omni_glm-tts/zero_shot/en            wer=8  spk=9  msr=8   wavs=1279
+#   results/omni_qwen3-tts-0.6b/clean/en     wer=3  spk=4  msr=3   wavs=1279
+#   results/omni_omnivoice-reftext/clean/en  wer=8  spk=9  msr=8   wavs=1279
+#   results/omni_glm-tts/clean/en            wer=8  spk=9  msr=8   wavs=1279
 #
 #   sbatch --job-name=ztts-rescore-en --gpus=1 \
 #          --cpus-per-task=28 --mem=200G --time=4:00:00 \
@@ -22,7 +22,7 @@ set +u
 
 MODELS="${RESCORE_MODELS:-omni_qwen3-tts-0.6b omni_omnivoice-reftext omni_glm-tts}"
 LANG_=en
-TASK=zero_shot
+TASK=clean
 
 job_id="${SLURM_JOB_ID:-$$}"
 port_base=$(( 20000 + (job_id % 10000) * 4 ))

@@ -63,6 +63,6 @@ PY
 cat <<EOF
 
 done. next:
-  bash run_generate_vibevoice15.sh --limit 3            # smoke (zero_shot/en + zh)
-  bash slurm/submit_eval.sh --engine vibevoice15 --task zero_shot
+  bash run_generate_vibevoice15.sh --limit 3            # smoke (clean/en + zh)
+  bash slurm/submit_eval.sh --engine vibevoice15 --task clean
 EOF

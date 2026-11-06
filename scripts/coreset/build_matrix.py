@@ -6,8 +6,8 @@ MSR-UTMOS, and the uid axis is shared across systems for a given (task, lang). T
 makes the full matrix reconstructible offline, so candidate panels can be selected and
 validated without regenerating a single wav.
 
-Outputs, per set (``clean`` = FLEURS-R ``zero_shot``, ``itw`` = VoxBlink2
-``zero_shot_voxblink``):
+Outputs, per set (``clean`` = FLEURS-R ``clean``, ``itw`` = VoxBlink2
+``in-the-wild``):
 
     assets/coreset/matrix_<set>.npz    wer_clip / wer / spk / msr, each float32 [S, N]
                                        with NaN for unscored cells, + ins/del/sub and
@@ -46,9 +46,9 @@ from utils.per_uid import load_leaf, parse_scp, parse_text  # noqa: E402
 OUT_DIR = os.path.join(REPO_ROOT, "assets", "coreset")
 
 SETS = {
-    "clean": {"task": "zero_shot", "gt": "gt_zero_shot", "asr_alt": "whisper_zero_shot"},
-    "itw": {"task": "zero_shot_voxblink", "gt": "gt_zero_shot_voxblink",
-            "asr_alt": "whisper_zero_shot_voxblink"},
+    "clean": {"task": "clean", "gt": "gt_clean", "asr_alt": "whisper_clean"},
+    "itw": {"task": "in-the-wild", "gt": "gt_in-the-wild",
+            "asr_alt": "whisper_in-the-wild"},
 }
 
 # (key, results dir, family, preset-voice?, role)
@@ -133,7 +133,7 @@ def voxblink_prompt_msr():
     shipped ``_msr_utmos_cache.tsv``. This is the quality axis the set was stratified on
     (5 uniform bins over 1.0-4.0), so panels must keep it balanced.
     """
-    data = os.path.join(REPO_ROOT, "data", "zero_shot_voxblink")
+    data = os.path.join(REPO_ROOT, "data", "in-the-wild")
     cache_path = os.path.join(data, "_msr_utmos_cache.tsv")
     man_path = os.path.join(data, "_stage_a", "manifest.tsv")
     if not (os.path.isfile(cache_path) and os.path.isfile(man_path)):

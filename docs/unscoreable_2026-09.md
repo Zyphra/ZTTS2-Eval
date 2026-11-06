@@ -20,7 +20,7 @@ A second, independent defect sat underneath it. `utils/average_wer.py` recovered
 `n_expected = n_scored` — i.e. it *assumed the run had been complete*. Only 447 of
 1557 leaves carry a sidecar. The other 1110 reported full coverage no matter how
 much of the leaf had actually been scored, which is how
-`moss-tts-v1.5/zero_shot_voxblink/ru` came to publish a `N_SCORED == N_EXPECTED`
+`moss-tts-v1.5/in-the-wild/ru` came to publish a `N_SCORED == N_EXPECTED`
 footer over **169 of its 1500 utterances**.
 
 ## What the audit found before anything was changed
@@ -34,7 +34,7 @@ the synthesis step, and "impute maximum error because the system produced nothin
 would have been the wrong story.
 
 **The ground truth is almost untouched.** GT carries 2 unscored utterances in total
-(one `gt_zero_shot/fa`, one `gt_zero_shot_voxblink/hi`). Whatever this change does,
+(one `gt_clean/fa`, one `gt_in-the-wild/hi`). Whatever this change does,
 it does not move the floor that every Δ is measured against — it moves systems.
 
 ## Why the fix re-measures instead of imputing
@@ -131,8 +131,8 @@ languages: the biggest is `qwen3-tts-0.6b-reftext` on VoxBlink at 17.80 → 18.2
 flagship ranking changes. The correction is real but it lands on per-language cells
 and on the honesty of the coverage footers, not on the headline order.
 
-**The floor holds.** GT's two utterances moved `gt_zero_shot_voxblink/hi` 12.46 →
-12.52 and `gt_zero_shot/fa` 29.20 → 29.24. Every Δ-vs-GT in the tables is therefore
+**The floor holds.** GT's two utterances moved `gt_in-the-wild/hi` 12.46 →
+12.52 and `gt_clean/fa` 29.20 → 29.24. Every Δ-vs-GT in the tables is therefore
 a movement of the system, not of the reference.
 
 ## Comparability

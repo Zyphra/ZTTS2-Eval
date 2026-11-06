@@ -67,7 +67,7 @@ if [ ! -f "${list_file}" ]; then
         leaves=$(python3 - <<'PYEOF' | LC_ALL=C sort
 import os
 import sys
-from utils.benchmark import SOURCE_TASK, langs_for
+from utils.benchmark import SOURCE_TASK, is_panel_alias, langs_for
 want = set(os.environ.get("RESCORE_SYSTEMS", "").split())
 for name in sorted(want):
     if not os.path.isdir(f"results/{name}"):
@@ -78,6 +78,8 @@ for sys_name in sorted(os.listdir("results")):
     if sys_name.startswith(("gt_", "whisper_", "_")) or not os.path.isdir(f"results/{sys_name}"):
         continue
     for task in SOURCE_TASK:
+        if is_panel_alias(f"results/{sys_name}", task):
+            continue   # browse-only symlink to the full set: scoring it would overwrite that leaf
         for lang in langs_for(task):
             if (os.path.isdir(f"results/{sys_name}/{task}/{lang}/wavs")
                     and os.path.isfile(f"data/{task}/{lang}/text")):

@@ -25,7 +25,7 @@ set -e
 SYSTEM="${CTL_SYSTEM:?set CTL_SYSTEM (zonos2_accurate|omnivoice-reftext|voxcpm2|fish-s2-pro)}"
 RUN="${CTL_RUN:?set CTL_RUN (1|2)}"
 LANGS="${CTL_LANGS:-en tr}"
-TASK=zero_shot_voxblink
+TASK=in-the-wild
 ROOT="results/_seeds/run${RUN}"
 job_id="${SLURM_JOB_ID:-$$}"
 port=$(( 22000 + (job_id % 1000) * 20 ))

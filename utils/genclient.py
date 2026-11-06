@@ -67,6 +67,19 @@ def normalize_lang(s):
     return s
 
 
+def benchmark_lang(data_dir):
+    """The benchmark language of a test-set dir (its basename); exits if it is not
+    in the frozen Clean / ITW baskets."""
+    try:
+        from .benchmark import CLEAN_LANGS, ITW_LANGS
+    except ImportError:  # imported with utils/ itself on sys.path
+        from benchmark import CLEAN_LANGS, ITW_LANGS  # type: ignore
+    lang = os.path.basename(os.path.normpath(data_dir))
+    if lang not in set(CLEAN_LANGS) | set(ITW_LANGS):
+        sys.exit(f"error: {lang!r} is not a benchmark language (data dir {data_dir!r})")
+    return lang
+
+
 # --- retry / backoff ---------------------------------------------------------
 
 _RETRYABLE_4XX = (408, 429)  # request timeout / rate limit: retrying CAN help

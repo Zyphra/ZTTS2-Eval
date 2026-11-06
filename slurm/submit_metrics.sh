@@ -21,6 +21,8 @@
 #                       one per GPU; also takes METRICS_CPU_LANES, METRICS_WAIT_JOBS and
 #                       METRICS_WAIT_SYSTEMS (see that script). Default 0 = per-kind arrays
 #   METRICS_RESERVATION sbatch --reservation
+#   METRICS_EXCLUDE     sbatch --exclude node list for the GPU/CPU arrays (e.g. a node whose
+#                       GPUs fail CUDA init)
 #   METRICS_LANGS       only these languages (space-separated), in every task; empty = all
 # The last stdout line is always METRICS_JOBS=<id>[:<id>...]: the array job ids, plus the
 # finalizer's when one is submitted.
@@ -39,11 +41,12 @@ site_args=()
 if [ -n "${partition}" ]; then site_args+=(--partition="${partition}"); fi
 if [ -n "${account}" ]; then site_args+=(--account="${account}"); fi
 if [ -n "${qos}" ]; then site_args+=(--qos="${qos}"); fi
-if [ -n "${METRICS_RESERVATION:-}" ]; then site_args+=(--reservation="${METRICS_RESERVATION}"); fi
-nodes="${METRICS_NODES:-0}"
 # The 0-GPU finalizer gets no --reservation: job_submit reroutes jobs with < 5 GPUs to dev,
 # where reserved nodes are unavailable and sbatch rejects the job.
 finalize_site_args=(${site_args[@]+"${site_args[@]}"})
+if [ -n "${METRICS_RESERVATION:-}" ]; then site_args+=(--reservation="${METRICS_RESERVATION}"); fi
+if [ -n "${METRICS_EXCLUDE:-}" ]; then site_args+=(--exclude="${METRICS_EXCLUDE}"); fi
+nodes="${METRICS_NODES:-0}"
 kinds="${METRICS_KINDS:-speaking mpm rhythm pitch_range}"
 dependency="${METRICS_DEPENDENCY:-}"
 finalize="${METRICS_FINALIZE:-1}"
@@ -62,7 +65,7 @@ pitch_range_manifest="${run_dir}/pitch_range.tsv"
 : > "${pitch_range_manifest}"
 
 shopt -s nullglob
-for task in zero_shot zero_shot_voxblink; do
+for task in clean in-the-wild; do
     for lang_dir in data/"${task}"/*; do
         [ -d "${lang_dir}/waveform" ] || continue
         lang="${lang_dir##*/}"
@@ -81,7 +84,7 @@ for task in zero_shot zero_shot_voxblink; do
         # being valid. A better F0 backend, per-utterance energy normalisation and
         # per-condition anchors were all measured and none fixes it (the last makes it
         # worse). See docs/mpm_itw_limits.md before removing this gate.
-        if [ "${task}" = zero_shot ]; then
+        if [ "${task}" = clean ]; then
             printf '%s\t%s\n' "${task}" "${lang}" >> "${mpm_manifest}"
         fi
     done

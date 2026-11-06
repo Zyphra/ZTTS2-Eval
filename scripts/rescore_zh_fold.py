@@ -49,7 +49,7 @@ def zh_leaves():
         top = os.path.join(R, sysd)
         if not os.path.isdir(top):
             continue
-        for root, dirs, files in os.walk(top):
+        for root, dirs, files in os.walk(top, followlinks=True):
             dirs[:] = [d for d in dirs if d not in ("wavs", "waveform")]
             if "wav_res_ref_text.wer.raw" not in files:
                 continue

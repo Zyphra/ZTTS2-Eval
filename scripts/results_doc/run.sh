@@ -33,16 +33,16 @@ echo "[build_perlen]      voxblink per-length-bucket WER (simple)"
 $PY build_perlen.py
 echo "[build_perlen_weighted] voxblink per-length WER (weighted ∑edits/∑ref)"
 $PY build_perlen_weighted.py
-echo "[build_perlen_zeroshot] same bucketing on zero_shot (controlled content)"
-$PY build_perlen_zeroshot.py
+echo "[build_perlen_clean] same bucketing on clean (controlled content)"
+$PY build_perlen_clean.py
 echo "[plot_perbin]       voxblink per-MSR-UTMOS-bin heatmaps"
 $PY plot_perbin.py
 echo "[plot_perlen]       voxblink per-text-length heatmaps"
 $PY plot_perlen.py
 echo "[plot_perlen_mean]  voxblink cross-lang mean curves (simple+weighted)"
 $PY plot_perlen_mean.py
-echo "[plot_perlen_zeroshot] voxblink vs zero_shot side-by-side"
-$PY plot_perlen_zeroshot.py
+echo "[plot_perlen_clean] voxblink vs clean side-by-side"
+$PY plot_perlen_clean.py
 echo "[plot_tradeoff]     WER vs rhythm / pitch-range tradeoff plots"
 $PY plot_tradeoff.py
 echo "[gen_md]            write RESULTS_CURRENT.md"

@@ -14,7 +14,8 @@ OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
 sys.path.insert(0, REPO_ROOT)
 from utils.per_uid import CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, data_uids, langs_for, leaf_problems  # noqa: E402
+from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_panel_alias,  # noqa: E402
+                             langs_for, leaf_problems)
 sys.path.insert(0, SCRIPT_DIR)
 from rd_common import write_json_atomic  # noqa: E402
 
@@ -35,8 +36,8 @@ MIN_PANEL_COVERAGE = 0.9
 #           position in [0=indistinguishable-from-reference .. 1=fully scrambled];
 #           this is the discriminating axis (LOWER is better).
 # Results live outside the per-leaf tree in results/_mpm_shuffle_floor/, one file per
-# language (zero_shot_<lang>.tsv, every system of that language scored against one
-# anchor). Joined onto zero_shot records by (system, language).
+# language (clean_<lang>.tsv, every system of that language scored against one
+# anchor). Joined onto clean records by (system, language).
 MPM_DIR = os.path.join(ROOT, "_mpm_shuffle_floor")
 MPM_GT_DIR = os.path.join(ROOT, "_mpm_ground_truth")
 
@@ -123,7 +124,7 @@ def load_mpm():
                 if len(p) <= max(ix["system"], ix["span"], ix["score"]):
                     continue
                 system = p[ix["system"]]
-                if leaf_key(system, "zero_shot", lang) in EXCLUDED:
+                if leaf_key(system, "clean", lang) in EXCLUDED:
                     continue
                 ver = p[vcol] if vcol is not None and vcol < len(p) else None
                 if not stamp_current(path, system, ver):
@@ -136,12 +137,12 @@ def load_mpm():
 
     files = sorted(f for f in os.listdir(MPM_DIR) if f.endswith(".tsv"))
     for fn in files:
-        if fn.startswith("zero_shot_"):
-            add(os.path.join(MPM_DIR, fn), fn[len("zero_shot_"):-len(".tsv")])
+        if fn.startswith("clean_"):
+            add(os.path.join(MPM_DIR, fn), fn[len("clean_"):-len(".tsv")])
     if os.path.isdir(MPM_GT_DIR):
         for fn in sorted(f for f in os.listdir(MPM_GT_DIR)
-                         if f.startswith("zero_shot_") and f.endswith(".tsv")):
-            add(os.path.join(MPM_GT_DIR, fn), fn[len("zero_shot_"):-len(".tsv")])
+                         if f.startswith("clean_") and f.endswith(".tsv")):
+            add(os.path.join(MPM_GT_DIR, fn), fn[len("clean_"):-len(".tsv")])
     return out
 
 
@@ -150,11 +151,9 @@ MPM = load_mpm()
 
 # Prosody CSVs written by scripts/rhythm_dist.py, scripts/pitch_range_dist.py and
 # scripts/paired_itw.py into results/. Each file is one (task, lang); a row is one
-# system. The task is parsed from the file name, so `zero_shot_voxblink_` MUST be
-# tried before `zero_shot_` (otherwise `rhythm_zero_shot_voxblink_en.csv` reads as
-# lang `voxblink_en` -- the phantom-language bug build_mpm_dist.py once had).
+# system. The task is the file-name prefix after <prefix>_ (see split_task_lang).
 PROSODY = {}      # (model, task, lang) -> {record key: value}
-_PROSODY_TASKS = ("zero_shot_voxblink", "zero_shot")
+_PROSODY_TASKS = ("in-the-wild", "clean")
 
 
 def _num(x):
@@ -166,7 +165,7 @@ def _num(x):
 
 
 def split_task_lang(stem):
-    """`zero_shot_voxblink_en` -> (`zero_shot_voxblink`, `en`); None if not a task stem."""
+    """`in-the-wild_en` -> (`in-the-wild`, `en`); None if not a task stem."""
     for task in _PROSODY_TASKS:
         if stem.startswith(task + "_") and len(stem) > len(task) + 1:
             return task, stem[len(task) + 1:]
@@ -213,7 +212,7 @@ load_prosody("pitch_range", {"pitch_range_x": "x_ceiling"})
 load_prosody("paired_itw", {"paired_dur": "dur_abs_med",
                             "paired_pause": "pause_abs_mean",
                             "paired_range": "range_abs_med"},
-             fixed_task="zero_shot_voxblink")
+             fixed_task="in-the-wild")
 
 
 REC_KEYS = ("wer", "wer_ci", "tail50", "spk", "spk_xutt", "msr_utmos", "msr_utmos_ci",
@@ -229,7 +228,7 @@ def new_rec(model, task, setname):
 
 
 # ---------------------------------------------------------------------------
-# Coreset panels (scripts/coreset/) -- zero_shot_mini, zero_shot_delta, and the
+# Coreset panels (scripts/coreset/) -- clean_mini, clean_delta, and the
 # VoxBlink twins. A panel leaf must NOT be summarised by the `.wer` footer: that
 # footer is an unweighted mean over the sampled items, whereas a panel's estimate
 # is the weighted mean whose weights carry each selected item's cluster mass
@@ -310,7 +309,7 @@ def collect_panel_leaf(model, task, setname, leaf_dir, panel):
         return None
     leaf = load_leaf(leaf_dir)
     # The GT baseline's prompt-vs-real-target score IS the held-out ceiling.
-    spk_xutt = leaf["spk"] if model == "gt_zero_shot_voxblink" else leaf["spk_xutt"]
+    spk_xutt = leaf["spk"] if model == "gt_in-the-wild" else leaf["spk_xutt"]
     rec = new_rec(model, task, setname)
     rec["panel"] = {"kind": panel["kind"], "source_task": panel["source_task"],
                     "selector": panel["selector"], "k": len(w_lang),
@@ -510,10 +509,10 @@ def collect_leaf(model, task, setname, leaf_dir):
     rec = new_rec(model, task, setname)
     # Shuffle-floor MPM is a FLEURS-R-only (Clean set) distributional metric, keyed
     # (system, lang). Only `span` (the discriminating axis) is surfaced; `score`
-    # saturates, so it is intentionally not carried into the snapshot. The zero_shot
+    # saturates, so it is intentionally not carried into the snapshot. The clean
     # restriction is not an oversight: MPM's anchors collapse on in-the-wild audio
     # and no front-end or anchor fix recovers them -- see docs/mpm_itw_limits.md.
-    mpm_model = model if task == "zero_shot" or (not task and model == "gt_zero_shot") else None
+    mpm_model = model if task == "clean" or (not task and model == "gt_clean") else None
     if mpm_model:
         m = MPM.get((mpm_model, setname))
         if m:
@@ -523,7 +522,7 @@ def collect_leaf(model, task, setname, leaf_dir):
     rec["tail50"] = parse_tail50(wer_path)
     sp = os.path.join(leaf_dir, "spk_simi_scores.txt")
     if os.path.isfile(sp): rec["spk"] = parse_spk(sp)
-    if model == "gt_zero_shot_voxblink" and not task:
+    if model == "gt_in-the-wild" and not task:
         # The GT leaf scores the prompt against the real target recording: that
         # score IS the held-out ceiling, so there is no separate xutt file.
         rec["spk_xutt"] = rec["spk"]
@@ -565,6 +564,8 @@ def collect_all():
         for sub in sorted(os.listdir(mdir)):
             sdir = os.path.join(mdir, sub)
             if not os.path.isdir(sdir): continue
+            if is_panel_alias(mdir, sub):
+                continue   # browse-only alias of the full set; the backfill below scores it
             if (model, "", sub) in EXCLUDED:
                 continue
             rec = collect_leaf(model, "", sub, sdir)
@@ -755,7 +756,7 @@ def panel_aggregates(records):
 # EVERY basket language, because a mean over a different language subset is a different
 # quantity. Unlike a panel, a system missing languages still gets its ALL row, with every
 # metric None and its coverage in `macro`, so the board says why rather than dropping it.
-FULL_TASKS = ("zero_shot", "zero_shot_voxblink")
+FULL_TASKS = ("clean", "in-the-wild")
 _MACRO_KEYS = ("tail50", "spk", "spk_xutt", "msr_utmos", "mpm_span", "rhythm_x",
                "rhythm_rate_x", "pitch_range_x", "paired_dur", "paired_pause", "paired_range")
 

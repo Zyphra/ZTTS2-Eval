@@ -13,7 +13,7 @@
 # language it is handed. Always submit as an ARRAY job (the %A_%a output name and the
 # ${array_job}_${node} file tags assume one), from the repo root:
 #
-#   Z3_TASKS="zero_shot_mini zero_shot_voxblink_mini" sbatch --parsable --chdir="$(pwd -P)" \
+#   Z3_TASKS="clean_mini in-the-wild_mini" sbatch --parsable --chdir="$(pwd -P)" \
 #       --export=ALL --array=0-0 slurm/zonos3_gen_job.sh
 #
 # Environment (--export=ALL):

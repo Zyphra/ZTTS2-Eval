@@ -25,10 +25,10 @@ able from GT) and the noise distance (~fully contour-scrambled).
 
 Usage:
   python utils/score_mpm_shuffle_floor.py \\
-      --ref-dir   data/zero_shot/en/waveform \\
-      --synth-dir results/omni_qwen3-tts-1.7b/zero_shot/en/wavs \\
-      --synth-dir results/omni_voxcpm2/zero_shot/en/wavs \\
-      --out results/_mpm_shuffle_floor/zero_shot_en.tsv
+      --ref-dir   data/clean/en/waveform \\
+      --synth-dir results/omni_qwen3-tts-1.7b/clean/en/wavs \\
+      --synth-dir results/omni_voxcpm2/clean/en/wavs \\
+      --out results/_mpm_shuffle_floor/clean_en.tsv
 
 With no --synth-dir it just builds+caches the anchor and prints the split-GT
 self-distance (d_ref floor) for reference.
@@ -150,6 +150,17 @@ def _load_wav(path):
     return audio / (np.max(np.abs(audio)) + 1e-6)
 
 
+def _energy(wav):
+    return _FEAT.energy_measure(wav, DURATIONS)["measure"]
+
+
+def _f0_pyworld(wav):
+    import pyworld as pw
+    x = wav.astype(np.float64)
+    f0, t = pw.dio(x, SR, frame_period=FRAME_PERIOD_MS, speed=1)
+    return pw.stonemask(x, f0, t, SR)
+
+
 def _tokens_for_path(path):
     wav = _load_wav(path)
     pitch, vad = _pitch_and_vad(_f0_pyworld(wav))
@@ -164,17 +175,6 @@ def _wav_files(wav_dir):
 
 def _feature_pool(bench):
     workers = int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
-def _energy(wav):
-    return _FEAT.energy_measure(wav, DURATIONS)["measure"]
-
-
-def _f0_pyworld(wav):
-    import pyworld as pw
-    x = wav.astype(np.float64)
-    f0, t = pw.dio(x, SR, frame_period=FRAME_PERIOD_MS, speed=1)
-    return pw.stonemask(x, f0, t, SR)
-
-
     consts = dict(pitch_min=bench.pitch_min, pitch_max=bench.pitch_max,
                   vad_min=bench.vad_min, vad_max=bench.vad_max, bins=bench.bins.numpy())
     # spawn: the parent holds a CUDA context, which forked children must not inherit.

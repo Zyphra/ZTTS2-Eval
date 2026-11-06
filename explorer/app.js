@@ -166,15 +166,15 @@ async function loadSnapshot() {
 
 // GT and Whisper are reference baselines: flat results/<model>/<set>/ dirs, so
 // their leaf carries an empty task and is joined into the board of the full task
-// their model name encodes (gt_zero_shot -> zero_shot).
+// their model name encodes (gt_clean -> clean).
 function isBaseline(model) { return /^(?:gt|whisper)_/.test(model); }
 function gtTaskOf(model) { return model.replace(/^(?:gt|whisper)_/, ""); }
 // The join is exact on both sides, and both halves matter:
 //   - task === "" — a baseline also carries real per-panel rows (build_results.py
 //     restricts its full leaf to each panel's items and weights). Matching on the
 //     model name alone would replay every one of them onto the full-task board.
-//   - gtTaskOf === task, not a prefix — `gt_zero_shot_voxblink` is a different data
-//     family, not a `zero_shot` variant, and prefix-matching renders its VoxBlink
+//   - gtTaskOf === task, not a prefix — `gt_in-the-wild` is a different data
+//     family, not a `clean` variant, and prefix-matching renders its VoxBlink
 //     numbers as the FLEURS-R floor.
 // A panel board therefore never sees the flat row: the full-set floor is a different
 // item set and would misstate every "vs GT" read (see explorer/README.md).
@@ -274,7 +274,7 @@ function defaultLang(task) {
 
 function initTaskLang() {
   const tasks = tasksAvailable();
-  STATE.task = tasks.includes("zero_shot") ? "zero_shot" : tasks[0];
+  STATE.task = tasks.includes("clean") ? "clean" : tasks[0];
   const taskSel = $("#sel-task");
   taskSel.innerHTML = "";
   tasks.forEach((t) => taskSel.append(new Option(panelLabel(t), t)));

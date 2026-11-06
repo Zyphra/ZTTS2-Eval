@@ -7,9 +7,9 @@ defect or a speech-quality problem — it is the ASR being scored, and the audio
 genuine. This note classifies *why* the tail is high, because the mechanism decides
 whether a TTS model's WER in that language is interpretable at all.
 
-Source: `results/gt_zero_shot/<lang>/wav_res_ref_text.wer` (and the voxblink twin).
+Source: `results/gt_clean/<lang>/wav_res_ref_text.wer` (and the voxblink twin).
 Per-utterance ref/hyp live in the un-committed `.wer.raw` (regenerable via
-`scripts/run_gt_zero_shot.sh` / `extract_voxblink_gt.py`).
+`scripts/run_gt.sh` / `extract_voxblink_gt.py`).
 
 ## The signal that separates the modes
 

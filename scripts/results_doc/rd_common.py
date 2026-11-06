@@ -39,14 +39,14 @@ MODEL_LABEL = {
     "omni_voxcpm2": "voxcpm2",
     "omni_voxtral-tts": "voxtral",
     "omni_moss-tts-nano": "moss-nano",
-    "gemini_3.1-flash": "gemini-3.1-flash",
-    "cartesia_sonic-3.5": "cartesia-sonic-3.5",
-    "elevenlabs_v3": "elevenlabs-v3",
-    "inworld_2": "inworld",
-    "gt_zero_shot": "gt (fleurs-r)",
-    "gt_zero_shot_voxblink": "gt (voxblink)",
-    "whisper_zero_shot": "whisper (fleurs-r)",
-    "whisper_zero_shot_voxblink": "whisper (voxblink)",
+    "elevenlabs_v4_clone": "elevenlabs-v4",
+    "cartesia_sonic-3.6_clone": "cartesia-sonic-3.6",
+    "inworld_2_clone": "inworld-tts-2",
+    "gemini_3.8-flash": "gemini-3.8-flash",
+    "gt_clean": "gt (fleurs-r)",
+    "gt_in-the-wild": "gt (voxblink)",
+    "whisper_clean": "whisper (fleurs-r)",
+    "whisper_in-the-wild": "whisper (voxblink)",
 }
 
 
@@ -80,7 +80,8 @@ def label(model_dir):
 #
 # Seeding note: zonos2_* and zonos3-mini_* run with a fixed seed (0); the vLLM-Omni-served
 # systems pass no seed/temperature (generate_omni.py defaults are None), i.e.
-# unseeded server-default sampling; native recipes note their own defaults.
+# unseeded server-default sampling; native recipes note their own defaults. Hosted APIs:
+# elevenlabs_* send seed 0 (provider best-effort); the other hosted APIs expose no seed.
 CONDITIONS = {
     # zonos2 server (scripts/generate_zonos2.py): audio-only clone.
     "zonos2_accurate": ("no-transcript",
@@ -102,6 +103,30 @@ CONDITIONS = {
                                    "zh heads for cmn, en heads for every other server language)"),
     "zonos3-mini-laci_embedding": ("x-vector",
                                    "as zonos3-mini_embedding plus LACI (laci=true; heads as zonos3-mini-laci_reference)"),
+    # Internal ZONOS3 Mini checkpoints, same client and sampling as zonos3-mini_*, served from gabriel's minisgl
+    # (inference-frozen-arch-20261012 @ 65ccd72 + per-table condition bucket counts [10, 10, 30]).
+    "zonos3-rate30-20k_reference": ("no-transcript",
+                                    "internal checkpoint: omni3b 60k recipe + 20k steps with 30 speaking-rate "
+                                    "buckets; as zonos3-mini_reference otherwise"),
+    "zonos3-rate30-20k_embedding": ("x-vector",
+                                    "internal checkpoint as zonos3-rate30-20k_reference; as zonos3-mini_embedding "
+                                    "otherwise"),
+    "zonos3-rate30-20k-r2grpo_reference": ("no-transcript",
+                                           "internal checkpoint: zonos3-rate30-20k + tail DPO + round-2 GRPO "
+                                           "(WER-first reward, step 587); as zonos3-mini_reference otherwise"),
+    "zonos3-rate30-20k-r2grpo_embedding": ("x-vector",
+                                           "internal checkpoint as zonos3-rate30-20k-r2grpo_reference; as "
+                                           "zonos3-mini_embedding otherwise"),
+    # Continuation in-process (no server: /tts/generate cannot prefill the prompt's frames), gabriel's minisgl @ 2c78070.
+    "zonos3-rate30-20k-r2grpo-reftext_embedding": ("with-transcript",
+                                                   "in-process TTSLLM (scripts/generate_zonos3_reftext.py): prompt "
+                                                   "transcript + target text, the prompt's codec frames (edge "
+                                                   "silence trimmed, top_db 35; last 2 frames, the clip's end-of-file "
+                                                   "edge, dropped) prefilled after the 0.2 s silence "
+                                                   "prefill (output = audio after the prefill), plus the ownmect_s2 "
+                                                   "speaker embedding of the untrimmed prompt; checkpoint as "
+                                                   "zonos3-rate30-20k-r2grpo_reference; sampling as "
+                                                   "zonos3-mini_reference"),
     # vLLM-Omni served (scripts/omni_models.sh reftext_policy + generate_omni.py);
     # all unseeded, server-default sampling.
     "omni_voxcpm2": ("no-transcript", "--no-ref-text (reftext_policy); unseeded server defaults"),
@@ -132,11 +157,11 @@ CONDITIONS = {
                           "profile (32 concurrent); server sampling T 0.9 top-k 50 rep 1.1, CFG 1, seed 42 "
                           "per request; en zh only"),
     "omni_voxtral-tts": ("preset", "preset mode (task_type=CustomVoice); unseeded server defaults"),
-    # Native in-process recipes.
     # Upstream SGLang-Omni adapter server (scripts/generate_audio8.py -> /v1/audio/speech).
     "audio8-tts-realistic-0.6b": ("with-transcript",
                                   "SGLang-Omni adapter (Audio8_TTS@4eb54a6, sglang-omni@68a5723); prompt wav + "
                                   "transcript; T 0.8 top-p 0.95 top-k 50, ≤1024 frames; unseeded server sampling"),
+    # Native in-process recipes.
     "cosyvoice3": ("with-transcript",
                    "native upstream; prompt wav + transcript (endofprompt-terminated system prompt; ja→katakana)"),
     "ming-3.0-tts-0.5b": ("with-transcript",
@@ -179,6 +204,24 @@ CONDITIONS = {
                                 "runtime text normalization; temp 0.3, default seed; en fr de es pt only"),
     "neutts-2e": ("preset", "4 fixed speakers, deterministic per-utt rotation; prompt wav ignored"),
     "vibevoice-rt-0.5b": ("preset", "preset speaker embeddings, per-utt rotation; prompt wav ignored"),
+    # Hosted APIs (scripts/generate_{elevenlabs_clone,cartesia,inworld,gemini}.py)
+    "elevenlabs_v4_clone": ("no-transcript",
+                            "hosted API eleven_v4 via /v1/text-to-dialogue; per-utterance instant voice clone "
+                            "of the prompt wav (no transcript, no denoise), deleted after use; language_code "
+                            "sent (nb→no, tl→fil); seed 0 (provider best-effort); wav_24000"),
+    "cartesia_sonic-3.6_clone": ("no-transcript",
+                                 "hosted API sonic-3.6-2026-08-27 (/tts/bytes, Cartesia-Version 2026-08-14); "
+                                 "per-utterance instant clone of the prompt wav (no transcript), deleted after "
+                                 "use; language sent where supported (nb→no, fil→tl; ca/fa unsupported: clone "
+                                 "language en, none sent); provider-default sampling"),
+    "inworld_2_clone": ("no-transcript",
+                        "hosted API inworld-tts-2 (/tts/v1/voice); per-utterance instant voice clone of the "
+                        "prompt wav (no transcription; TTS-2 cloning ignores it), deleted after use; language "
+                        "+ clone languageCode sent (tl→fil); deliveryMode default (BALANCED); LINEAR16"),
+    "gemini_3.8-flash": ("preset",
+                         "hosted API gemini-3.8-flash-tts (generateContent); 30 prebuilt voices, deterministic "
+                         "per-utt rotation; prompt wav ignored (voice replication requires a consent "
+                         "recording from the same speaker); language auto-detected"),
 }
 
 # Result-table markers per class (with-transcript is the unmarked default).
@@ -213,8 +256,8 @@ def marked_label(model_dir):
 
 
 # --- release dates ------------------------------------------------------------
-# Public release of the weights each results/ dir was generated from: (YYYY-MM-DD,
-# source, pre-release?). Used to plot the capability index over time. Dates come from
+# Release of the weights each results/ dir was generated from: (YYYY-MM-DD, source).
+# Used to plot the capability index over time. Dates come from
 # the project's own announcement or dated news log, not Hugging Face `createdAt`: repos
 # are often created privately weeks before launch (Voxtral-4B-TTS-2603: created
 # 2025-11-17, released 2026-03-23). Variants of one checkpoint (-reftext, _embedding,
@@ -222,49 +265,53 @@ def marked_label(model_dir):
 # and left out of the time plot. Hosted API systems (no released weights) are dated by
 # the vendor's public API launch.
 RELEASES = {
-    "kokoro": ("2025-01-27", "hexgrad/Kokoro-82M model card, Releases table (v1.0)", False),
-    "vibevoice-1.5b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS open-sourced)", False),
-    "vibevoice-7b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS; Large = 7B)", False),
-    "vibevoice-rt-0.5b": ("2025-12-03", "microsoft/VibeVoice README news (VibeVoice-Realtime-0.5B)", False),
-    "omni_glm-tts": ("2025-12-11", "zai-org/GLM-TTS README news (open-sourced)", False),
-    "cosyvoice3": ("2025-12-11", "HF FunAudioLLM/Fun-CosyVoice3-0.5B-2512 first commit (README undated)", False),
-    "omni_qwen3-tts-0.6b": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
-    "omni_qwen3-tts-0.6b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
-    "omni_qwen3-tts-1.7b": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
-    "omni_qwen3-tts-1.7b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news", False),
-    "moss-tts": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)", False),
-    "moss-tts-local": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)", False),
-    "omni_fish-s2-pro": ("2026-03-09", "Fish Audio blog, 'Fish Audio Open-Sources S2'", False),
-    "omni_voxtral-tts": ("2026-03-23", "Mistral blog, 'Speaking of Voxtral'", False),
-    "omni_omnivoice": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)", False),
-    "omni_omnivoice-reftext": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)", False),
-    "omni_voxcpm2": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)", False),
-    "omni_voxcpm2-reftext": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)", False),
-    "inworld_2_clone": ("2026-05-05", "Inworld TTS release notes, 'Realtime TTS-2'", False),
-    "moss-tts-v1.5": ("2026-05-26", "OpenMOSS/MOSS-TTS README news", False),
-    "omni_higgs-audio-v3": ("2026-06-04", "Boson AI blog, 'Higgs Audio v3 TTS'", False),
-    "zonos2_accurate": ("2026-06-12", "Zyphra blog, 'ZONOS2'", False),
-    "zonos2_expressive": ("2026-06-12", "Zyphra blog, 'ZONOS2'", False),
-    "moss-tts-local-v1.5": ("2026-06-18", "OpenMOSS/MOSS-TTS README news", False),
-    "neutts-2e": ("2026-07-30", "Neuphonic blog, 'Introducing NeuTTS-2E'", False),
-    "omni_breeze-tts-2": ("2026-08-25", "BreezeBlue/Breeze-TTS-2 card news (weights + PyTorch inference code)", False),
-    "cartesia_sonic-3.6_clone": ("2026-08-27", "Cartesia docs, Sonic 3.6 dated snapshot sonic-3.6-2026-08-27 (Stable)", False),
-    "gemini_3.8-flash": ("2026-09-23", "Google blog, 'Gemini 3.8 text-to-speech says hello'", False),
-    "elevenlabs_v4_clone": ("2026-09-28", "ElevenLabs blog, 'Eleven v4'", False),
+    "kokoro": ("2025-01-27", "hexgrad/Kokoro-82M model card, Releases table (v1.0)"),
+    "vibevoice-1.5b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS open-sourced)"),
+    "vibevoice-7b": ("2025-08-25", "microsoft/VibeVoice README news (VibeVoice-TTS; Large = 7B)"),
+    "vibevoice-rt-0.5b": ("2025-12-03", "microsoft/VibeVoice README news (VibeVoice-Realtime-0.5B)"),
+    "omni_glm-tts": ("2025-12-11", "zai-org/GLM-TTS README news (open-sourced)"),
+    "cosyvoice3": ("2025-12-11", "HF FunAudioLLM/Fun-CosyVoice3-0.5B-2512 first commit (README undated)"),
+    "omni_qwen3-tts-0.6b": ("2026-01-22", "QwenLM/Qwen3-TTS README news"),
+    "omni_qwen3-tts-0.6b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news"),
+    "omni_qwen3-tts-1.7b": ("2026-01-22", "QwenLM/Qwen3-TTS README news"),
+    "omni_qwen3-tts-1.7b-reftext": ("2026-01-22", "QwenLM/Qwen3-TTS README news"),
+    "moss-tts": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)"),
+    "moss-tts-local": ("2026-02-10", "OpenMOSS/MOSS-TTS README news (MOSS-TTS Family)"),
+    "omni_fish-s2-pro": ("2026-03-09", "Fish Audio blog, 'Fish Audio Open-Sources S2'"),
+    "omni_voxtral-tts": ("2026-03-23", "Mistral blog, 'Speaking of Voxtral'"),
+    "omni_omnivoice": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)"),
+    "omni_omnivoice-reftext": ("2026-04-01", "arXiv 2604.00688 v1 (OmniVoice)"),
+    "omni_voxcpm2": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)"),
+    "omni_voxcpm2-reftext": ("2026-04-03", "HF openbmb/VoxCPM2 first commit (README news: 2026.04)"),
+    "inworld_2_clone": ("2026-05-05", "Inworld TTS release notes, 'Realtime TTS-2'"),
+    "moss-tts-v1.5": ("2026-05-26", "OpenMOSS/MOSS-TTS README news"),
+    "omni_higgs-audio-v3": ("2026-06-04", "Boson AI blog, 'Higgs Audio v3 TTS'"),
+    "zonos2_accurate": ("2026-06-12", "Zyphra blog, 'ZONOS2'"),
+    "zonos2_expressive": ("2026-06-12", "Zyphra blog, 'ZONOS2'"),
+    "moss-tts-local-v1.5": ("2026-06-18", "OpenMOSS/MOSS-TTS README news"),
+    "neutts-2e": ("2026-07-30", "Neuphonic blog, 'Introducing NeuTTS-2E'"),
+    "omni_breeze-tts-2": ("2026-08-25", "BreezeBlue/Breeze-TTS-2 card news (weights + PyTorch inference code)"),
+    "cartesia_sonic-3.6_clone": ("2026-08-27", "Cartesia docs, Sonic 3.6 dated snapshot sonic-3.6-2026-08-27 (Stable)"),
+    "gemini_3.8-flash": ("2026-09-23", "Google blog, 'Gemini 3.8 text-to-speech says hello'"),
+    "elevenlabs_v4_clone": ("2026-09-28", "ElevenLabs blog, 'Eleven v4'"),
     "pocket-tts": ("2026-10-11", "HF kyutai/pocket-tts commit c54c3637 (default english refreshed; other "
-                   "languages 2026-10-01)", False),
-    "omni_drama-3": ("2026-10-13", "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)", False),
-    "ming-3.0-tts-0.5b": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
-    "ming-3.0-tts-tiny": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
-    "ming-3.0-tts-0.5b-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
-    "ming-3.0-tts-tiny-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'", False),
-    "phonon-40m-multilingual": ("2026-10-20", "Gradium blog, 'Open-Sourcing Phonon'", False),
-    "audio8-tts-realistic-0.6b": ("2026-10-29", "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)", False),
-    # not public yet: dated by the planned public release
-    "zonos3-mini_reference": ("2026-11-13", "Zyphra release plan", True),
-    "zonos3-mini_embedding": ("2026-11-13", "Zyphra release plan", True),
-    "zonos3-mini-laci_reference": ("2026-11-13", "Zyphra release plan", True),
-    "zonos3-mini-laci_embedding": ("2026-11-13", "Zyphra release plan", True),
+                   "languages 2026-10-01)"),
+    "omni_drama-3": ("2026-10-13", "Fish Audio blog, 'Fish Audio Drama 3' (HF fishaudio/drama-3 public 2026-10-13)"),
+    "ming-3.0-tts-0.5b": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'"),
+    "ming-3.0-tts-tiny": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'"),
+    "ming-3.0-tts-0.5b-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'"),
+    "ming-3.0-tts-tiny-trim": ("2026-10-19", "inclusionAI/Ming-3.0-tts GitHub, 'Initial release of Ming-3.0-tts'"),
+    "phonon-40m-multilingual": ("2026-10-20", "Gradium blog, 'Open-Sourcing Phonon'"),
+    "audio8-tts-realistic-0.6b": ("2026-10-29", "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)"),
+    "zonos3-mini_reference": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-mini_embedding": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-mini-laci_reference": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-mini-laci_embedding": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-rate30-20k_reference": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-rate30-20k_embedding": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-rate30-20k-r2grpo_reference": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-rate30-20k-r2grpo_embedding": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-rate30-20k-r2grpo-reftext_embedding": ("2026-11-06", "Zyphra release plan"),
 }
 
 # --- parameter counts -----------------------------------------------------------
@@ -276,6 +323,8 @@ RELEASES = {
 # per-token count; the chart plots `total`. Variants of one checkpoint share an entry.
 # Hosted API systems publish no size and have no entry.
 _Z3M = (0.886, 0.155, "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)")
+# rate30 and its post-trains: the lm/mect_60k architecture plus 20 more speaking-rate bucket rows (0.88617 B).
+_Z3M_RATE30 = (0.886, 0.155, "zonos3-rate30-20k-r2grpo converted model.pth tensor count (lm/mect_60k arch, 30 rate buckets)")
 PARAMS = {
     "kokoro": (0.082, None, "model name (Kokoro-82M)"),
     "phonon-40m-multilingual": (0.04, None, "gradium/phonon-40m-multilingual card: 40M excluding the audio tokenizer"),
@@ -314,6 +363,11 @@ PARAMS = {
     "zonos3-mini_embedding": _Z3M,
     "zonos3-mini-laci_reference": _Z3M,
     "zonos3-mini-laci_embedding": _Z3M,
+    "zonos3-rate30-20k_reference": _Z3M_RATE30,
+    "zonos3-rate30-20k_embedding": _Z3M_RATE30,
+    "zonos3-rate30-20k-r2grpo_reference": _Z3M_RATE30,
+    "zonos3-rate30-20k-r2grpo_embedding": _Z3M_RATE30,
+    "zonos3-rate30-20k-r2grpo-reftext_embedding": _Z3M_RATE30,
 }
 
 # --- system discovery -------------------------------------------------------

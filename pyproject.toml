@@ -49,7 +49,7 @@ dependencies = [
 # Native Google Gemini TTS for scripts/generate_gemini.py + run_generate_gemini.sh.
 # Not needed for the core benchmark; install with:  uv sync --extra gemini
 gemini = [
-    "google-genai",
+    "google-genai>=2.25.0",
 ]
 
 # Official ElevenLabs TTS for scripts/generate_elevenlabs.py +

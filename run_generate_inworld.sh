@@ -1,35 +1,38 @@
 #!/usr/bin/env bash
-# Generate audio with the Inworld REST TTS API.
+# Generate audio with Inworld TTS (/tts/v1/voice). Default: preset SYSTEM voices
+# per language; --clone true: per-utterance instant voice clone of the prompt wav
+# (no transcription), deleted right after synthesis.
+# HTTP client only (no GPU); loops every language of --task through
+# scripts/generate_inworld.py.
 #
-# Generation only -- no GPU / vLLM here. Score the output afterwards with the
-# existing run_infer_zonos2_eval.sh (run separately, see the hint at the end).
+#   uv sync --inexact --extra inworld   # one-time; --inexact keeps the scorer extras
+#   export INWORLD_API_KEY=...
+#   bash run_generate_inworld.sh --clone true --task clean_mini --test_set "en ja" --limit 4
+#   bash run_generate_inworld.sh --clone true --clone_rate_per_min 5 --task in-the-wild
 #
-#   uv sync --extra inworld          # one-time: install requests into .venv
-#   export INWORLD_API_KEY=...        # the base64 token after 'Basic ' in the curl
-#   bash run_generate_inworld.sh                                  # all of zero_shot
-#   bash run_generate_inworld.sh --model 2 --task zero_shot --test_set "en" --limit 5
+# The benchmark language is each data dir's basename; the client maps it to the
+# provider's language code. Writes wavs to <out_root>/<task>/<lang>/wavs/ and
+# skips existing wavs, so re-running retries failures. Score afterwards with the
+# hint printed at the end.
 #
-# Run it directly -- it picks up .venv/bin/python automatically. Do NOT wrap it
-# in a bare `uv run`: that re-syncs and drops the optional 'inworld' extra. If
-# you must, use `uv run --extra inworld bash run_generate_inworld.sh ...`.
+# Run it directly (it picks up .venv/bin/python); a bare `uv run` re-syncs and
+# drops the optional extra.
 #
-# Two modes: default uses preset (SYSTEM) voices fetched live per language (like
-# Gemini / ElevenLabs); --clone true does instant voice cloning of each prompt
-# speaker (real zero-shot speaker-similarity), writing to results/inworld_<m>_clone/.
-# Clones persist on the account -- remove them after scoring with --delete_clones true.
-#
-#   bash run_generate_inworld.sh --clone true --task zero_shot --test_set en  # spk-sim run
-#   bash run_generate_inworld.sh --delete_clones true --task zero_shot --test_set en  # cleanup
+# Only one instance per provider account may run at a time: clone creation is
+# paced to the workspace's CloneVoice rate limit (--clone_rate_per_min), which
+# concurrent runs would share. Needs a key with voices write access for --clone.
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --model         2 | 1.5-max | 1.5 | 1               (default 2)
-#   --task          restrict to one task group (default: zero_shot zero_shot_voxblink)
-#   --test_set      restrict to names within --task     (optional; needs --task)
-#   --workers       concurrent inworld requests per set  (default 4)
-#   --limit         only the first N utterances per set  (default 0 = all)
-#   --overwrite     regenerate existing wavs             (default false)
-#   --clone         clone each prompt speaker (IVC)      (default false)
-#   --delete_clones delete clones.txt voices, then exit  (default false)
+#   --model              2                                    (default 2)
+#   --clone              true = instant voice cloning         (default false)
+#   --task               task group                           (default clean)
+#   --test_set           languages within --task (default: every language of the task)
+#   --out_root           results root (default results/inworld_<model>, + _clone for --clone true)
+#   --workers            concurrent requests per language, preset mode (default 4)
+#   --clone_rate_per_min clone requests/minute (token bucket)  (default 5)
+#   --clone_workers      clone+synth+delete pipelines         (default 4)
+#   --limit              only the first N utterances per set  (default 0 = all)
+#   --overwrite          regenerate existing wavs             (default false)
 set -e
 
 if [ ! -f utils/parse_options.sh ]; then
@@ -38,119 +41,73 @@ if [ ! -f utils/parse_options.sh ]; then
 fi
 
 model=2
-task=
+clone=false
+task=clean
 test_set=
+out_root=
 workers=4
+clone_rate_per_min=5
+clone_workers=4
 limit=0
 overwrite=false
-clone=false
-delete_clones=false
 
-help_message="usage: bash run_generate_inworld.sh [--model {2|1.5-max|1.5|1}] [--task T] [--test_set \"...\"] [--workers N] [--limit N] [--overwrite true] [--clone true] [--delete_clones true]"
+help_message="usage: bash run_generate_inworld.sh [--model 2] [--clone true|false] [--task T] [--test_set \"...\"] [--out_root D] [--workers N] [--clone_rate_per_min R] [--clone_workers N] [--limit N] [--overwrite true]"
 . utils/parse_options.sh || exit 1
 
 case "${model}" in
-    2|1.5-max|1.5|1) ;;
+    2) ;;
     *) echo "${help_message}" 1>&2; exit 1 ;;
 esac
-if [ -n "${test_set}" ] && [ -z "${task}" ]; then
-    echo "error: --test_set requires --task" 1>&2
+if [ "${clone}" != "true" ] && [ "${clone}" != "false" ]; then
+    echo "error: --clone must be true or false (got '${clone}')" 1>&2
+    exit 2
+fi
+if [ -z "${out_root}" ]; then
+    out_root="results/inworld_${model}"
+    [ "${clone}" = "true" ] && out_root="${out_root}_clone"
+fi
+
+if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python; fi
+
+names="${test_set:-$(python3 -m utils.benchmark langs "${task}")}"
+if [ -z "${names}" ]; then
+    echo "error: unknown task '${task}'" 1>&2
     exit 1
 fi
 
-# Prefer the project venv's interpreter so this works without activation.
-if [ -x .venv/bin/python ]; then
-    PY=.venv/bin/python
-else
-    PY=python
-fi
+ow_opt=""; [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
+clone_opt=""; [ "${clone}" = "true" ] && clone_opt="--clone"
 
-# --- test sets ---------------------------------------------------
-sets_for() {
-    case "$1" in
-        zero_shot)              echo "zh en ja ko de es fr it ru" ;;
-        # 18 of voxblink's 21 langs. uk/vi/yo stay excluded: Inworld has no
-        # SYSTEM voice pool or clone locale for them (generate_inworld.py's
-        # LOCALE_FOR), so they would silently fall back to English voices.
-        zero_shot_voxblink)     echo "ar de en es fr hi id it ja ko nl pl pt ru th tl tr zh" ;;
-        *) echo "" ;;
-    esac
-}
-
-# --language label for each test set (selects which SYSTEM voice pool is fetched
-# and labels voices.txt).
-lang_for() {
-    case "$1/$2" in
-        zero_shot/zh) echo zh ;;
-        zero_shot/en) echo en ;;
-        zero_shot/ja) echo ja ;;
-        zero_shot/ko) echo ko ;;
-        zero_shot/de) echo de ;;
-        zero_shot/es) echo es ;;
-        zero_shot/fr) echo fr ;;
-        zero_shot/it) echo it ;;
-        zero_shot/ru) echo ru ;;
-        zero_shot_voxblink/*) echo "$2" ;;   # voxblink test-set name is the lang code
-        *) echo "" ;;
-    esac
-}
-
-tasks="${task:-zero_shot zero_shot_voxblink}"
-
-for tk in ${tasks}; do
-    names="${test_set:-$(sets_for ${tk})}"
-    if [ -z "${names}" ]; then
-        echo "error: unknown task '${tk}'" 1>&2
-        exit 1
+ran=0
+for nm in ${names}; do
+    data_dir="data/${task}/${nm}"
+    out_dir="${out_root}/${task}/${nm}"
+    if [ ! -f "${data_dir}/text" ]; then
+        echo "[skip] ${data_dir}: no 'text' file" 1>&2
+        continue
     fi
-    for nm in ${names}; do
-        data_dir="data/${tk}/${nm}"
-        # Clone-mode output lives in a separate tree so it never overwrites the
-        # preset-voice results (and so spk-sim is scored on the right set).
-        # --delete_clones targets the same clone tree (to find clones.txt).
-        if [ "${clone}" = "true" ] || [ "${delete_clones}" = "true" ]; then
-            out_dir="results/inworld_${model}_clone/${tk}/${nm}"
-        else
-            out_dir="results/inworld_${model}/${tk}/${nm}"
-        fi
-        if [ ! -f "${data_dir}/text" ]; then
-            echo "[skip] ${data_dir}: no 'text' file" 1>&2
-            continue
-        fi
-
-        lang_opt=""
-        lg="$(lang_for ${tk} ${nm})"
-        [ -n "${lg}" ] && lang_opt="--language ${lg}"
-        ow_opt=""
-        [ "${overwrite}" = "true" ] && ow_opt="--overwrite"
-        clone_opt=""
-        [ "${clone}" = "true" ] && clone_opt="--clone"
-        del_opt=""
-        [ "${delete_clones}" = "true" ] && del_opt="--clone --delete-clones"
-
-        label="inworld:${model}"; [ "${clone}" = "true" ] && label="${label}+clone"
-        echo "=== [${label}] ${data_dir} -> ${out_dir} ${lang_opt} ==="
-        "${PY}" scripts/generate_inworld.py \
-            --model "${model}" \
-            --data-dir "${data_dir}" \
-            --out-dir "${out_dir}" \
-            --workers "${workers}" \
-            --limit "${limit}" \
-            ${lang_opt} ${ow_opt} ${clone_opt} ${del_opt}
-    done
+    echo "=== [inworld:${model}${clone_opt:+ clone}] ${data_dir} -> ${out_dir} ==="
+    "${PY}" scripts/generate_inworld.py \
+        --model "${model}" \
+        --data-dir "${data_dir}" \
+        --out-dir "${out_dir}" \
+        --workers "${workers}" \
+        --clone-rate-per-min "${clone_rate_per_min}" \
+        --clone-workers "${clone_workers}" \
+        --limit "${limit}" \
+        ${ow_opt} ${clone_opt}
+    ran=$((ran + 1))
 done
 
-if [ "${clone}" = "true" ]; then
-    out_root="results/inworld_${model}_clone"
-else
-    out_root="results/inworld_${model}"
+if [ "${ran}" -eq 0 ]; then
+    echo "error: nothing generated (no data/${task}/<lang>/text for: ${names})" 1>&2
+    exit 1
 fi
+
+case "${task}" in
+    *voxblink*) scorer=run_infer_voxblink_eval.sh ;;
+    *)          scorer=run_infer_zonos2_eval.sh ;;
+esac
 echo
-[ "${delete_clones}" = "true" ] && exit 0
 echo "generation done -> ${out_root}/"
-echo "score it with run_infer_zonos2_eval.sh, e.g.:"
-echo "  DECODE_DIR=${out_root}/zero_shot bash run_infer_zonos2_eval.sh"
-if [ "${clone}" = "true" ]; then
-    echo "clones persist on your account; delete them when done with:"
-    echo "  bash run_generate_inworld.sh --model ${model} --delete_clones true${task:+ --task ${task}}${test_set:+ --test_set \"${test_set}\"}"
-fi
+echo "score with:  DECODE_DIR=${out_root}/${task} bash ${scorer} --task ${task} --test_set \"${names}\""

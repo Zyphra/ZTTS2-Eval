@@ -16,11 +16,11 @@
 # share a path with third_party/VibeVoice (realtime 0.5B): both define the same module
 # names at different versions.
 #
-#   bash run_generate_vibevoice15.sh                      # zero_shot, en + zh
+#   bash run_generate_vibevoice15.sh                      # clean, en + zh
 #   bash run_generate_vibevoice15.sh --test_set "en"      # one language
 #   bash run_generate_vibevoice15.sh --limit 3            # smoke
 #
-# Options: --task (zero_shot|zero_shot_voxblink), --test_set (default = en zh),
+# Options: --task (clean|in-the-wild), --test_set (default = en zh),
 #          --cfg_scale, --ddpm_steps, --out_root, --limit, --overwrite.
 set -e
 
@@ -28,7 +28,7 @@ if [ ! -f utils/parse_options.sh ]; then
     echo "error: run this from the repo root" 1>&2; exit 1
 fi
 
-task=zero_shot
+task=clean
 model=1.5b
 test_set=
 cfg_scale=1.3

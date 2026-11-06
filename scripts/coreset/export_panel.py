@@ -12,8 +12,8 @@ already expects, so **no generation or scoring code has to change**:
 
 Running the benchmark on a panel is then just:
 
-    bash run_generate_omni.sh   --model <m> --task zero_shot_mini --test_set en
-    bash run_infer_zonos2_eval.sh --task zero_shot_mini --test_set en
+    bash run_generate_omni.sh   --model <m> --task clean_mini --test_set en
+    bash run_infer_zonos2_eval.sh --task clean_mini --test_set en
 
 Original uids are preserved rather than renumbered, so any panel result can be traced
 back to the full set. Note the two sets differ in how they write prompt paths -- the
@@ -38,7 +38,7 @@ sys.path.insert(0, REPO_ROOT)
 from common import Matrix, load_panel  # noqa: E402
 from utils.per_uid import parse_scp, parse_text  # noqa: E402
 
-SET_TASK = {"clean": "zero_shot", "itw": "zero_shot_voxblink"}
+SET_TASK = {"clean": "clean", "itw": "in-the-wild"}
 
 
 def export(panel_path, out_task=None, overwrite=False, link=True, allow_missing=False):

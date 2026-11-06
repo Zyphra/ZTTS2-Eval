@@ -20,7 +20,7 @@
 # Environment (--export=ALL):
 #   GEN_DRIVER     driver script in the repo root                             (required)
 #   GEN_MODEL      model key of the driver; results/<GEN_MODEL> by default    (required)
-#   GEN_TASKS      space-separated tasks       (default "zero_shot zero_shot_voxblink")
+#   GEN_TASKS      space-separated tasks       (default "clean in-the-wild")
 #   GEN_LANGS      only these langs; empty = each task's whole basket       (default '')
 #   GEN_LIMIT      only the first N utterances per leaf                (default 0 = all)
 #   GEN_OUT_ROOT   results root                           (default results/<GEN_MODEL>)
@@ -40,7 +40,7 @@ set -uo pipefail
 [ -n "${GEN_DRIVER:-}" ] || { echo "[native-gen] ERROR: GEN_DRIVER is empty" >&2; exit 1; }
 [ -f "${GEN_DRIVER}" ] || { echo "[native-gen] ERROR: no ${GEN_DRIVER}: run from the repo root (sbatch --chdir)" >&2; exit 1; }
 [ -n "${GEN_MODEL:-}" ] || { echo "[native-gen] ERROR: GEN_MODEL is empty" >&2; exit 1; }
-GEN_TASKS=${GEN_TASKS:-"zero_shot zero_shot_voxblink"}
+GEN_TASKS=${GEN_TASKS:-"clean in-the-wild"}
 GEN_LANGS=${GEN_LANGS:-}
 GEN_LIMIT=${GEN_LIMIT:-0}
 GEN_OUT_ROOT=${GEN_OUT_ROOT:-results/${GEN_MODEL}}

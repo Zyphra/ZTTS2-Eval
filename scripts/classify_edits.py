@@ -7,8 +7,8 @@ For every utterance we re-tokenize ref & hyp with run_wer.py's own `prepare()` (
 or CER characters for zh/ja/ko/th), align them with jiwer, and bucket each individual
 substitution / insertion / deletion. Reported per set, and per language.
 
-    python scripts/classify_edits.py results/gt_zero_shot            # clean
-    python scripts/classify_edits.py results/gt_zero_shot_voxblink   # in-the-wild
+    python scripts/classify_edits.py results/gt_clean            # clean
+    python scripts/classify_edits.py results/gt_in-the-wild   # in-the-wild
 """
 import glob
 import os
@@ -147,7 +147,7 @@ NORM_KEYS = (
 
 
 def main():
-    root = sys.argv[1] if len(sys.argv) > 1 else "results/gt_zero_shot"
+    root = sys.argv[1] if len(sys.argv) > 1 else "results/gt_clean"
     cats, per_lang, lang_edits, tot = run(root)
     if tot == 0:
         print(f"\n===== {root}   (0 total edits) =====")

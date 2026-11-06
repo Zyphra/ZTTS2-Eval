@@ -189,7 +189,7 @@ def add_common_args(ap, default_glob, default_out):
     ap.add_argument("--label-re", default=None, help="regex for --label re (group 'series')")
     ap.add_argument("--rename", default=None,
                     help="comma list old=new applied to series labels, e.g. "
-                         "'gt_zero_shot=Qwen routed,whisper_zero_shot=Whisper'")
+                         "'gt_clean=Qwen routed,whisper_clean=Whisper'")
     ap.add_argument("--highlight", default=None,
                     help="comma list of series labels to emphasize (default: auto best/worst)")
     ap.add_argument("--limit", type=int, default=0,

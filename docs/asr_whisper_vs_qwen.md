@@ -95,7 +95,7 @@ base-URL switch — now wired into `run_wer.py`.
 
 ## Applied to the committed GT baselines
 
-The committed `results/gt_zero_shot{,_voxblink}/<lang>/wav_res_ref_text.wer` now use
+The committed `results/gt_{clean,in-the-wild}/<lang>/wav_res_ref_text.wer` now use
 this routing: the 42 non-`QWEN_LANGS` sets (28 clean + 14 VoxBlink) carry the
 Whisper-forced-lang score, the 8 `QWEN_LANGS` (`en zh ko th vi hi fa yo`) stay on
 Qwen. Macro-WER dropped **clean 24.9 → 10.1, VoxBlink 14.6 → 9.5** (a touch above the
@@ -122,7 +122,7 @@ error, never a silent fall-back to Qwen. `ASR_ROUTING=0` is a diagnostic all-Qwe
 mode whose results are not benchmark-comparable and are refused by `build_results.py`.
 
 ```bash
-DECODE_DIR=results/<system>/zero_shot bash run_infer_zonos2_eval.sh --task zero_shot --test_set en
+DECODE_DIR=results/<system>/clean bash run_infer_zonos2_eval.sh --task clean --test_set en
 # or reuse a running Whisper server:
 export WHISPER_BASE_URL=http://127.0.0.1:8001/v1
 ```

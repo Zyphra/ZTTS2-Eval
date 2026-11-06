@@ -13,7 +13,7 @@ The model card ships those voices while its limitations section still says "trai
 only on English data", so non-English output is vendor-flagged exploratory.
 
     ~/.venvs/vibevoice/bin/python scripts/generate_vibevoice.py \\
-        --data-dir data/zero_shot/en --out-dir results/vibevoice-rt-0.5b/zero_shot/en
+        --data-dir data/clean/en --out-dir results/vibevoice-rt-0.5b/clean/en
 """
 import argparse
 import copy

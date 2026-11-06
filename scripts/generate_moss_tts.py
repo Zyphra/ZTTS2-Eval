@@ -8,7 +8,7 @@ checkpoint. MossTTSDelay is an 8B zero-shot cloner: clone mode conditions on the
 reference wav's timbre (audio only, no transcript needed).
 
     ~/.venvs/moss-tts/bin/python scripts/generate_moss_tts.py \\
-        --data-dir data/zero_shot/en --out-dir results/moss-tts/zero_shot/en
+        --data-dir data/clean/en --out-dir results/moss-tts/clean/en
 """
 import argparse
 import os

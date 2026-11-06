@@ -10,26 +10,25 @@ Two voice modes:
     voices.txt). Inworld voices are language-specific, so the pool is fetched
     live from GET /voices/v1/voices filtered to source = "SYSTEM" for the target
     language (override with --voices). Speaker similarity is NOT meaningful here.
-  * --clone (instant voice cloning): clones each prompt_wav speaker into a
-    persistent workspace voice (POST /voices/v1/voices:clone), synthesizes with
-    that clone, and records uid->voiceId in clones.txt. This is the real
-    zero-shot speaker-similarity benchmark. Clones persist on your account --
-    delete them afterward with --delete-clones (reads clones.txt).
+  * --clone (instant voice cloning): per utterance, clones the prompt_wav
+    speaker into a workspace voice (POST /voices/v1/voices:clone, no
+    transcription -- TTS-2 cloning ignores it), synthesizes with that clone,
+    then deletes it. This is the real zero-shot speaker-similarity benchmark.
+    Orphans from a crashed run are swept at startup (matched by out-dir tag).
+
+The benchmark language is the basename of --data-dir; it is sent as `language`
+(and as the clone's languageCode), with tl->fil.
 
 Models (--model):
-    2        inworld-tts-2         latest generation (default)
-    1.5-max  inworld-tts-1.5-max   prior-gen, highest quality
-    1.5      inworld-tts-1.5       prior-gen, faster / cheaper
-    1        inworld-tts-1         oldest, for comparison
+    2        inworld-tts-2         (default)
 
 Requires the optional 'inworld' extra and an Inworld Basic auth token:
     uv sync --extra inworld
     export INWORLD_API_KEY=...   # the base64 token after 'Basic ' in the curl
 
 Usage:
-    python scripts/generate_inworld.py --model 2 \\
-        --data-dir data/zero_shot/en --out-dir results/inworld_2/zero_shot/en \\
-        --language en
+    python scripts/generate_inworld.py --model 2 --clone \\
+        --data-dir data/clean/en --out-dir results/inworld_2_clone/clean/en
 """
 import argparse
 import base64
@@ -45,38 +44,29 @@ from tqdm import tqdm
 
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.benchmark import CLEAN_LANGS, ITW_LANGS  # noqa: E402
 from utils.genclient import (  # noqa: E402
-    bytes_to_wav, detect_lang, format_error, load_test_set, normalize_lang,
-    pick_voice, run_generate_loop, with_retry)
+    apply_limit, benchmark_lang, bytes_to_wav, format_error, load_test_set,
+    pick_voice, run_generate_loop, with_retry, write_gen_meta)
 
 
 # --- model ids ---------------------------------------------------------------
 # Keys are version-tagged so each model's output lands in a distinct
 # results/inworld_<key>/ tree (never conflate two models in one dir).
 DEFAULT_MODEL = "2"
-MODEL_IDS = {
-    "2": "inworld-tts-2",
-    "1.5-max": "inworld-tts-1.5-max",
-    "1.5": "inworld-tts-1.5",
-    "1": "inworld-tts-1",
-}
+MODEL_IDS = {"2": "inworld-tts-2"}
 
 # --- endpoints ---------------------------------------------------------------
 TTS_URL = "https://api.inworld.ai/tts/v1/voice"          # sync (full audio in one JSON)
 VOICES_URL = "https://api.inworld.ai/voices/v1/voices"   # voice catalogue
 CLONE_URL = "https://api.inworld.ai/voices/v1/voices:clone"   # instant voice cloning (IVC)
 
-# Inworld langCode (locale) per harness language code, used when cloning a voice.
-# The clone API requires a full locale (e.g. EN_US), not the bare lang code.
-LOCALE_FOR = {
-    "en": "EN_US", "zh": "ZH_CN", "ja": "JA_JP", "ko": "KO_KR", "de": "DE_DE",
-    "es": "ES_ES", "fr": "FR_FR", "it": "IT_IT", "ru": "RU_RU", "ar": "AR_SA",
-    "hi": "HI_IN", "id": "ID_ID", "pl": "PL_PL", "pt": "PT_BR", "th": "TH_TH",
-    "tr": "TR_TR", "nl": "NL_NL",
-}
+# Benchmark language -> Inworld language code (synth `language` and clone
+# `languageCode`). TTS-2 covers every Clean + ITW language; Tagalog is `fil`.
+INWORLD_LANG = {**{lg: lg for lg in CLEAN_LANGS + ITW_LANGS}, "tl": "fil"}
 
-# Inworld trims clone samples to 15 s and caps the upload at 4 MB; we trim here too.
-CLONE_MAX_SECONDS = 15.0
+# TTS-2 accepts clone samples up to 30 s (the longest benchmark prompt is 20 s).
+CLONE_MAX_SECONDS = 30.0
 
 # Fallback English SYSTEM voices, used only if the voices API call fails or
 # returns nothing (so a run never hard-fails on voice discovery). Verify these
@@ -86,8 +76,10 @@ DEFAULT_VOICES = [
     "Olivia", "Sarah", "Theodore", "Timothy", "Wendy",
 ]
 
-# Request MP3 (always available); decoded to PCM_16 WAV for the scorers.
-AUDIO_ENCODING = "MP3"
+# Lossless LINEAR16 (a WAV with header at the model's native rate); re-written
+# as PCM_16 for the scorers.
+AUDIO_ENCODING = "LINEAR16"
+DELIVERY_MODE = "BALANCED (default)"  # not sent; recorded in gen_meta
 
 
 def _voice_name(v):
@@ -134,13 +126,14 @@ def list_system_voices(headers, lang, timeout):
     return [v for v in voices if not (v in seen or seen.add(v))]
 
 
-def synth(headers, model_id, text, voice_id, timeout, retries, base_delay):
+def synth(headers, model_id, text, voice_id, lang_code, timeout, retries, base_delay):
     """Run one Inworld synthesis and return the result audio bytes, retried."""
     payload = {
         "text": text,
-        "voice_id": voice_id,
-        "audio_config": {"audio_encoding": AUDIO_ENCODING},
-        "model_id": model_id,
+        "voiceId": voice_id,
+        "modelId": model_id,
+        "language": lang_code,
+        "audioConfig": {"audioEncoding": AUDIO_ENCODING},
     }
 
     def _call():
@@ -158,16 +151,8 @@ def synth(headers, model_id, text, voice_id, timeout, retries, base_delay):
 # --- instant voice cloning (IVC) ---------------------------------------------
 # Unlike the preset-voice path above, these clone the prompt speaker so Inworld
 # can be run on the real zero-shot speaker-similarity benchmark. Each prompt_wav
-# is cloned once into a persistent workspace voice (a voiceId), reused for that
-# utterance's synthesis, and removed afterward with --delete-clones.
-
-def locale_for(lang):
-    """Map a harness lang code (en/zh/...) to an Inworld langCode (EN_US/...)."""
-    lang = (lang or "").lower()
-    if lang in LOCALE_FOR:
-        return LOCALE_FOR[lang]
-    up = lang.upper()
-    return f"{up}_{up}" if up else "EN_US"
+# is cloned into a workspace voice (a voiceId), used for that utterance's
+# synthesis, and deleted right after.
 
 
 def clone_display_name(out_dir, uid):
@@ -193,20 +178,17 @@ def wav_to_clone_b64(path, max_seconds=CLONE_MAX_SECONDS):
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-def clone_voice(headers, display_name, lang_code, audio_b64, transcription,
+def clone_voice(headers, display_name, lang_code, audio_b64,
                 timeout, retries, base_delay):
     """Clone one voice from a base64 WAV sample; return its persistent voiceId.
 
     The clone endpoint rate-limits aggressively (429); this retries more times
     than a normal call, and the shared with_retry honors the server's
     Retry-After on 429 so a resume pass rides out the limit instead of giving up."""
-    sample = {"audioData": audio_b64}
-    if transcription:
-        sample["transcription"] = transcription
     payload = {
         "displayName": display_name,
-        "langCode": lang_code,
-        "voiceSamples": [sample],
+        "languageCode": lang_code,
+        "voiceSamples": [{"audioData": audio_b64}],
     }
     # 429s need patience, not just more workers -- give clones extra attempts.
     attempts = max(retries, 8)
@@ -243,7 +225,7 @@ def delete_voice(headers, voice_id, timeout):
     return True
 
 
-def build_preset_voices(headers, uids, texts, forced_lang, args):
+def build_preset_voices(headers, uids, lang, args):
     """Assign a preset SYSTEM voice to each uid (deterministic), write voices.txt.
 
     --voices override wins; otherwise fetch SYSTEM voices for each language we
@@ -267,10 +249,9 @@ def build_preset_voices(headers, uids, texts, forced_lang, args):
     vpath = os.path.join(args.out_dir, "voices.txt")
     with open(vpath, "w", encoding="utf-8") as f:
         for uid in uids:
-            lg = forced_lang or detect_lang(texts[uid])
-            voice = pick_voice(uid, pool_for(lg))
+            voice = pick_voice(uid, pool_for(INWORLD_LANG[lang]))
             voice_for[uid] = voice
-            f.write(f"{uid}\t{voice}\t{lg}\n")
+            f.write(f"{uid}\t{voice}\t{lang}\n")
     print(f"[inworld:{args.model}] voice assignments -> {vpath}")
     return voice_for
 
@@ -312,8 +293,7 @@ def _list_clone_vids(headers, out_dir, timeout):
     A clean run deletes every clone it makes, so any match is an orphan from a
     crashed/interrupted run -- safe to sweep. Raises on listing/HTTP errors
     (a 401/403 error body would otherwise read as an empty voice list and
-    make cleanup report 'no clones to delete' while the slots leak) -- callers
-    decide whether that is best-effort (_sweep_orphans) or fatal (--delete-clones)."""
+    make the sweep report nothing while the slots leak)."""
     prefix = clone_display_name(out_dir, "")  # e.g. 'zse_<tag>_'
     vids, page = [], ""
     while True:
@@ -347,8 +327,7 @@ def _sweep_orphans(headers, out_dir, timeout):
             _safe_delete(headers, vid, timeout)
 
 
-def run_clone_mode(headers, model_id, uids, texts, prompts, prompt_texts,
-                   forced_lang, wav_dir, args):
+def run_clone_mode(headers, model_id, uids, texts, prompts, lang_code, wav_dir, args):
     """Rate-paced streaming instant-voice-cloning: clone -> synth -> delete per utt.
 
     Each clone is gated through a shared token bucket paced to the workspace's
@@ -375,13 +354,11 @@ def run_clone_mode(headers, model_id, uids, texts, prompts, prompt_texts,
 
     def process(uid):
         # 1. clone (rate-limited) -------------------------------------------
-        lg = forced_lang or detect_lang(texts[uid])
         name = clone_display_name(args.out_dir, uid)
         try:
             limiter.acquire()
             b64 = wav_to_clone_b64(prompts[uid], args.clone_max_seconds)
-            vid = clone_voice(headers, name, locale_for(lg), b64,
-                              prompt_texts.get(uid, ""), args.timeout,
+            vid = clone_voice(headers, name, lang_code, b64, args.timeout,
                               args.retries, args.retry_base_delay)
         except Exception as e:  # noqa: BLE001
             return uid, "clone_fail", f"{type(e).__name__}: {e}"
@@ -390,7 +367,7 @@ def run_clone_mode(headers, model_id, uids, texts, prompts, prompt_texts,
                 pf.write(f"{vid}\t{uid}\n")
         # 2. synth with the clone -------------------------------------------
         try:
-            raw = synth(headers, model_id, texts[uid], vid,
+            raw = synth(headers, model_id, texts[uid], vid, lang_code,
                         args.timeout, args.retries, args.retry_base_delay)
             bytes_to_wav(raw, os.path.join(wav_dir, uid + ".wav"))
             status, err = "ok", None
@@ -438,9 +415,6 @@ def main():
                     help="test-set dir with 'text', 'prompt_text', 'prompt_wav.scp'")
     ap.add_argument("--out-dir", required=True,
                     help="output dir; wavs are written to <out-dir>/wavs/")
-    ap.add_argument("--language", default="",
-                    help="target language code (en/zh/ja/ko/...); selects which "
-                         "SYSTEM voice pool is fetched and labels voices.txt")
     ap.add_argument("--voices", default="",
                     help="comma-separated voice override (e.g. 'Sarah,Mark'); "
                          "bypasses the voices-API lookup")
@@ -449,8 +423,8 @@ def main():
                          "synthesize with the clone (real zero-shot spk-sim), instead "
                          "of using preset SYSTEM voices")
     ap.add_argument("--clone-max-seconds", type=float, default=CLONE_MAX_SECONDS,
-                    help="trim each clone sample to this many seconds (Inworld caps "
-                         "at 15s / 4MB)")
+                    help="trim each clone sample to this many seconds (TTS-2 "
+                         "accepts up to 30 s)")
     ap.add_argument("--clone-rate-per-min", type=float, default=5.0,
                     help="clone requests/minute, paced by a token bucket to the "
                          "workspace's CloneVoice rate limit (~5/min) to avoid 429s")
@@ -460,9 +434,6 @@ def main():
     ap.add_argument("--clone-workers", type=int, default=4,
                     help="pipeline concurrency (clone+synth+delete overlap); the "
                          "rate limiter caps the clone rate regardless")
-    ap.add_argument("--delete-clones", action="store_true",
-                    help="cleanup mode: delete every cloned voice listed in "
-                         "<out-dir>/clones.txt, then exit (no synthesis)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
     ap.add_argument("--workers", type=int, default=4, help="concurrent inworld requests")
     ap.add_argument("--timeout", type=float, default=300.0,
@@ -483,64 +454,12 @@ def main():
     model_id = MODEL_IDS[args.model]
     headers = {"Authorization": f"Basic {api_key}", "Content-Type": "application/json"}
 
-    # --- cleanup mode: delete every clone associated with this out-dir --------
-    # Batched runs delete their clones automatically; this is a safety net. It
-    # sweeps the pending ledger AND any IVC voice whose displayName carries this
-    # out-dir's tag (so a crashed/interrupted run leaves nothing on the account).
-    if args.delete_clones:
-        try:
-            vids = set(_list_clone_vids(headers, args.out_dir, args.timeout))
-        except Exception as e:  # noqa: BLE001
-            # Cleanup mode must not report 'no clones to delete' on a failed
-            # listing (e.g. 401/403) -- the account slots would silently leak.
-            sys.exit(f"error: voice listing failed ({e}); cannot verify clones "
-                     f"for {args.out_dir}")
-        # also honor the transient pending ledger + any legacy clones.txt --
-        # the two ledgers have opposite column orders, so key on the FILENAME
-        # (a string heuristic on the id misclassifies vids without '__' and the
-        # 404-tolerant delete would then report the real clone as deleted).
-        for fn in ("pending_clones.txt", "clones.txt"):
-            p = os.path.join(args.out_dir, fn)
-            if not os.path.exists(p):
-                continue
-            for ln in open(p, encoding="utf-8"):
-                parts = ln.strip().split("\t")
-                if not parts or not parts[0]:
-                    continue
-                if fn == "pending_clones.txt":   # vid-first ledger
-                    vids.add(parts[0])
-                elif len(parts) > 1:             # clones.txt is uid-first
-                    vids.add(parts[1])
-                else:
-                    print(f"[warn] {fn}: single-column line {parts[0]!r} -- "
-                          f"cannot tell voiceId from uid, skipping")
-        vids = sorted(x for x in vids if x)
-        if not vids:
-            print(f"[inworld:clone] no clones to delete for {args.out_dir}")
-            return
-        print(f"[inworld:clone] deleting {len(vids)} cloned voices for {args.out_dir}")
-        gone = failed = 0
-        for vid in tqdm(vids, desc="delete-clones"):
-            try:
-                delete_voice(headers, vid, args.timeout)
-                gone += 1
-            except Exception as e:  # noqa: BLE001
-                failed += 1
-                print(f"[del] {vid}: {e}")
-        for fn in ("pending_clones.txt",):
-            p = os.path.join(args.out_dir, fn)
-            if os.path.exists(p) and not failed:
-                os.remove(p)
-        print(f"done: {gone} deleted, {failed} failed")
-        return
-
     # Intersect so the uttid set matches the other engines (each test-set dir
     # has all three files); Inworld itself only needs the target text.
     texts, prompts, prompt_texts, uids = load_test_set(args.data_dir)
-    if args.limit > 0:
-        uids = uids[:args.limit]
-
-    forced_lang = normalize_lang(args.language)
+    uids = apply_limit(uids, args.limit)
+    lang = benchmark_lang(args.data_dir)
+    lang_code = INWORLD_LANG[lang]
 
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
@@ -548,19 +467,28 @@ def main():
     print(f"[inworld:{args.model}] {args.data_dir} -> {wav_dir} | {len(uids)} utterances "
           f"(text={len(texts)}, prompt_wav={len(prompts)}, prompt_text={len(prompt_texts)})")
 
+    # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
+    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
+        write_gen_meta(args.out_dir, provider="inworld", model=model_id,
+                       endpoint=TTS_URL, voice_mode="clone" if args.clone else "preset",
+                       language=lang, language_sent=lang_code,
+                       output_format=AUDIO_ENCODING, delivery_mode=DELIVERY_MODE,
+                       **({"clone_rate_per_min": args.clone_rate_per_min,
+                           "clone_max_seconds": args.clone_max_seconds}
+                          if args.clone else {}))
+
     if args.clone:
-        run_clone_mode(headers, model_id, uids, texts, prompts, prompt_texts,
-                       forced_lang, wav_dir, args)
+        run_clone_mode(headers, model_id, uids, texts, prompts, lang_code, wav_dir, args)
         return
 
-    voice_for = build_preset_voices(headers, uids, texts, forced_lang, args)
+    voice_for = build_preset_voices(headers, uids, lang, args)
 
     def generate(uid):
         out_path = os.path.join(wav_dir, uid + ".wav")
         if os.path.exists(out_path) and not args.overwrite:
             return uid, "skip", 0.0
         try:
-            raw = synth(headers, model_id, texts[uid], voice_for[uid],
+            raw = synth(headers, model_id, texts[uid], voice_for[uid], lang_code,
                         args.timeout, args.retries, args.retry_base_delay)
             dur = bytes_to_wav(raw, out_path)
             return uid, "ok", dur

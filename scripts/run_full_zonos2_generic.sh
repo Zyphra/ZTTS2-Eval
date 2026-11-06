@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generic full ZTTS2-Eval driver (both sets). Generates and scores the FLEURS-R
-# (zero_shot) and VoxBlink2 (zero_shot_voxblink) sets for one Zonos2 checkpoint.
+# (clean) and VoxBlink2 (in-the-wild) sets for one Zonos2 checkpoint.
 #
 # Usage:
 #   bash scripts/run_full_zonos2_generic.sh <TAG> <SERVER_URL>
@@ -18,7 +18,7 @@ OUT_ROOT="results/${TAG}"
 LOG_DIR="/tmp/full_${TAG}"
 mkdir -p "${LOG_DIR}"
 
-echo "=== [1/4] gen zero_shot ${SERVER} ==="
+echo "=== [1/4] gen clean ${SERVER} ==="
 bash run_generate_zonos2.sh \
     --server "${SERVER}" \
     --out_root "${OUT_ROOT}" \
@@ -27,25 +27,25 @@ bash run_generate_zonos2.sh \
 echo "gen_main exit $?"
 tail -5 "${LOG_DIR}/gen_main.log"
 
-echo "=== [2/4] gen zero_shot_voxblink ${SERVER} ==="
+echo "=== [2/4] gen in-the-wild ${SERVER} ==="
 bash run_generate_zonos2_voxblink.sh \
     --server "${SERVER}" \
-    --out_root "${OUT_ROOT}/zero_shot_voxblink" \
+    --out_root "${OUT_ROOT}/in-the-wild" \
     --workers 16 \
     > "${LOG_DIR}/gen_voxblink.log" 2>&1
 echo "gen_voxblink exit $?"
 tail -5 "${LOG_DIR}/gen_voxblink.log"
 
-echo "=== [3/4] score zero_shot ==="
-DECODE_DIR="${OUT_ROOT}/zero_shot" bash run_infer_zonos2_eval.sh \
-    --task zero_shot \
+echo "=== [3/4] score clean ==="
+DECODE_DIR="${OUT_ROOT}/clean" bash run_infer_zonos2_eval.sh \
+    --task clean \
     --test_set "en zh de es fr it ja ko ru" \
-    > "${LOG_DIR}/score_zero_shot.log" 2>&1
-echo "score_zero_shot exit $?"
-tail -3 "${LOG_DIR}/score_zero_shot.log"
+    > "${LOG_DIR}/score_clean.log" 2>&1
+echo "score_clean exit $?"
+tail -3 "${LOG_DIR}/score_clean.log"
 
-echo "=== [4/4] score zero_shot_voxblink ==="
-DECODE_DIR="${OUT_ROOT}/zero_shot_voxblink" bash run_infer_voxblink_eval.sh \
+echo "=== [4/4] score in-the-wild ==="
+DECODE_DIR="${OUT_ROOT}/in-the-wild" bash run_infer_voxblink_eval.sh \
     > "${LOG_DIR}/score_voxblink.log" 2>&1
 echo "score_voxblink exit $?"
 tail -3 "${LOG_DIR}/score_voxblink.log"
@@ -72,8 +72,8 @@ def parse_mean(p):
     except: return None
 
 for task, sets in [
-    ('zero_shot', 'en zh de es fr it ja ko ru'.split()),
-    ('zero_shot_voxblink', 'en zh de es fr it ja ko ru pt ar hi tr tl pl id th'.split()),
+    ('clean', 'en zh de es fr it ja ko ru'.split()),
+    ('in-the-wild', 'en zh de es fr it ja ko ru pt ar hi tr tl pl id th'.split()),
 ]:
     print(f'--- {task} ---')
     for s in sets:

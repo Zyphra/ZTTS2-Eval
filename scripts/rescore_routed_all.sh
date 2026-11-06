@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Complete the ASR-routing re-score of the FLEURS-R (zero_shot) set.
+# Complete the ASR-routing re-score of the FLEURS-R (clean) set.
 #
 # WHY THIS EXISTS
 # ---------------

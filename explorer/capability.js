@@ -24,8 +24,8 @@ const ciHasProsody = () => !!(CI_VIEW.data.prosody && CI_VIEW.data.prosody.syste
 const ciIndex = () => (CI_VIEW.index === "prosody" ? CI_VIEW.data.prosody : CI_VIEW.data);
 
 const ciName = (s) => (s.name === "real speech" ? s.name : cleanName(s.name));
-const ciLangs = (s, m) => `${s.langs.zero_shot}/${m.n_langs.zero_shot} Clean · ${s.langs.zero_shot_voxblink}/${m.n_langs.zero_shot_voxblink} ITW`;
-const ciPartial = (s, m) => s.langs.zero_shot < m.n_langs.zero_shot || s.langs.zero_shot_voxblink < m.n_langs.zero_shot_voxblink;
+const ciLangs = (s, m) => `${s.langs["clean"]}/${m.n_langs["clean"]} Clean · ${s.langs["in-the-wild"]}/${m.n_langs["in-the-wild"]} ITW`;
+const ciPartial = (s, m) => s.langs["clean"] < m.n_langs["clean"] || s.langs["in-the-wild"] < m.n_langs["in-the-wild"];
 
 const ciZyphra = (s) => s.name.startsWith("zonos");
 const ciDate = (s) => Date.parse(s.release + "T00:00:00Z");
@@ -36,17 +36,63 @@ function ciSummary(s) {
   const m = ciIndex().method;
   const band = s.anchor ? "anchor — fixed by definition" : `90% CI [${s.ci[0]}, ${s.ci[1]}]`;
   const rel = s.release
-    ? `<br><span class="meta">${s.prerelease ? "planned release" : "released"} ${ciDay(ciDate(s))} — ${s.release_source}</span>` : "";
+    ? `<br><span class="meta">released ${ciDay(ciDate(s))} — ${s.release_source}</span>` : "";
   const p = s.params;
   const size = p
     ? `<br><span class="meta">${fmtParams(p.total)} parameters${p.active ? ` (MoE, ${fmtParams(p.active)} active)` : ""} — ${p.source}</span>` : "";
   return `<b>${ciName(s)}</b><br>index <b>${s.index}</b> · ${band}<br>` +
-    `<span class="meta">${ciLangs(s, m)} languages · ${s.n_items} scores</span>${rel}${size}`;
+    `<span class="meta">${ciLangs(s, m)} languages · ${s.n_items} scores</span>${rel}${size}` +
+    (s.breakdown && CI_VIEW.pin !== s.name ? `<br><span class="meta">click for what decides the index</span>` : "");
 }
 
-const ciFocus = makeFocus("#ci-chart", { dim: "0.15" });
+const ciFocus = makeFocus("#ci-chart", { dim: "0.15", after: () => drawBreakdown() });
 const ciTip = makeTip("#ci-chart", "#ci-tip");
 const ciBind = makeBind(ciFocus, ciTip, CI_VIEW, ciSummary);
+
+// ---- breakdown of the pinned system's index -------------------------------------
+// Per group (dimension → metric, then test set), from build_capability_index.breakdown:
+// `level` is where the group's scores alone would put the system, `weight` the group's
+// share of the information the fit has about it, `points` = weight × level; the
+// points add up to the index.
+const CI_SET_LABEL = { clean: "Clean", "in-the-wild": "In-The-Wild" };
+const ciMetricLabel = (k) => (k === "charsec_x" ? "char/s ×ceil"
+  : (METRICS.find((m) => m.key === k) || { label: k }).label);
+const ciLevel = (v) => (v == null ? "—" : Math.abs(v) >= 1000 ? (v > 0 ? "> 999" : "< −999") : v.toFixed(1));
+const ciPct = (w) => (w > 0 && w < 0.01 ? "<1%" : `${Math.round(w * 100)}%`);
+let _ciBreakdownKey = null;
+
+function drawBreakdown() {
+  const box = $("#ci-breakdown");
+  const s = CI_VIEW.pin && CI_VIEW.data && ciIndex().systems.find((x) => x.name === CI_VIEW.pin);
+  const key = s && s.breakdown ? `${CI_VIEW.index}|${s.name}` : null;
+  if (key === _ciBreakdownKey) return;
+  _ciBreakdownKey = key;
+  if (!key) { box.hidden = true; box.innerHTML = ""; return; }
+
+  const row = (cls, label, p) =>
+    `<tr class="${cls}"><td>${label}</td><td>${p.n}</td>` +
+    `<td class="wt">${ciPct(p.weight)}<span class="wbar"><i style="width:${(p.weight * 100).toFixed(1)}%"></i></span></td>` +
+    `<td>${ciLevel(p.level)}</td><td>${p.points.toFixed(1)}</td></tr>`;
+  const b = s.breakdown;
+  const body = b.dimensions.map((g) =>
+    row("grp", g.key.charAt(0).toUpperCase() + g.key.slice(1), g) +
+    (g.metrics.length > 1 ? g.metrics.map((mm) => row("sub", ciMetricLabel(mm.key), mm)).join("") : "")).join("") +
+    `<tr class="sep"><td colspan="5"></td></tr>` +
+    b.sets.map((g) => row("grp", CI_SET_LABEL[g.key] || g.key, g)).join("");
+  box.innerHTML =
+    `<div class="bd-head"><h3>${ciName(s)} <span class="dim">· ${CI_VIEW.index} index ${s.index.toFixed(1)}</span></h3>` +
+    `<button class="bd-close" title="unpin">×</button></div>` +
+    `<p><b>Level</b>: where that group's scores alone would put the system on this scale. ` +
+    `<b>Weight</b>: how much of the placement the group decides — its share of the information the ` +
+    `fit has about this system; items near the system's level and with steep slopes count most, so ` +
+    `it is not the equal per-dimension weighting of the residuals. <b>Points</b> = weight × level; ` +
+    `the dimensions add up to the index, and so do the two test sets.</p>` +
+    `<table><thead><tr><th>group</th><th>scores</th><th>weight</th><th>level</th><th>points</th></tr></thead>` +
+    `<tbody>${body}<tr class="total"><td>index</td><td>${s.n_items}</td><td class="wt">100%</td>` +
+    `<td></td><td>${s.index.toFixed(1)}</td></tr></tbody></table>`;
+  box.hidden = false;
+  box.querySelector(".bd-close").onclick = () => { CI_VIEW.pin = null; ciTip.hide(); ciFocus(null); };
+}
 
 let _ciSegBound = false;
 function bindIndexSegs() {
@@ -95,9 +141,8 @@ window.renderIndex = async function () {
       `so systems scored on different language sets share one scale. Intelligibility, voice, ` +
       `quality and prosody weigh equally. ` + anchors;
   const tail = {
-    time: `Each system sits at its public release date (source in the tooltip); the line is the frontier, ` +
-      `the best system scored on every language released by then. Hollow = not yet public, dated by ` +
-      `its planned release. Vertical line = 90% bootstrap interval.`,
+    time: `Each system sits at its release date (source in the tooltip); the line is the frontier, ` +
+      `the best system scored on every language released by then. Vertical line = 90% bootstrap interval.`,
     params: `Each system sits at its published model size (the LM / backbone the developer names; ` +
       `codecs excluded; source in the tooltip), log scale. The line is the size frontier: the best ` +
       `system scored on every language at or below that size. Mixture-of-experts models (ZONOS2, ` +
@@ -108,8 +153,8 @@ window.renderIndex = async function () {
   };
   $("#ci-note").textContent = head + tail[CI_VIEW.mode];
   $("#ci-source").innerHTML =
-    `<span><b>Data:</b> ZTTS2-Eval · Clean (FLEURS-R, ${m.n_langs.zero_shot} languages) + ` +
-    `In-The-Wild (VoxBlink2, ${m.n_langs.zero_shot_voxblink} languages) · ${m.n_obs.toLocaleString()} scores · ` +
+    `<span><b>Data:</b> ZTTS2-Eval · Clean (FLEURS-R, ${m.n_langs["clean"]} languages) + ` +
+    `In-The-Wild (VoxBlink2, ${m.n_langs["in-the-wild"]} languages) · ${m.n_obs.toLocaleString()} scores · ` +
     `method: <a href="https://epoch.ai/data/eci-documentation/methodology" target="_blank" rel="noopener">Epoch Capabilities Index</a> · ` +
     `${m.bootstrap} bootstrap refits</span><span class="lic">CC BY</span>`;
   drawIndexView(d);
@@ -195,7 +240,7 @@ const CI_AXES = {
   time: {
     has: (s) => !!s.release,
     x: ciDate,
-    frontier: (s, m) => !s.prerelease && !ciPartial(s, m),
+    frontier: (s, m) => !ciPartial(s, m),
     label: "public release date",
     scale(xs, r0, r1) {   // whole quarters around the release dates
       const a = new Date(Math.min(...xs)), b = new Date(Math.max(...xs));
@@ -285,7 +330,7 @@ function drawIndexScatter(d, ax) {
     const col = ciZyphra(s) ? R_RED : ciPartial(s, m) ? R_MID : R_PRIMARY;
     if (s.ci)
       mark(svg.appendChild(svgEl("line", { x1: cx, y1: y(clamp(s.ci[0])), x2: cx, y2: y(clamp(s.ci[1])), stroke: col, "stroke-opacity": 0.3, "stroke-width": 1.4 })), s.name);
-    mark(svg.appendChild(svgEl("circle", { cx, cy, r: 4.2, fill: s.prerelease ? "#fafaf9" : col, stroke: col, "stroke-width": s.prerelease ? 1.6 : 0 })), s.name);
+    mark(svg.appendChild(svgEl("circle", { cx, cy, r: 4.2, fill: col })), s.name);
   });
 
   // frontier labels: the candidate spot (right/left of the dot's group, above/below, then
@@ -329,7 +374,6 @@ function drawIndexScatter(d, ax) {
   key(`<circle cx="11" cy="6" r="4.2" fill="${R_PRIMARY}"/>`, "scored on every language");
   key(`<circle cx="11" cy="6" r="4.2" fill="${R_MID}"/>`, "some languages only");
   key(`<circle cx="11" cy="6" r="4.2" fill="${R_RED}"/>`, "Zyphra");
-  key(`<circle cx="11" cy="6" r="4" fill="#fafaf9" stroke="${R_RED}" stroke-width="1.6"/>`, "planned release");
 }
 
 bindChartResize("#ci-chart", "index", () => !!CI_VIEW.data, () => drawIndexView(ciIndex()));

@@ -8,13 +8,13 @@
 # --trim-prompt): Ming continues from the prompt's tail, and the FLEURS-R prompts end in
 # silence. Writes <out_root>/<task>/<lang>/wavs/.
 #
-#   bash run_generate_ming3.sh --model ming-3.0-tts-0.5b                # zero_shot, 7 langs
+#   bash run_generate_ming3.sh --model ming-3.0-tts-0.5b                # clean, 7 langs
 #   bash run_generate_ming3.sh --model ming-3.0-tts-tiny --test_set en --limit 3
-#   bash run_generate_ming3.sh --model ming-3.0-tts-0.5b --task zero_shot_voxblink
+#   bash run_generate_ming3.sh --model ming-3.0-tts-0.5b --task in-the-wild
 #
 # Options (Kaldi-style "--name value"):
 #   --model      ming-3.0-tts-{0.5b,tiny}[-trim]               (default ming-3.0-tts-0.5b)
-#   --task       zero_shot | zero_shot_voxblink                (default zero_shot)
+#   --task       clean | in-the-wild                (default clean)
 #   --test_set   langs to run (quote); '' = all 7 supported    (default '')
 #   --out_root   results root                                  (default results/<model>)
 #   --limit      only the first N utterances per set            (default 0 = all)
@@ -27,7 +27,7 @@ if [ ! -f utils/parse_options.sh ]; then
 fi
 
 model=ming-3.0-tts-0.5b
-task=zero_shot
+task=clean
 test_set=
 out_root=
 limit=0
@@ -46,8 +46,8 @@ case "${model%-trim}" in
     *) echo "error: unknown Ming-3.0 model '${model}' (ming-3.0-tts-{0.5b,tiny}[-trim])" 1>&2; exit 1 ;;
 esac
 case "${task}" in
-    zero_shot|zero_shot_voxblink) ;;
-    *) echo "error: unsupported task '${task}' (zero_shot | zero_shot_voxblink)" 1>&2; exit 1 ;;
+    clean|in-the-wild) ;;
+    *) echo "error: unsupported task '${task}' (clean | in-the-wild)" 1>&2; exit 1 ;;
 esac
 out_root="${out_root:-results/${model}}"
 SRC="${MING3_SRC:-third_party/Ming-3.0-tts}"

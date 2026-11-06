@@ -214,6 +214,26 @@ class PitchRangeTest(unittest.TestCase):
         self.assertIsNotNone(r)
         self.assertAlmostEqual(r, 9.6, delta=1.0)
 
+    def test_background_hum_between_phrases_is_not_voice(self):
+        # pYIN tracks a steady 70 Hz hum (background bass) as voiced; as a separate run
+        # ~19 st below the voice it read as a 20 st range for a 4 st melody (controls C10).
+        from utils.pitch_range import range_st
+        sr_ = 16000
+
+        def harm(f0_of_t, dur, amp):
+            t = np.arange(int(sr_ * dur)) / sr_
+            phase = 2 * np.pi * np.cumsum(f0_of_t(t)) / sr_
+            return amp * sum(np.sin(h * phase) / h for h in range(1, 6))
+
+        glide = harm(lambda t: 180 * 2 ** (5 / 12 * t / 1.5), 1.5, 0.5)
+        gap = np.zeros(int(0.3 * sr_))
+        hum = harm(lambda t: np.full_like(t, 70.0), 0.6, 0.1)
+        with tempfile.TemporaryDirectory() as d:
+            sf.write(f"{d}/voice.wav", np.concatenate([glide, gap, glide]).astype(np.float32), sr_)
+            sf.write(f"{d}/hum.wav", np.concatenate([glide, gap, hum, gap, glide]).astype(np.float32), sr_)
+            voice, with_hum = range_st(f"{d}/voice.wav"), range_st(f"{d}/hum.wav")
+        self.assertAlmostEqual(with_hum, voice, delta=0.5)
+
 
 class LeafProblemsTest(unittest.TestCase):
     def _leaf(self, d, wer_lines):

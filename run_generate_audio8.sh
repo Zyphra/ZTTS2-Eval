@@ -10,9 +10,9 @@
 # Set up the server venv, checkouts and model snapshot first:
 #   bash scripts/setup_audio8_env.sh
 #
-#   bash run_generate_audio8.sh --task zero_shot --test_set "en zh" --limit 4
-#   bash run_generate_audio8.sh --task zero_shot_voxblink --gpu 2
-#   bash run_generate_audio8.sh --server http://127.0.0.1:8010 --task zero_shot
+#   bash run_generate_audio8.sh --task clean --test_set "en zh" --limit 4
+#   bash run_generate_audio8.sh --task in-the-wild --gpu 2
+#   bash run_generate_audio8.sh --server http://127.0.0.1:8010 --task clean
 #   AUDIO8_DISABLE_CUDA_GRAPH=1 bash run_generate_audio8.sh ...   # CUDA graphs off
 #
 # Writes wavs to <out_root>/<task>/<lang>/wavs/. Score afterwards with the hint
@@ -22,7 +22,7 @@
 #   --server          external endpoint; EMPTY = launch our own   (default '')
 #   --gpu             GPU index for the launched server           (default 0)
 #   --port            preferred port for the launched server      (default 8010)
-#   --task            task group                                  (default zero_shot)
+#   --task            task group                                  (default clean)
 #   --test_set        languages within --task (default: every language of the task)
 #   --out_root        results root      (default results/audio8-tts-realistic-0.6b)
 #   --workers         concurrent requests per language            (default 32)
@@ -39,7 +39,7 @@ fi
 server=""
 gpu=0
 port=8010
-task=zero_shot
+task=clean
 test_set=
 out_root="results/audio8-tts-realistic-0.6b"
 workers=32

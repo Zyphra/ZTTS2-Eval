@@ -159,16 +159,41 @@ class GetWavResRefTextTest(unittest.TestCase):
 
 class GroundTruthSplitTest(unittest.TestCase):
     def test_split_is_reproducible_disjoint_and_exhaustive(self):
-        left, right = split_indices(7, seed=0, key="zero_shot/en")
-        self.assertEqual((left, right), split_indices(7, seed=0, key="zero_shot/en"))
+        left, right = split_indices(7, seed=0, key="clean/en")
+        self.assertEqual((left, right), split_indices(7, seed=0, key="clean/en"))
         self.assertEqual((len(left), len(right)), (3, 4))
         self.assertFalse(set(left) & set(right))
         self.assertEqual(sorted(left + right), list(range(7)))
 
     def test_dataset_key_changes_the_sampling(self):
-        left, _ = split_indices(20, seed=0, key="zero_shot/en")
-        other, _ = split_indices(20, seed=0, key="zero_shot/de")
+        left, _ = split_indices(20, seed=0, key="clean/en")
+        other, _ = split_indices(20, seed=0, key="clean/de")
         self.assertNotEqual(left, other)
+
+
+class PanelAliasTest(unittest.TestCase):
+    """utils.benchmark.is_panel_alias: only a panel dir symlinked to the system's OWN
+    full-set dir is an alias. Scoring and the results walk skip aliases, so a genuine
+    panel run (a real dir, or a symlink into another store) must never count as one."""
+
+    def test_only_a_link_to_the_own_full_set_is_an_alias(self):
+        from utils.benchmark import is_panel_alias
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, True)
+        store = root / "store" / "clean_mini"
+        store.mkdir(parents=True)
+        sysd = root / "results" / "s"
+        (sysd / "clean").mkdir(parents=True)
+        (sysd / "in-the-wild_mini").mkdir()                    # genuine panel run
+        os.symlink("clean", sysd / "clean_mini")       # browse-only alias
+        self.assertTrue(is_panel_alias(str(sysd), "clean_mini"))
+        self.assertFalse(is_panel_alias(str(sysd), "in-the-wild_mini"))
+        self.assertFalse(is_panel_alias(str(sysd), "clean"))
+        self.assertFalse(is_panel_alias(str(sysd), "en"))     # GT leaves are flat
+        os.remove(sysd / "clean_mini")
+        os.symlink(store, sysd / "clean_mini")            # panel run in another store
+        self.assertFalse(is_panel_alias(str(sysd), "clean_mini"))
+
 
 
 class ExplorerServerTest(unittest.TestCase):
@@ -188,14 +213,14 @@ class ExplorerServerTest(unittest.TestCase):
         os.symlink(cls.outside, Path(cls.root) / "escape_link")
 
         # a coreset panel: two of the leaf's three utterances, with weights
-        pdir = Path(cls.root) / "data" / "zero_shot_mini"
+        pdir = Path(cls.root) / "data" / "clean_mini"
         (pdir / "en").mkdir(parents=True)
         (pdir / "panel.json").write_text(json.dumps({
-            "kind": "mini", "source_task": "zero_shot", "selector": "strat_meta",
+            "kind": "mini", "source_task": "clean", "selector": "strat_meta",
             "k_requested": 2, "k_actual": 2, "seed": 0,
             "langs": {"en": [["uttid_1", 0.75], ["uttid_2", 0.25]]}}))
         (pdir / "en" / "text").write_text("uttid_1 one\nuttid_2 two\nuttid_3 three\n")
-        leaf = Path(cls.root) / "results" / "m" / "zero_shot_mini" / "en"
+        leaf = Path(cls.root) / "results" / "m" / "clean_mini" / "en"
         leaf.mkdir(parents=True)
         (leaf / "wav_res_ref_text.wer").write_text(
             "".join(f"/w/{u}.wav\t{w}\tref\thyp\t0.0\t0.0\t{w}\n"
@@ -203,10 +228,12 @@ class ExplorerServerTest(unittest.TestCase):
 
         # a system dir that is a symlink into a shared store passed as --allow-root
         cls.store = tempfile.mkdtemp()
-        sleaf = Path(cls.store) / "s" / "zero_shot_mini" / "en"
+        sleaf = Path(cls.store) / "s" / "clean_mini" / "en"
         (sleaf / "wavs").mkdir(parents=True)
         (sleaf / "wavs" / "uttid_1.wav").write_bytes(b"\x00" * 64)
         (sleaf / "wav_res_ref_text.wer").write_text("/w/uttid_1.wav\t0.2\tref\thyp\t0.0\t0.0\t0.2\n")
+        # wav.scp names where the leaf was scored, not where it is served from
+        (sleaf / "wav.scp").write_text("uttid_1 /elsewhere/results/s/old_task/en/wavs/uttid_1.wav\n")
         os.symlink(Path(cls.store) / "s", Path(cls.root) / "results" / "s")
 
         with socket.socket() as s:  # free port
@@ -273,30 +300,38 @@ class ExplorerServerTest(unittest.TestCase):
     def test_allow_root_serves_symlinked_store_but_nothing_else(self):
         """--allow-root admits the store a results/ symlink resolves into; a symlink to
         any other directory still cannot escape --root."""
-        _, body = self._get("/api/utterances?model=s&task=zero_shot_mini&lang=en")
+        _, body = self._get("/api/utterances?model=s&task=clean_mini&lang=en")
         wer = {r["uid"]: r["wer"] for r in json.loads(body)["rows"]}
         self.assertEqual(wer["uttid_1"], 0.2)  # scored from the store leaf
-        status, body = self._get("/api/audio?path=results/s/zero_shot_mini/en/wavs/uttid_1.wav")
+        status, body = self._get("/api/audio?path=results/s/clean_mini/en/wavs/uttid_1.wav")
         self.assertEqual((status, len(body)), (200, 64))
         status, _ = self._get("/api/audio?path=escape_link/secret.wav")
         self.assertEqual(status, 404)
+
+    def test_generated_audio_url_follows_the_served_leaf(self):
+        """A leaf scored in another checkout or under an older task name keeps that
+        path in wav.scp; the drawer must still stream the leaf's own wavs/."""
+        _, body = self._get("/api/utterances?model=s&task=clean_mini&lang=en")
+        url = {r["uid"]: r.get("gen_url") for r in json.loads(body)["rows"]}["uttid_1"]
+        status, body = self._get(url)
+        self.assertEqual((status, len(body)), (200, 64))
 
     def test_meta_advertises_coreset_panels(self):
         status, body = self._get("/api/meta")
         self.assertEqual(status, 200)
         panels = json.loads(body)["panels"]
-        self.assertEqual(panels["zero_shot_mini"]["kind"], "mini")
-        self.assertEqual(panels["zero_shot_mini"]["source_task"], "zero_shot")
-        self.assertEqual(panels["zero_shot_mini"]["langs"], 1)
+        self.assertEqual(panels["clean_mini"]["kind"], "mini")
+        self.assertEqual(panels["clean_mini"]["source_task"], "clean")
+        self.assertEqual(panels["clean_mini"]["langs"], 1)
 
     def test_utterances_panel_restricts_and_weights(self):
         """?panel= must cut the leaf down to the panel's items and attach each
         weight — the drawer has to summarise the same population the board scored."""
-        _, body = self._get("/api/utterances?model=m&task=zero_shot_mini&lang=en")
+        _, body = self._get("/api/utterances?model=m&task=clean_mini&lang=en")
         self.assertEqual(json.loads(body)["total"], 3)  # unfiltered leaf
 
-        _, body = self._get("/api/utterances?model=m&task=zero_shot_mini&lang=en"
-                            "&panel=zero_shot_mini")
+        _, body = self._get("/api/utterances?model=m&task=clean_mini&lang=en"
+                            "&panel=clean_mini")
         rows = json.loads(body)
         self.assertEqual(rows["total"], 2)
         got = {r["uid"]: r["w"] for r in rows["rows"]}
@@ -304,7 +339,7 @@ class ExplorerServerTest(unittest.TestCase):
 
     def test_utterances_panel_name_cannot_escape_data_dir(self):
         """`panel` is joined onto data/, so it must stay a single path component."""
-        _, body = self._get("/api/utterances?model=m&task=zero_shot_mini&lang=en"
+        _, body = self._get("/api/utterances?model=m&task=clean_mini&lang=en"
                             "&panel=../../etc")
         rows = json.loads(body)
         self.assertEqual(rows["total"], 3)                       # no restriction applied
@@ -533,10 +568,10 @@ class PanelSnapshotTest(unittest.TestCase):
     def test_panel_leaf_uses_panel_weights(self):
         wers = {"uttid_1": 0.10, "uttid_2": 0.50}
         spks = {"uttid_1": 60.0, "uttid_2": 80.0}
-        panel = {"kind": "mini", "source_task": "zero_shot", "selector": "s",
+        panel = {"kind": "mini", "source_task": "clean", "selector": "s",
                  "w": {"en": {"uttid_1": 0.75, "uttid_2": 0.25}}}
         with tempfile.TemporaryDirectory() as tmp:
-            rec = self.br.collect_panel_leaf("m", "zero_shot_mini", "en",
+            rec = self.br.collect_panel_leaf("m", "clean_mini", "en",
                                              self._leaf(tmp, wers, spks), panel)
         # weighted: .75*10 + .25*50 = 20.0   (unweighted would be 30.0)
         self.assertAlmostEqual(rec["wer"][0], 20.0, places=6)
@@ -549,23 +584,23 @@ class PanelSnapshotTest(unittest.TestCase):
         """A leaf may hold more than the panel (the GT baselines are scored on the
         full task and filtered down here), so extra uids must not leak into the mean."""
         wers = {"uttid_1": 0.10, "uttid_2": 0.50, "uttid_9": 1.00}
-        panel = {"kind": "mini", "source_task": "zero_shot", "selector": "s",
+        panel = {"kind": "mini", "source_task": "clean", "selector": "s",
                  "w": {"en": {"uttid_1": 0.5, "uttid_2": 0.5}}}
         with tempfile.TemporaryDirectory() as tmp:
-            rec = self.br.collect_panel_leaf("gt_zero_shot", "zero_shot_mini", "en",
+            rec = self.br.collect_panel_leaf("gt_clean", "clean_mini", "en",
                                              self._leaf(tmp, wers, {}), panel)
         self.assertEqual(rec["n"], 2)
         self.assertAlmostEqual(rec["wer"][0], 30.0, places=6)
 
     def test_unscored_language_yields_no_row(self):
-        panel = {"kind": "mini", "source_task": "zero_shot", "selector": "s",
+        panel = {"kind": "mini", "source_task": "clean", "selector": "s",
                  "w": {"en": {"uttid_1": 1.0}}}
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "leaf").mkdir()
             self.assertIsNone(self.br.collect_panel_leaf(
-                "m", "zero_shot_mini", "en", str(Path(tmp) / "leaf"), panel))
+                "m", "clean_mini", "en", str(Path(tmp) / "leaf"), panel))
             self.assertIsNone(self.br.collect_panel_leaf(  # language not in the panel
-                "m", "zero_shot_mini", "zz", str(Path(tmp) / "leaf"), panel))
+                "m", "clean_mini", "zz", str(Path(tmp) / "leaf"), panel))
 
 
 class FullSetMacroTest(unittest.TestCase):
@@ -586,11 +621,11 @@ class FullSetMacroTest(unittest.TestCase):
         return r
 
     def test_macro_needs_every_language(self):
-        task = "zero_shot_voxblink"
+        task = "in-the-wild"
         recs = [self._rec("full", task, l, i) for i, l in enumerate(self.langs)]
         recs[0]["msr_utmos"] = None                       # one language lacks MSR
         recs += [self._rec("part", task, l, i) for i, l in enumerate(self.langs[1:])]
-        recs += [self._rec("gt_zero_shot_voxblink", "", l, i) for i, l in enumerate(self.langs)]
+        recs += [self._rec("gt_in-the-wild", "", l, i) for i, l in enumerate(self.langs)]
         out = {r["model"]: r for r in self.br.full_aggregates(recs) if r["task"] in (task, "")}
 
         mean_i = (len(self.langs) - 1) / 2
@@ -607,8 +642,8 @@ class FullSetMacroTest(unittest.TestCase):
         self.assertIsNone(part["wer"])
         self.assertIsNone(part["spk_xutt"])
 
-        self.assertEqual(out["gt_zero_shot_voxblink"]["task"], "")   # flat, like its rows
-        self.assertIsNotNone(out["gt_zero_shot_voxblink"]["wer"])
+        self.assertEqual(out["gt_in-the-wild"]["task"], "")   # flat, like its rows
+        self.assertIsNotNone(out["gt_in-the-wild"]["wer"])
 
 
 if __name__ == "__main__":

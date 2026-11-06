@@ -40,7 +40,7 @@ discover() {
 import os
 R, D = 'results', 'data'
 exp = {}
-for task in ('zero_shot', 'zero_shot_voxblink'):
+for task in ('clean', 'in-the-wild'):
     d = os.path.join(D, task)
     if not os.path.isdir(d):
         continue
@@ -131,7 +131,7 @@ out = []
 for sysd in sorted(os.listdir(R)):
     if sysd.startswith(('_', 'gt_', 'whisper_')):
         continue
-    for task in ('zero_shot', 'zero_shot_voxblink'):
+    for task in ('clean', 'in-the-wild'):
         base = os.path.join(R, sysd, task)
         if not os.path.isdir(base):
             continue

@@ -15,7 +15,7 @@
 #
 # Override the defaults via env: RESCORE_LANGS="bg uk", RESCORE_MODELS="cosyvoice3".
 # NB: set +u -- serve_asr.sh references optional unset vars (ASR_EXTRA_ARGS etc.),
-# same as scripts/run_gt_zero_shot.sh.
+# same as scripts/run_gt.sh.
 set +u
 # Under sbatch the script is copied to spool, so $0 is not the repo path; the job is
 # already at the repo root via `sbatch --chdir`. Only fall back to $0-relative cd when
@@ -52,9 +52,9 @@ echo "[rescore] routing via ${WHISPER_BASE_URL}; langs='${LANGS}'"
 n_ok=0; n_skip=0
 for m in ${MODELS}; do
   for lg in ${LANGS}; do
-    dd="results/${m}/zero_shot/${lg}"
+    dd="results/${m}/clean/${lg}"
     if [ ! -d "${dd}/wavs" ]; then echo "[skip] ${m}/${lg} (no wavs)"; n_skip=$((n_skip+1)); continue; fi
-    txt="data/zero_shot/${lg}/text"
+    txt="data/clean/${lg}/text"
     if [ ! -f "${txt}" ]; then echo "[skip] ${m}/${lg} (no ref text)"; n_skip=$((n_skip+1)); continue; fi
     rm -f "${dd}/wav_res_ref_text.wer" "${dd}/wav_res_ref_text.wer.raw"
     echo "=== rescore ${m}/${lg} ==="

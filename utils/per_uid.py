@@ -42,8 +42,8 @@ def read_lines(path):
 def parse_scp(path):
     """``<uid> <path>`` -> ``{uid: path}``. Used for wav.scp / prompt_wav.scp.
 
-    Collapses the doubled slash that ``data/zero_shot/`` prompt paths carry
-    (``data/zero_shot//en/waveform/...``).
+    Collapses the doubled slash that ``data/clean/`` prompt paths carry
+    (``data/clean//en/waveform/...``).
     """
     out = {}
     for line in read_lines(path):

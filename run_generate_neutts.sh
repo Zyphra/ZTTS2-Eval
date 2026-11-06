@@ -6,12 +6,12 @@
 # cloner -- speaker-similarity is not meaningful (WER + MSR-UTMOS are). It is
 # ENGLISH ONLY, so only the `en` set is generated. Writes results/neutts-2e/<task>/en/.
 #
-#   bash run_generate_neutts.sh                       # zero_shot/en (+ voxblink/en via --task)
+#   bash run_generate_neutts.sh                       # clean/en (+ voxblink/en via --task)
 #   bash run_generate_neutts.sh --limit 3             # smoke test
 #   bash run_generate_neutts.sh --speaker emily --emotion neutral
 #
 # Options (Kaldi-style "--name value"):
-#   --task       zero_shot | zero_shot_voxblink        (default zero_shot)
+#   --task       clean | in-the-wild        (default clean)
 #   --speaker    emily|paul|sophie|steven | rotate     (default rotate)
 #   --emotion    neutral|happy|sad|angry|...           (default neutral)
 #   --out_root   results root                          (default results/neutts-2e)
@@ -24,7 +24,7 @@ if [ ! -f utils/parse_options.sh ]; then
     exit 1
 fi
 
-task=zero_shot
+task=clean
 test_set=     # NeuTTS is English-only; accepted (the SLURM launcher passes it) but
               # only 'en' is generated. A non-en-containing test_set is a no-op.
 speaker=rotate

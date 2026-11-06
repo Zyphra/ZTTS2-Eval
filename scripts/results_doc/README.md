@@ -30,7 +30,7 @@ build_capability_index.py ──►  _cache/capability_index.json  (ECI-style co
 plot_capability_time.py   ──►  assets/plots/capability_index_time.png  (index vs public release date
                                 + frontier, ECI's headline chart; dates in rd_common.RELEASES)
 
-data/zero_shot_voxblink/_stage_a/manifest.tsv + _msr_utmos_cache.tsv
+data/in-the-wild/_stage_a/manifest.tsv + _msr_utmos_cache.tsv
         │
         ▼
 build_perbin.py    ──►  _cache/voxblink_uid_bin.json
@@ -39,13 +39,13 @@ build_perbin.py    ──►  _cache/voxblink_uid_bin.json
 
 build_perlen.py            ──►  _cache/voxblink_perlen.json           (per-text-length bucket, simple mean)
 build_perlen_weighted.py   ──►  _cache/voxblink_perlen_weighted.json  (∑edits/∑ref_len — the right cross-length aggregate)
-build_perlen_zeroshot.py   ──►  _cache/zeroshot_perlen_{simple,weighted}.json   (same bucketing on the controlled-content zero_shot set)
+build_perlen_clean.py   ──►  _cache/clean_perlen_{simple,weighted}.json   (same bucketing on the controlled-content clean set)
 
 plot_perbin.py             ──►  assets/plots/voxblink_perbin_heatmaps.png
 plot_perlen.py             ──►  assets/plots/voxblink_perlen_heatmaps.png
 plot_perlen_mean.py        ──►  assets/plots/voxblink_perlen_crosslang.png
-plot_perlen_zeroshot.py    ──►  assets/plots/perlen_zeroshot_vs_voxblink.png
-plot_tradeoff.py           ──►  assets/plots/tradeoff_{zero_shot,zero_shot_voxblink}.png  (WER vs rhythm / pitch range)
+plot_perlen_clean.py    ──►  assets/plots/perlen_clean_vs_in-the-wild.png
+plot_tradeoff.py           ──►  assets/plots/tradeoff_{clean,in-the-wild}.png  (WER vs rhythm / pitch range)
 
 gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + voxblink_perbin.json + voxblink_bin_counts.json + emo_score.txt files)
 
@@ -86,8 +86,8 @@ per-file copies.
   cached manifest. Defaults: 5 bins, MSR-UTMOS range [1.0, 4.0] (bin width 0.6).
 - The per-length voxblink trend (WER falling monotonically with REF length) is a
   **content-selection confound** in voxblink2 — see the memory note
-  `voxblink-length-confound.md`. The real signal lives on `zero_shot` and is a
-  U-shape, plotted by `plot_perlen_zeroshot.py`.
+  `voxblink-length-confound.md`. The real signal lives on `clean` and is a
+  U-shape, plotted by `plot_perlen_clean.py`.
 - `build_capability_index.py` fits the Epoch Capabilities Index model
   ([methodology](https://epoch.ai/data/eci-documentation/methodology)):
   `performance = sigmoid(slope_item · (capability_system − difficulty_item))`, one item per
@@ -109,8 +109,7 @@ per-file copies.
 - Release dates for the over-time chart live in `rd_common.RELEASES`, one entry per results
   dir with its source. They are taken from each project's announcement or dated news
   log, not Hugging Face `createdAt` (repos are often created privately weeks before
-  launch). A new system needs an entry there to appear on the time axis; systems not
-  yet public are flagged and dated by their planned release.
+  launch). A new system needs an entry there to appear on the time axis.
 - Model sizes for the explorer's parameters chart live in `rd_common.PARAMS`: the published
   size of each system's main generative model (LM / backbone), with its source, plus the
   active count for mixture-of-experts models. It is the size a model is known by, not every

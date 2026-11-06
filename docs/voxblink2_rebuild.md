@@ -1,6 +1,6 @@
 # Rebuild the VoxBlink2 Evaluation Set
 
-The released `data/zero_shot_voxblink/` directories are already prepared. Most
+The released `data/in-the-wild/` directories are already prepared. Most
 users do not need this flow; use it only if you want to reconstruct the
 in-the-wild set from a local copy of the raw VoxBlink2 audio.
 
@@ -17,7 +17,7 @@ in-the-wild set from a local copy of the raw VoxBlink2 audio.
 > `chmod` step below (run as the audio-tree owner) on the remaining VoxBlink2
 > speaker dirs/wavs.
 
-`data/zero_shot_voxblink/` is built from a pre-computed candidate pool over a
+`data/in-the-wild/` is built from a pre-computed candidate pool over a
 local VoxBlink2 audio tree. Point `VOXBLINK2_AUDIO_ROOT` at the audio tree
 (`<spk>/<vid>/<seg>.wav`). There are three steps: build the enriched candidate
 pool, Stage A (select speaker cross-video pairs per language), and Stage B (score
@@ -37,15 +37,15 @@ python scripts/prepare_voxblink2_eval_stage_a.py
 
 # Grant read+exec on the speaker/video dirs and read on the wav files the manifest
 # touches. Run as the audio-tree owner (or via sudo) if you lack chmod rights.
-xargs -d'\n' -n1 -P16 chmod o+rX < data/zero_shot_voxblink/_stage_a/dirs_to_chmod.txt
-xargs -d'\n' -n1 -P16 chmod o+r  < data/zero_shot_voxblink/_stage_a/files_to_chmod.txt
+xargs -d'\n' -n1 -P16 chmod o+rX < data/in-the-wild/_stage_a/dirs_to_chmod.txt
+xargs -d'\n' -n1 -P16 chmod o+r  < data/in-the-wild/_stage_a/files_to_chmod.txt
 
 # Stage B: MSR-UTMOS-score, stratified-sample, write text/prompt_text/prompt_wav.scp/waveform/
 python scripts/prepare_voxblink2_eval_stage_b.py
 
 # Extract the real target recordings behind each `text` line (the held-out
 # speaker-similarity reference and the ground-truth baseline); writes
-# data/zero_shot_voxblink/<lang>/target_wav/<uid>.wav
+# data/in-the-wild/<lang>/target_wav/<uid>.wav
 python scripts/extract_voxblink_gt.py
 
 # Validate them against the manifest and write target_wav.scp + target_provenance.json
@@ -73,5 +73,5 @@ pre-computed artifacts, filtered to the `voxblink2/` source:
 id/probability, and `xtx` is the agreement score. The join pre-filters on xtx and
 duration (looser than Stage A's gates) so only the surviving segments' small
 transcript JSONs are read. The build takes ~15 minutes and depends on filesystem
-layout outside this repo; the released `data/zero_shot_voxblink/` directories are
+layout outside this repo; the released `data/in-the-wild/` directories are
 the prepared output of this pipeline.

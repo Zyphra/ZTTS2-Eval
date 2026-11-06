@@ -14,7 +14,7 @@ generation that hits --max-new-tokens without EOS is kept truncated and logged.
 
 Usage:
     python scripts/generate_audio8.py --server http://127.0.0.1:8010 \\
-        --data-dir data/zero_shot/en --out-dir results/audio8-tts-realistic-0.6b/zero_shot/en
+        --data-dir data/clean/en --out-dir results/audio8-tts-realistic-0.6b/clean/en
 """
 import argparse
 import json

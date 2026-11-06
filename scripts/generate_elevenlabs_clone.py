@@ -10,21 +10,24 @@ Per utterance it: (1) creates an Instant Voice Clone (IVC) from the prompt_wav,
 PCM_16 WAV in the run_infer_zonos2_eval.sh layout, then (4) DELETES the temp
 voice so the account's custom-voice slots are freed for the next utterance.
 
-ElevenLabs note (research-preview): for eleven_v3 it recommends IVC (or designed
-voices) over Professional Voice Cloning, so IVC is the right clone type here.
-The benchmark prompts are short (~3-20 s) vs ElevenLabs' recommended 1-2 min, so
+Synthesis goes through generate_elevenlabs.synth (eleven_v4 via the
+Text-to-Dialogue API, language_code from the --data-dir basename, nb->no,
+tl->fil). The benchmark prompts are short (~3-20 s) vs ElevenLabs' recommended 1-2 min, so
 clone fidelity is on the low end -- a property of the prompts, not the method.
 
-Requires an ElevenLabs API key scoped with `create_instant_voice_clone` AND
-voice read/delete (the plain TTS key used by generate_elevenlabs.py is NOT
-sufficient -- it returns 401 missing_permissions on voices.ivc.create):
+Requires an ElevenLabs API key scoped with text-to-speech, voices read/write
+(instant voice cloning) and user-read (a plain TTS key returns 401
+missing_permissions on voices.ivc.create):
     uv sync --extra elevenlabs
-    export ELEVENLABS_API_KEY=...        # must include IVC + voice-write scope
+    export ELEVENLABS_API_KEY=...
+
+The startup/final purge deletes EVERY live ztts_clone_* voice on the account:
+run only one instance per account at a time.
 
 Usage:
-    python scripts/generate_elevenlabs_clone.py --model v3 \\
-        --data-dir data/zero_shot/en \\
-        --out-dir results/elevenlabs_v3_clone/zero_shot/en --language en
+    python scripts/generate_elevenlabs_clone.py --model v4 \\
+        --data-dir data/clean/en \\
+        --out-dir results/elevenlabs_v4_clone/clean/en
 """
 import argparse
 import os
@@ -38,7 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import generate_elevenlabs as ge  # noqa: E402
 from utils.genclient import (  # noqa: E402
-    format_error, load_test_set, run_generate_loop)
+    apply_limit, benchmark_lang, format_error, load_test_set, run_generate_loop,
+    write_gen_meta)
 
 try:
     from elevenlabs.client import ElevenLabs
@@ -100,19 +104,18 @@ def main():
                     help="test-set dir with 'text', 'prompt_text', 'prompt_wav.scp'")
     ap.add_argument("--out-dir", required=True,
                     help="output dir; wavs are written to <out-dir>/wavs/")
-    ap.add_argument("--language", default="",
-                    help="target language code; sent as language_code when supported")
     ap.add_argument("--limit", type=int, default=0, help="only the first N utterances")
-    ap.add_argument("--workers", type=int, default=2,
+    ap.add_argument("--workers", type=int, default=4,
                     help="concurrent (create+synth+delete) chains. Bounded by the "
-                         "account's simultaneous custom-voice cap (Free ~3); default 2")
+                         "account's custom-voice slots and concurrency limit; default 4")
     ap.add_argument("--timeout", type=float, default=300.0,
                     help="per-request timeout in seconds")
     ap.add_argument("--retries", type=int, default=4, help="attempts per API call")
     ap.add_argument("--retry-base-delay", type=float, default=2.0,
                     help="base backoff delay between retries, in seconds")
-    ap.add_argument("--seed", type=int, default=-1,
-                    help="eleven_v3 generation seed (>=0); omit for stochastic")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="generation seed (>=0, provider best-effort; default 0); "
+                         "negative = not sent (stochastic)")
     ap.add_argument("--keep-voices", action="store_true",
                     help="do NOT delete temp voices after synth (debug; risks hitting "
                          "the custom-voice cap)")
@@ -132,19 +135,24 @@ def main():
     client = ElevenLabs(api_key=api_key, timeout=args.timeout)
 
     texts, prompts, prompt_texts, uids = load_test_set(args.data_dir)
-    if args.limit > 0:
-        uids = uids[:args.limit]
-
-    forced_lang = ge.normalize_lang(args.language)
-    if args.language and forced_lang not in ge.ELEVEN_LANG:
-        print(f"[warn] --language '{args.language}' -> '{forced_lang}' unsupported; auto-detect")
-        forced_lang = ""
+    uids = apply_limit(uids, args.limit)
+    lang = benchmark_lang(args.data_dir)
 
     wav_dir = os.path.join(args.out_dir, "wavs")
     os.makedirs(wav_dir, exist_ok=True)
 
     print(f"[elevenlabs-clone:{args.model}] {args.data_dir} -> {wav_dir} | "
           f"{len(uids)} utterances | IVC per-utt, workers={args.workers}")
+
+    # Kept from the FIRST run of a resumed dir unless --overwrite regenerates.
+    if args.overwrite or not os.path.exists(os.path.join(args.out_dir, "gen_meta.json")):
+        write_gen_meta(args.out_dir, provider="elevenlabs", model=model_id,
+                       endpoint=ge.ENDPOINT, voice_mode="clone", language=lang,
+                       language_sent=ge.ELEVEN_LANG.get(lang),
+                       output_format=ge.OUTPUT_FORMAT,
+                       seed=args.seed if args.seed >= 0 else None,
+                       ivc={"remove_background_noise": False,
+                            "deleted_after_use": not args.keep_voices})
 
     if not args.no_purge:
         purge_stale(client)
@@ -159,8 +167,6 @@ def main():
             return uid, "skip", 0.0
         voice_id = None
         try:
-            target_text = texts[uid]
-            lang = forced_lang or ge.detect_lang(target_text)
             wav_path = prompts[uid]
             if not os.path.exists(wav_path):
                 return uid, f"error: prompt wav missing ({wav_path})", 0.0
@@ -169,7 +175,7 @@ def main():
                 name = f"{VOICE_PREFIX}{uid}_{counter['n']}"
             voice_id = create_ivc(client, name, wav_path,
                                   args.retries, args.retry_base_delay)
-            raw = ge.synth(client, model_id, target_text, voice_id, lang,
+            raw = ge.synth(client, model_id, texts[uid], voice_id, lang,
                            args.retries, args.retry_base_delay, seed=args.seed)
             dur = ge.bytes_to_wav(raw, out_path)
             return uid, "ok", dur

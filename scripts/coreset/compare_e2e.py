@@ -9,7 +9,7 @@ true value fell inside the interval.
 CI coverage is the property that matters here. An estimate that is off by 0.3 with a CI of
 ±0.5 is working as designed; one that is off by 0.3 with a CI of ±0.05 is not.
 
-    python scripts/coreset/compare_e2e.py --task zero_shot_mini --systems "zonos2_accurate kokoro"
+    python scripts/coreset/compare_e2e.py --task clean_mini --systems "zonos2_accurate kokoro"
 """
 
 import argparse

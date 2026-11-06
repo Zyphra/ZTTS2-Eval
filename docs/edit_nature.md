@@ -10,8 +10,8 @@ word-segmentation) versus a genuine mishearing.
 Reproduce with:
 
 ```
-python scripts/classify_edits.py results/gt_zero_shot            # clean
-python scripts/classify_edits.py results/gt_zero_shot_voxblink   # in-the-wild
+python scripts/classify_edits.py results/gt_clean            # clean
+python scripts/classify_edits.py results/gt_in-the-wild   # in-the-wild
 ```
 
 Every utterance is re-tokenized with `run_wer.py`'s own `prepare()` (words, or

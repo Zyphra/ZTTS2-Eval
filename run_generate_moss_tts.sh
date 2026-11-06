@@ -7,15 +7,15 @@
 #
 # MOSS-TTS (8B MossTTSDelay) is a multilingual zero-shot cloner; clone mode
 # conditions on the reference wav's timbre (audio only), so it covers all 9
-# zero_shot langs. Writes results/moss-tts/<task>/<lang>/wavs/. Score with
+# clean langs. Writes results/moss-tts/<task>/<lang>/wavs/. Score with
 # run_infer_zonos2_eval.sh.
 #
-#   bash run_generate_moss_tts.sh                          # zero_shot, all 9 langs
+#   bash run_generate_moss_tts.sh                          # clean, all 9 langs
 #   bash run_generate_moss_tts.sh --test_set "en zh" --limit 3   # smoke test
-#   bash run_generate_moss_tts.sh --task zero_shot_voxblink
+#   bash run_generate_moss_tts.sh --task in-the-wild
 #
 # Options (Kaldi-style "--name value"):
-#   --task       zero_shot | zero_shot_voxblink            (default zero_shot)
+#   --task       clean | in-the-wild            (default clean)
 #   --test_set   langs to run (quote); '' = task default    (default '')
 #   --out_root   results root                              (default results/moss-tts)
 #   --limit      only the first N utterances per set        (default 0 = all)
@@ -29,7 +29,7 @@ fi
 
 model=moss-tts       # variant key (see moss_id below); all share the one venv
 model_dir=           # explicit HF id / path override (wins over --model)
-task=zero_shot
+task=clean
 test_set=
 out_root=            # default: results/<model>
 limit=0
@@ -73,7 +73,7 @@ fi
 
 sets_for() {
     case "$1" in
-        zero_shot|zero_shot_voxblink) echo "en zh de es fr it ja ko ru" ;;
+        clean|in-the-wild) echo "en zh de es fr it ja ko ru" ;;
         *) echo "" ;;
     esac
 }

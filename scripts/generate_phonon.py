@@ -16,7 +16,7 @@ Synthesis is single-stream per model instance, so the leaf is spread over --work
 processes, each with its own model and --threads CPU threads.
 
     ~/.venvs/phonon/bin/python scripts/generate_phonon.py --language en \\
-        --data-dir data/zero_shot/en --out-dir results/phonon-40m-multilingual/zero_shot/en
+        --data-dir data/clean/en --out-dir results/phonon-40m-multilingual/clean/en
 """
 import argparse
 import multiprocessing

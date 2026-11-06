@@ -11,7 +11,7 @@
 #   EJ_ENGINE     omni|zonos2|kokoro|cosyvoice3|moss-tts|neutts|vibevoice|
 #                 vibevoice15|audio8                                 (required)
 #   EJ_MODEL      omni model key, or "zonos2" for the zonos2 engine  (required)
-#   EJ_TASK       zero_shot | zero_shot_voxblink                     (default zero_shot)
+#   EJ_TASK       clean | in-the-wild                     (default clean)
 #   EJ_TEST_SET   space-separated langs; empty = the script default  (default empty)
 #   EJ_WORKERS    concurrent generation requests                     (default 16)
 #   EJ_LIMIT      first N utts per set, 0 = all                      (default 0)
@@ -44,7 +44,7 @@ cd "${EJ_REPO:?EJ_REPO not set (repo root)}"
 
 engine="${EJ_ENGINE:?EJ_ENGINE not set (omni|zonos2)}"
 model="${EJ_MODEL:?EJ_MODEL not set}"
-task="${EJ_TASK:-zero_shot}"
+task="${EJ_TASK:-clean}"
 test_set="${EJ_TEST_SET:-}"
 workers="${EJ_WORKERS:-16}"
 limit="${EJ_LIMIT:-0}"
@@ -55,7 +55,7 @@ accurate_mode="${EJ_ACCURATE_MODE:-}"  # zonos2: true|false|empty
 model_path="${EJ_MODEL_PATH:-}"
 
 case "${task}" in
-    zero_shot|zero_shot_voxblink) ;;
+    clean|in-the-wild) ;;
     *) echo "eval_job: unsupported EJ_TASK '${task}'" 1>&2; exit 1 ;;
 esac
 
@@ -117,7 +117,7 @@ gen_args=()
 case "${engine}" in
     omni)
         out_base="results/omni_${model}"
-        if [ "${task}" = zero_shot_voxblink ]; then
+        if [ "${task}" = in-the-wild ]; then
             gen_script="run_generate_omni_voxblink.sh"   # task is pinned; no --task
             gen_args=(--model "${model}")
         else
@@ -143,9 +143,9 @@ case "${engine}" in
         [ -n "${server}" ] && zonos2_srv=(--server "${server}")
         [ -n "${model_path}" ] && zonos2_srv+=(--model_path "${model_path}")
         [ -n "${accurate_mode}" ] && zonos2_srv+=(--accurate_mode "${accurate_mode}")
-        if [ "${task}" = zero_shot_voxblink ]; then
+        if [ "${task}" = in-the-wild ]; then
             gen_script="run_generate_zonos2_voxblink.sh"  # task is pinned; no --task
-            gen_args=("${zonos2_srv[@]}" --out_root "${out_base}/zero_shot_voxblink")
+            gen_args=("${zonos2_srv[@]}" --out_root "${out_base}/in-the-wild")
         else
             gen_script="run_generate_zonos2.sh"
             gen_args=("${zonos2_srv[@]}" --task "${task}" --out_root "${out_base}")
@@ -233,7 +233,7 @@ bash "${gen_script}" "${gen_args[@]}"
 if [ "${do_score}" = true ]; then
     decode_dir="${out_base}/${task}"
     score_args=()
-    if [ "${task}" = zero_shot_voxblink ]; then
+    if [ "${task}" = in-the-wild ]; then
         score_script="run_infer_voxblink_eval.sh"        # task pinned inside
     else
         score_script="run_infer_zonos2_eval.sh"
@@ -241,7 +241,7 @@ if [ "${do_score}" = true ]; then
     fi
     # Score exactly what was generated. The run_infer_* scripts default to test_set="en"
     # only, but generation with an empty --test_set covers ALL of the task's languages
-    # (sets_for), so without this the other 8 zero_shot langs would go unscored. When no
+    # (sets_for), so without this the other 8 clean langs would go unscored. When no
     # EJ_TEST_SET was given, derive the language list from the generated subdirs.
     if [ -n "${test_set}" ]; then
         # Keep only languages the generator actually produced wavs for. A driver may

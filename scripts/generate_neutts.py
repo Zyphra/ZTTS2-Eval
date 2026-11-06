@@ -7,7 +7,7 @@ speaker-similarity is not meaningful (WER and MSR-UTMOS are). English only. Runs
 in-process (no server), like generate_kokoro.py / generate_echo.py.
 
     ~/.venvs/neutts/bin/python scripts/generate_neutts.py \\
-        --data-dir data/zero_shot/en --out-dir results/neutts-2e/zero_shot/en
+        --data-dir data/clean/en --out-dir results/neutts-2e/clean/en
 """
 import argparse
 import os

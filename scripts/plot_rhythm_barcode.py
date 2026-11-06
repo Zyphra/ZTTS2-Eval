@@ -43,7 +43,7 @@ STALL_FRAMES = 25  # 500 ms: stall (pathological; different ink on purpose)
 DARKRED = "#611A0E"
 AMBER = "#D08A18"
 SCHEMES = {"redmaroon": (RED, DARKRED), "yellowred": (AMBER, RED)}
-ROWS = ["gt_zero_shot_voxblink", "kokoro", "omni_qwen3-tts-1.7b",
+ROWS = ["gt_in-the-wild", "kokoro", "omni_qwen3-tts-1.7b",
         "omni_fish-s2-pro", "moss-tts", "omni_voxtral-tts",
         "zonos2_expressive", "omni_glm-tts"]
 
@@ -54,10 +54,10 @@ def pick_uid(dirs, tok, scan):
     common = sorted(set.intersection(*[
         {os.path.splitext(f)[0] for f in os.listdir(d) if f.endswith(".wav")}
         for d in dirs.values()]))[:scan]
-    gt_dir = dirs["gt_zero_shot_voxblink"]
+    gt_dir = dirs["gt_in-the-wild"]
     best, best_n = None, -1
     for uid in common:
-        _, wav = _load_trim((os.path.join(gt_dir, uid + ".wav"), 35.0))
+        _, wav = _load_trim(os.path.join(gt_dir, uid + ".wav"))
         if wav is None or not (5.0 <= len(wav) / 16000 <= 9.0):
             continue
         n_long = int((run_lengths(tok.labels(wav)) >= LONG_FRAMES).sum())
@@ -68,7 +68,7 @@ def pick_uid(dirs, tok, scan):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--test-set", default="zero_shot_voxblink")
+    ap.add_argument("--test-set", default="in-the-wild")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--uid", default=None, help="skip selection, plot this uid")
     ap.add_argument("--scan", type=int, default=120,
@@ -86,7 +86,7 @@ def main():
         print(f"  missing systems skipped: {missing}")
 
     ref_dir = os.path.join(REPO, "data", args.test_set, args.lang, "waveform")
-    key = anchor_key(ref_dir, 9, 100, 0, 35.0, LONG_FRAMES)
+    key = anchor_key(ref_dir, 9, 100, 0, LONG_FRAMES)
     anchor = np.load(CACHE_DIR / f"{key}.npz")
     tok = Tokenizer(9)
     tok.set_centroids(anchor["centroids"])
@@ -98,7 +98,7 @@ def main():
     for raw in ROWS:
         if raw not in dirs:
             continue
-        _, wav = _load_trim((os.path.join(dirs[raw], uid + ".wav"), 35.0))
+        _, wav = _load_trim(os.path.join(dirs[raw], uid + ".wav"))
         if wav is None:
             continue
         rows.append((SHORT.get(raw, raw), run_lengths(tok.labels(wav))))

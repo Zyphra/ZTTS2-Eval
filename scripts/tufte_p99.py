@@ -6,9 +6,9 @@
 # default) and read from whatever --glob points at. See tufte_common.py.
 #
 #   python tufte_p99.py                                   # per-lang GT (clean)
-#   python tufte_p99.py 'results/gt_zero_shot_voxblink/*/wav_res_ref_text.wer.raw'
-#   python tufte_p99.py 'results/{gt_zero_shot,whisper_zero_shot}/de/*.wer.raw' \
-#          --label set --rename 'gt_zero_shot=Qwen routed,whisper_zero_shot=Whisper'
+#   python tufte_p99.py 'results/gt_in-the-wild/*/wav_res_ref_text.wer.raw'
+#   python tufte_p99.py 'results/{gt_clean,whisper_clean}/de/*.wer.raw' \
+#          --label set --rename 'gt_clean=Qwen routed,whisper_clean=Whisper'
 #
 # Requires: numpy, matplotlib   (no scipy)
 import argparse
@@ -22,7 +22,7 @@ import tufte_common as tc
 
 ap = argparse.ArgumentParser(description=__doc__,
                              formatter_class=argparse.RawDescriptionHelpFormatter)
-tc.add_common_args(ap, "results/gt_zero_shot/*/wav_res_ref_text.wer.raw", "ztts_p99_tufte.png")
+tc.add_common_args(ap, "results/gt_clean/*/wav_res_ref_text.wer.raw", "ztts_p99_tufte.png")
 ap.add_argument("--boot", type=int, default=2000, help="bootstrap resamples (default: 2000)")
 args = ap.parse_args()
 

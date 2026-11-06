@@ -34,8 +34,8 @@ distribution. The GT leaf is never listed as a system.
 
 Usage
 -----
-    python scripts/utmos_shift.py                                   # zero_shot / en
-    python scripts/utmos_shift.py --test-set zero_shot_voxblink --lang en
+    python scripts/utmos_shift.py                                   # clean / en
+    python scripts/utmos_shift.py --test-set in-the-wild --lang en
     python scripts/utmos_shift.py --models omni_voxcpm2 --out /tmp/x.csv
 
 Output CSV: results/utmos_shift_<set>_<lang>.csv, sorted by |dmean|
@@ -75,7 +75,7 @@ def find_score_files(test_set, lang, only=None):
 
     nested: results/<sys>/<set>/<lang>/msr_utmos_scores.txt (+ results/<group>/<sys>/...)
     flat:   results/<backend>_<set>/<lang>/msr_utmos_scores.txt  (gt_, whisper_, ...)
-    The `*<set>` glob keeps zero_shot and zero_shot_voxblink disjoint.
+    The `*<set>` glob keeps clean and in-the-wild disjoint.
     """
     import glob
     results_root = os.path.join(REPO, "results")
@@ -124,7 +124,7 @@ def spearman(a, b):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--test-set", default="zero_shot")
+    ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
     ap.add_argument("--models", nargs="*", default=None, help="subset of system dirs; default = all found")
     ap.add_argument("--out", default=None, help="CSV path; default results/utmos_w2_<set>_<lang>.csv")

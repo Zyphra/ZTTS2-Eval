@@ -22,7 +22,7 @@ would be what the model continues from", ming_tts.py), and the FLEURS-R prompts 
 systems keep the prompts as given.
 
     ~/.venvs/ming3/bin/python scripts/generate_ming3.py --variant 0.5b --language en \\
-        --data-dir data/zero_shot/en --out-dir results/ming-3.0-tts-0.5b/zero_shot/en
+        --data-dir data/clean/en --out-dir results/ming-3.0-tts-0.5b/clean/en
 """
 import argparse
 import os

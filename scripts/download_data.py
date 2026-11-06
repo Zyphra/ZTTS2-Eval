@@ -3,14 +3,14 @@
 
 The metadata (text, prompt_text, prompt_wav.scp, target_wav.scp, ...) is tracked in
 git; the audio is the dataset Zyphra/ZTTS2-Eval: the prompt wavs
-(data/<task>/<lang>/waveform/, 24 GB in total) and, for zero_shot_voxblink, the
-held-out target recordings (data/zero_shot_voxblink/<lang>/target_wav/) behind the
+(data/<task>/<lang>/waveform/, 24 GB in total) and, for in-the-wild, the
+held-out target recordings (data/in-the-wild/<lang>/target_wav/) behind the
 speaker-similarity primary score. This script downloads them to the paths the
 committed .scp files already point at, then checks that every listed wav resolves.
 
 Usage:
     python scripts/download_data.py                              # both sets, all languages
-    python scripts/download_data.py --tasks zero_shot_voxblink --langs en zh
+    python scripts/download_data.py --tasks in-the-wild --langs en zh
     python scripts/download_data.py --revision <commit>          # pin a dataset revision
 
 Authentication: --token, else HF_TOKEN / a cached `hf auth login`. Downloads resume,
@@ -23,7 +23,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 DATA = REPO / "data"
-TASKS = ("zero_shot", "zero_shot_voxblink")
+TASKS = ("clean", "in-the-wild")
 
 
 def langs_of(task):
@@ -90,7 +90,7 @@ def main():
                         for task, langs in selected.items() for lang in langs
                         for pat in ([f"{task}/{lang}/waveform/*.wav"]
                                     + ([f"{task}/{lang}/target_wav/*.wav"]
-                                       if task == "zero_shot_voxblink" else []))],
+                                       if task == "in-the-wild" else []))],
         token=args.token,
         max_workers=args.max_workers,
     )

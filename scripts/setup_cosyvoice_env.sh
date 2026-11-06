@@ -76,6 +76,6 @@ cat <<EOF
 CosyVoice3 venv ready at ${VENV}.
 Model FunAudioLLM/Fun-CosyVoice3-0.5B-2512 downloads to the HF cache on first run.
 Generate with:
-  bash run_generate_cosyvoice.sh                          # zero_shot, all langs
+  bash run_generate_cosyvoice.sh                          # clean, all langs
   bash run_generate_cosyvoice.sh --test_set en --limit 3  # smoke test
 EOF

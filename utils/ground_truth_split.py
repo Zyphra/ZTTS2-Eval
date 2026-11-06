@@ -47,7 +47,7 @@ def main() -> None:
     ap.add_argument("--left", required=True)
     ap.add_argument("--right", required=True)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--key", required=True, help="stable dataset key, e.g. zero_shot/en")
+    ap.add_argument("--key", required=True, help="stable dataset key, e.g. clean/en")
     args = ap.parse_args()
     n_left, n_right = materialize_split(
         Path(args.src), Path(args.left), Path(args.right), args.seed, args.key)
