@@ -48,7 +48,7 @@ def read_slice(path, start, end):
     e = int(end * info.samplerate)
     wav, sr = sf.read(path, start=s, stop=e, dtype="float32", always_2d=False)
     if sr != SR:
-        # All voxblink source audio is 16 kHz mono per stage_a; warn if not.
+        # All VoxBlink2 source audio is 16 kHz mono per stage_a; warn if not.
         print(f"  WARN: {path} is {sr} Hz (expected {SR})", file=sys.stderr)
     if wav.ndim > 1:
         wav = wav.mean(axis=-1)

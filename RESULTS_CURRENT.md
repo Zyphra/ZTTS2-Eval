@@ -139,7 +139,7 @@ The same fit over 315 prosody items only (ECI's domain-specific index), with eve
 
 | System | WER_CLIP | Tail >50% | SPK (prompt) | MSR-UTMOS | Rhythm pace ×ceil | Rhythm pause ×ceil | Pitch range ×ceil | MPM span (Clean only) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
-| gt (fleurs-r) | 9.66 | 1.4 | — | 3.28 | — | — | — | -0.01 |
+| gt (clean) | 9.66 | 1.4 | — | 3.28 | — | — | — | -0.01 |
 
 **with-transcript clones**
 
@@ -223,7 +223,7 @@ Speaker similarity is scored against a held-out recording of the same speaker (*
 
 | System | WER_CLIP | Tail >50% | SPK held-out | SPK prompt | Copy gap (prompt − held-out) | MSR-UTMOS | Rhythm pace ×ceil | Rhythm pause ×ceil | Pitch range ×ceil | Dur \|log2\| | Pause Δ | Pitch-range \|log2\| |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| gt (voxblink) | 9.19 | 0.9 | 79.3 | 79.3 | 0.0 | 2.25 | 1.11 | 1.00 | 0.99 | — | — | — |
+| gt (in-the-wild) | 9.19 | 0.9 | 79.3 | 79.3 | 0.0 | 2.25 | 1.11 | 1.00 | 0.99 | — | — | — |
 
 **with-transcript clones**
 
@@ -301,7 +301,7 @@ MPM span is reported for the Clean set only: its anchors collapse on in-the-wild
 
 ## 1. Coverage matrix
 
-| Model | clean | voxblink |
+| Model | clean | in-the-wild |
 |---|:-:|:-:|
 | `breeze-tts-2` | ✓ | ✓ |
 | `drama-3` | ✓ | ✓ |
@@ -346,8 +346,8 @@ MPM span is reported for the Clean set only: its anchors collapse on in-the-wild
 | `zonos3-rate30-20k-r2grpo_reference` | ✓ | ✓ |
 | `zonos3-rate30-20k_embedding` | ✓ | ✓ |
 | `zonos3-rate30-20k_reference` | ✓ | ✓ |
-| `gt (fleurs-r)` | ✓ | — |
-| `gt (voxblink)` | — | ✓ |
+| `gt (clean)` | ✓ | — |
+| `gt (in-the-wild)` | — | ✓ |
 
 ## 1b. Conditioning
 
@@ -411,7 +411,7 @@ seed (unseeded server-default sampling); native recipes note their sampling defa
 
 ## 2. Zero-shot WER_CLIP % (35 languages)
 
-| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (fleurs-r) |
+| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (clean) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 2.45 | 1.92 | 2.14 | 4.54 | 3.56 | 28.30 | 2.60 | 2.20 | 1.89 | 3.38 | 2.37 | 3.59 | 3.93 | 2.64 | 2.10 | 3.14 | 2.10 | 2.10 | 37.95 | 2.39 | 17.21 | 7.01 | 2.59 | 2.62 | 25.06 | 2.83 | 11.96 | 2.56 | 2.49 | 3.87 | 2.81 | 2.91 | 2.45 | 4.33 | 2.51 | 2.26 | 2.40 | 2.21 | 2.95 | 2.34 | 2.16 | 2.87 | 2.11 | 4.30 |
 | zh | 4.04 | 3.52 | 4.02 | 4.23 | 6.29 | 33.05 | 3.34 | 3.48 | 3.07 | 5.19 | 4.64 | 5.06 | 4.63 | 91.49 | 4.32 | 3.35 | 4.01 | 4.65 | 20.84 | 3.85 | 20.61 | 5.15 | 3.72 | 3.75 | 99.67 | 3.89 | — | — | — | 4.72 | 3.68 | — | 11.82 | 16.25 | 3.63 | 3.64 | 3.65 | 7.32 | 5.73 | 4.13 | 4.10 | 4.09 | 4.08 | 3.02 |
@@ -452,7 +452,7 @@ seed (unseeded server-default sampling); native recipes note their sampling defa
 
 The avg row is shown only for systems that cover all 35 languages;
 others read `partial (n/35)` and are not comparable to full-coverage averages.
-The `gt (fleurs-r)` column is real speech scored by the same ASR — the
+The `gt (clean)` column is real speech scored by the same ASR — the
 achievable WER floor. zh/ja/ko/th are char-tokenized, so their "WER" is a
 CER and the `avg` column mixes WER and CER units.
 
@@ -465,7 +465,7 @@ falls back to reporting L50 over the full set — so a cell can exceed 50 for a
 model that collapsed on that language. The catastrophic tail itself is the
 **Tail >50%** column of §0.
 
-| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (fleurs-r) |
+| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (clean) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 2.45 | 1.92 | 2.14 | 3.95 | 3.26 | 21.67 | 2.28 | 2.16 | 1.89 | 2.54 | 2.22 | 2.81 | 3.02 | 2.37 | 2.10 | 3.06 | 2.03 | 2.10 | 2.18 | 2.34 | 6.43 | 5.46 | 2.44 | 2.41 | 2.44 | 2.78 | 5.61 | 2.52 | 2.29 | 2.90 | 2.71 | 2.78 | 2.31 | 2.63 | 2.51 | 2.26 | 2.40 | 2.21 | 2.39 | 2.34 | 2.10 | 2.34 | 2.11 | 4.21 |
 | zh | 3.70 | 3.37 | 3.75 | 3.86 | 5.92 | 26.19 | 3.28 | 3.06 | 2.85 | 2.97 | 3.20 | 3.99 | 3.89 | 42.66 | 4.19 | 3.15 | 3.84 | 4.46 | 3.24 | 3.70 | 4.69 | 4.36 | 3.48 | 3.62 | 11.71 | 3.65 | — | — | — | 3.77 | 2.85 | — | 4.40 | 4.94 | 3.50 | 3.44 | 3.51 | 3.40 | 3.81 | 3.95 | 3.55 | 3.90 | 3.51 | 3.02 |
@@ -505,7 +505,7 @@ model that collapsed on that language. The catastrophic tail itself is the
 
 ## 3. Zero-shot speaker similarity (×100, higher better)
 
-| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (fleurs-r) |
+| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (clean) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 81.5 | 74.8 | 77.2 | 83.4 | 72.4 | 82.7 | 84.6 | 70.1 | 68.5 | 80.7 | 80.0 | 66.1 | 84.0 | 13.0 | 77.3 | 85.2 | 12.8 | 10.5 | 48.0 | 79.1 | 73.4 | 81.8 | 81.4 | 83.0 | 77.0 | 80.7 | 9.0 | 10.7 | 64.0 | 77.8 | 79.9 | 14.2 | 67.0 | 68.4 | 79.0 | 70.4 | 79.1 | 70.1 | 82.4 | 80.9 | 70.7 | 79.8 | 72.0 | — |
 | zh | 83.2 | 84.1 | 83.3 | 89.4 | 81.0 | 87.0 | 88.9 | 81.2 | 79.8 | 85.3 | 85.3 | 77.0 | 88.2 | 23.9 | 83.3 | 90.5 | 37.0 | 33.2 | 71.5 | 86.5 | 74.2 | 87.7 | 85.7 | 86.8 | 82.7 | 85.9 | — | — | — | 83.9 | 84.5 | — | 69.8 | 65.5 | 84.3 | 77.4 | 84.3 | 74.8 | 85.8 | 85.3 | 77.4 | 85.1 | 78.5 | — |
@@ -553,7 +553,7 @@ model that collapsed on that language. The catastrophic tail itself is the
 
 MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for that leaf.
 
-| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (fleurs-r) |
+| Lang | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† | gt (clean) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 3.60 | 3.63 | 3.48 | 3.56 | 3.41 | 3.53 | 3.53 | 3.89 | 3.87 | 3.64 | 3.64 | 3.48 | 3.39 | 3.83 | 3.48 | 3.70 | 3.69 | 3.89 | 2.98 | 3.29 | 3.09 | 3.17 | 3.53 | 3.55 | 3.41 | 3.51 | 3.42 | 3.43 | 3.50 | 3.56 | 3.55 | 3.80 | 3.51 | 3.36 | 3.55 | 3.47 | 3.55 | 3.47 | 3.46 | 3.47 | 3.39 | 3.50 | 3.46 | 3.65 |
 | zh | 3.27 | 3.18 | 3.24 | 3.26 | 2.95 | 3.11 | 3.12 | 3.71 | 3.70 | 3.29 | 3.30 | 3.11 | 2.99 | 3.38 | 3.24 | 3.42 | 3.36 | 3.48 | 2.72 | 2.85 | 2.77 | 2.84 | 3.15 | 3.16 | 3.01 | 3.12 | — | — | — | 3.16 | 3.22 | — | 3.10 | 3.05 | 3.28 | 3.07 | 3.27 | 3.06 | 3.11 | 3.15 | 3.04 | 3.21 | 3.10 | 3.29 |
@@ -591,7 +591,7 @@ MOS predictor (`msr_utmos_mean.txt`). Empty cells = MSR-UTMOS not computed for t
 | ms | — | 2.97 | 3.05 | — | 2.80 | 2.89 | 2.86 | 3.48 | 3.49 | 3.04 | 2.99 | 2.71 | 2.78 | 3.32 | 2.94 | 3.33 | 3.23 | — | — | — | — | — | 2.86 | — | — | 2.86 | — | — | — | — | 2.95 | — | 2.95 | 2.90 | 3.02 | 2.73 | 3.02 | 2.74 | 2.86 | 2.81 | 2.69 | 2.87 | 2.74 | 3.12 |
 | fa | — | 3.06 | 3.17 | 2.88 | 3.00 | 3.05 | 3.05 | 3.46 | 3.49 | 3.09 | 3.15 | 2.85 | 2.90 | 3.34 | 3.05 | — | 3.39 | — | — | — | — | — | 3.08 | — | — | 3.07 | — | — | — | — | 3.14 | — | 2.99 | 2.93 | 3.13 | 3.00 | 3.12 | 2.99 | 3.04 | 3.00 | 2.94 | 3.04 | 3.01 | 3.25 |
 
-The `gt (fleurs-r)` column is real speech: the MOS predictor's anchor, not a
+The `gt (clean)` column is real speech: the MOS predictor's anchor, not a
 ceiling models must beat — read model cells against it.
 
 † = no-transcript clone (audio-only) · ◇ = x-vector-only clone · ‡ = preset voice (not cloning the prompt) · unmarked = ref transcript given. See §1b.
@@ -620,9 +620,9 @@ measured *paired* per utterance (duration ratio, pause-count difference, pitch-r
 ratio against the target): the **Dur**, **Pause Δ** and **Pitch-range |log2|**
 columns of §0.
 
-## 5. VoxBlink2 multilingual zero-shot (20 languages)
+## 5. In-the-wild (VoxBlink2) multilingual zero-shot (20 languages)
 
-Aggregates are in §0. The `gt (voxblink)` row is real in-the-wild speech: its WER
+Aggregates are in §0. The `gt (in-the-wild)` row is real in-the-wild speech: its WER
 is the ASR floor, its speaker similarity is the prompt scored against the real
 target recording (the same-speaker ceiling that **SPK held-out** is read against),
 and its MSR-UTMOS shows what the MOS predictor gives genuine in-the-wild audio.
@@ -630,7 +630,7 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 
 ### Per-language WER_CLIP
 
-| lang | gt (voxblink) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
+| lang | gt (in-the-wild) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 3.82 | 2.57 | 1.46 | 1.66 | 5.40 | 6.57 | 16.80 | 2.01 | 2.94 | 2.52 | 2.96 | 2.63 | 2.17 | 2.68 | 1.85 | 1.49 | 2.68 | 2.05 | 0.96 | 4.54 | 4.38 | 8.45 | 8.43 | 2.43 | 3.18 | 78.51 | 3.06 | 6.61 | 1.55 | 2.17 | 7.58 | 5.55 | 2.72 | 2.09 | 3.66 | 4.09 | 3.59 | 4.52 | 3.38 | 3.89 | 1.94 | 1.99 | 4.05 | 6.74 |
 | zh | 8.78 | 3.17 | 2.44 | 2.36 | 3.98 | 8.68 | 18.30 | 3.18 | 2.47 | 2.19 | 4.58 | 5.79 | 2.94 | 3.40 | 83.15 | 2.38 | 3.64 | 2.80 | 3.54 | 4.17 | 4.16 | 5.88 | 5.74 | 3.22 | 3.23 | 99.97 | 3.50 | — | — | — | 8.18 | 5.70 | — | 6.53 | 8.34 | 4.54 | 8.32 | 5.87 | 16.60 | 9.03 | 2.96 | 4.29 | 3.88 | 10.52 |
@@ -655,7 +655,7 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 
 ### Per-language WER_L50
 
-| lang | gt (voxblink) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
+| lang | gt (in-the-wild) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 3.77 | 2.35 | 1.19 | 1.56 | 3.65 | 5.43 | 12.77 | 1.77 | 2.67 | 2.37 | 2.57 | 2.47 | 1.98 | 2.62 | 1.55 | 1.49 | 2.68 | 2.05 | 0.89 | 3.63 | 3.59 | 5.04 | 5.09 | 2.31 | 2.41 | 2.45 | 2.67 | 4.31 | 1.55 | 2.06 | 4.89 | 4.25 | 2.18 | 1.97 | 2.83 | 2.88 | 2.75 | 2.58 | 1.87 | 2.56 | 1.81 | 1.56 | 2.16 | 1.99 |
 | zh | 8.07 | 2.77 | 2.21 | 2.15 | 3.01 | 8.13 | 14.52 | 2.88 | 2.00 | 1.98 | 2.82 | 2.87 | 2.75 | 3.03 | 39.95 | 2.17 | 3.33 | 2.64 | 3.31 | 3.33 | 3.31 | 3.49 | 3.48 | 2.91 | 2.68 | 103.84 | 3.06 | — | — | — | 5.41 | 3.60 | — | 3.36 | 3.68 | 3.44 | 3.51 | 3.25 | 3.45 | 4.74 | 2.44 | 2.31 | 2.58 | 2.85 |
@@ -680,7 +680,7 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 
 ### Per-language speaker similarity, held-out recording (×100)
 
-| lang | gt (voxblink) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
+| lang | gt (in-the-wild) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 76.3 | 62.3 | 55.2 | 54.9 | 60.1 | 56.0 | 54.3 | 57.8 | 61.6 | 63.0 | 61.7 | 63.0 | 57.5 | 61.4 | 8.8 | 52.7 | 63.9 | 10.1 | 8.8 | 55.9 | 56.0 | 59.7 | 59.7 | 59.0 | 61.8 | 55.8 | 58.4 | 7.3 | 7.4 | 39.9 | 51.0 | 55.6 | 8.2 | 42.3 | 48.9 | 58.8 | 45.3 | 58.4 | 44.6 | 62.5 | 62.1 | 45.3 | 60.1 | 44.7 |
 | zh | 80.6 | 70.7 | 68.5 | 67.3 | 71.6 | 65.5 | 67.4 | 69.2 | 64.5 | 66.0 | 71.4 | 71.9 | 69.4 | 70.9 | 19.1 | 65.4 | 74.7 | 31.1 | 27.7 | 68.8 | 68.8 | 70.6 | 70.5 | 69.0 | 70.6 | 66.6 | 68.7 | — | — | — | 61.2 | 63.2 | — | 57.1 | 57.8 | 67.4 | 53.3 | 66.6 | 49.1 | 69.1 | 69.9 | 54.6 | 68.7 | 52.4 |
@@ -705,7 +705,7 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 
 ### Per-language speaker similarity, prompt (×100)
 
-| lang | gt (voxblink) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
+| lang | gt (in-the-wild) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 76.3 | 73.6 | 65.1 | 65.3 | 73.3 | 64.8 | 66.3 | 69.9 | 73.5 | 74.7 | 73.3 | 74.7 | 69.2 | 73.7 | 8.6 | 63.3 | 78.0 | 9.8 | 8.7 | 67.7 | 67.7 | 72.1 | 72.0 | 70.4 | 73.8 | 66.4 | 69.7 | 7.2 | 7.1 | 46.6 | 58.9 | 64.7 | 8.1 | 48.7 | 57.1 | 69.6 | 52.2 | 69.2 | 51.7 | 75.6 | 75.0 | 52.7 | 71.7 | 51.5 |
 | zh | 80.6 | 77.8 | 75.0 | 73.8 | 81.7 | 70.9 | 75.2 | 76.7 | 71.3 | 73.2 | 79.2 | 79.4 | 77.4 | 79.1 | 18.9 | 72.3 | 85.3 | 30.2 | 27.1 | 77.2 | 77.1 | 79.1 | 79.0 | 76.0 | 78.5 | 73.5 | 76.2 | — | — | — | 66.0 | 68.7 | — | 61.8 | 62.6 | 75.4 | 57.0 | 74.6 | 52.2 | 78.5 | 79.0 | 58.7 | 77.0 | 56.0 |
@@ -732,7 +732,7 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 
 ### Per-language MSR-UTMOS (blank = not computed)
 
-| lang | gt (voxblink) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
+| lang | gt (in-the-wild) | breeze-tts-2 | drama-3 | fish-s2-pro | glm-tts | higgs-audio-v3 | omnivoice† | omnivoice-reftext | qwen3-0.6b◇ | qwen3-1.7b◇ | qwen3-tts-0.6b-reftext | qwen3-tts-1.7b-reftext | voxcpm2† | voxcpm2-reftext | voxtral‡ | audio8-tts-realistic-0.6b | cosyvoice3 | gemini-3.8-flash‡ | kokoro‡ | ming-3.0-tts-0.5b | ming-3.0-tts-0.5b-trim | ming-3.0-tts-tiny | ming-3.0-tts-tiny-trim | moss-tts† | moss-tts-local† | moss-tts-local-v1.5† | moss-tts-v1.5† | neutts-2e‡ | phonon-40m-multilingual‡ | pocket-tts† | vibevoice-1.5b† | vibevoice-7b† | vibevoice-rt-0.5b‡ | zonos2_accurate† | zonos2_expressive† | zonos3-mini-laci_embedding◇ | zonos3-mini-laci_reference† | zonos3-mini_embedding◇ | zonos3-mini_reference† | zonos3-rate30-20k-r2grpo-reftext_embedding | zonos3-rate30-20k-r2grpo_embedding◇ | zonos3-rate30-20k-r2grpo_reference† | zonos3-rate30-20k_embedding◇ | zonos3-rate30-20k_reference† |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | en | 2.47 | 2.74 | 3.01 | 2.93 | 2.71 | 2.69 | 3.08 | 3.11 | 3.03 | 3.07 | 3.03 | 3.07 | 2.61 | 2.53 | 3.79 | 3.00 | 3.08 | 3.59 | 3.91 | 2.40 | 2.40 | 2.49 | 2.49 | 2.88 | 2.83 | 2.75 | 2.87 | 3.42 | 3.47 | 2.85 | 2.61 | 2.64 | 3.72 | 3.11 | 2.59 | 2.95 | 2.85 | 2.95 | 2.84 | 2.85 | 3.01 | 2.87 | 2.92 | 2.76 |
 | zh | 2.18 | 2.47 | 2.62 | 2.67 | 2.41 | 2.27 | 2.82 | 2.87 | 2.84 | 2.85 | 2.67 | 2.66 | 2.31 | 2.24 | 3.43 | 2.78 | 2.71 | 3.34 | 3.55 | 2.12 | 2.12 | 2.20 | 2.20 | 2.51 | 2.50 | 2.49 | 2.49 | — | — | — | 2.35 | 2.41 | — | 2.52 | 2.44 | 2.79 | 2.59 | 2.79 | 2.56 | 2.62 | 2.83 | 2.78 | 2.75 | 2.63 |
@@ -756,21 +756,6 @@ zh/ja/ko/th are char-tokenized, so their "WER" is a CER.
 | vi | 2.23 | — | 2.52 | 2.63 | — | 2.20 | 2.67 | 2.76 | 2.81 | 2.73 | 2.63 | 2.59 | 2.23 | 2.15 | 3.29 | 2.65 | 2.57 | 3.12 | — | — | — | — | — | 2.40 | — | — | 2.42 | — | — | — | — | 2.29 | — | 2.68 | 2.35 | 2.65 | 2.51 | 2.66 | 2.53 | 2.56 | 2.73 | 2.65 | 2.64 | 2.50 |
 
 † = no-transcript clone (audio-only) · ◇ = x-vector-only clone · ‡ = preset voice (not cloning the prompt) · unmarked = ref transcript given. See §1b.
-
-### Per-bin / per-length analysis
-
-Per-MSR-UTMOS-bin WER_CLIP heatmaps (rows = languages, columns = MSR-UTMOS
-quality bins, worst→best source audio):
-
-![Voxblink per-bin WER_CLIP heatmaps](assets/plots/voxblink_perbin_heatmaps.png)
-
-Same WER_CLIP bucketed by REF text-length quantiles per language:
-
-![Voxblink per-text-length WER_CLIP heatmaps](assets/plots/voxblink_perlen_heatmaps.png)
-
-Per-length on controlled content (`clean`) vs in-the-wild (`voxblink`):
-
-![Per-length: voxblink vs clean](assets/plots/perlen_clean_vs_in-the-wild.png)
 
 ## 6. Methodology notes
 
