@@ -29,35 +29,24 @@ import sys
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from utils.per_uid import CI_BOOT, CI_SEED  # noqa: E402
+from utils.per_uid import CI_BOOT, CI_SEED, weighted_boot  # noqa: E402
 
 OUT_DIR = os.path.join(REPO, "assets", "coreset")
 PANEL_DIR = os.path.join(OUT_DIR, "panels")
 
 METRICS = ("wer", "wer_clip", "spk", "msr")
+# The metrics panels are scored and validated on (wer is carried in the matrix only).
+# spk is dropped for preset-voice engines, which do not clone the prompt speaker at
+# all -- their spk cells carry no information about the item.
+RESPONSE_METRICS = ("wer_clip", "spk", "msr")
+METRIC_LABEL = {"wer_clip": "WER_CLIP (%)", "spk": "speaker sim (x100)", "msr": "MSR-UTMOS"}
+# Metrics where a SMALLER value is the better one (error rates). Everything else
+# (spk, msr) is higher-is-better. Drives the direction of the paired "A wins" readout.
+LOWER_BETTER = {"wer", "wer_clip"}
+# Response metric -> per-uid record field of utils.per_uid.load_leaf.
+METRIC_KEY = {"wer_clip": "wer_clip", "spk": "spk", "msr": "msr"}
 # Reported units, used for stating errors in the same numbers the RESULTS tables show.
 METRIC_UNITS = {"wer": "pct", "wer_clip": "pct", "spk": "x100", "msr": "MOS"}
-
-
-def weighted_boot(pieces, boot=CI_BOOT, seed=CI_SEED):
-    """Draws of the weighted per-language bootstrap, the one resampling kernel every
-    CI/SE here derives from.
-
-    ``pieces`` is a list of ``(y, w)`` array pairs, one per language (``y`` may also be
-    a paired difference). Each draw resamples items *within* each language -- the
-    sampling unit -- then macro-averages the weighted means, matching the seeded
-    bootstrap convention in utils/average_wer.py so panel CIs are comparable with the
-    full-set ones. Callers take percentiles (CI) or the std (SE) of the returned draws.
-    """
-    rng = np.random.default_rng(seed)
-    draws = np.empty(boot)
-    for b in range(boot):
-        acc = []
-        for y, w in pieces:
-            j = rng.integers(0, y.size, size=y.size)
-            acc.append(np.sum(w[j] * y[j]) / np.sum(w[j]))
-        draws[b] = np.mean(acc)
-    return draws
 
 
 class Matrix:

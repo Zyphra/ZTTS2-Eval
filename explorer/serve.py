@@ -47,6 +47,7 @@ from utils.per_uid import (  # noqa: E402
     parse_tsv,
     parse_wer,
 )
+from utils.benchmark import leaf_dir  # noqa: E402
 from utils.scp import load_scp, load_text  # noqa: E402
 
 # The explorer's data snapshot resolves live-cache-first, published-fallback:
@@ -327,8 +328,7 @@ def build_utterances(model, task, lang, offset=0, limit=10 ** 9, panel=None):
         if (val or name != "task") and not _plain_component(val):
             return {"error": f"invalid {name}", "rows": [], "total": 0,
                     "offset": offset, "_code": 400}
-    rel_parts = ["results", model] + ([task] if task else []) + [lang]
-    rdir = os.path.join(*rel_parts)
+    rdir = os.path.relpath(leaf_dir(model, task, lang, root=ROOT), ROOT)
     rabs = os.path.realpath(_abs(rdir))
     # belt-and-braces: resolve, then require the leaf to still be under ROOT (or an
     # --allow-root dir)

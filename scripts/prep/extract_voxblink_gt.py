@@ -4,7 +4,7 @@ Stage-B produced `data/in-the-wild/<lang>/{text, prompt_text, prompt_wav.scp,
 waveform/prompt_audio_*.wav}` from a stratified pick of `_stage_a/manifest.tsv`. The
 TARGET audio (the real recording behind `text`, same speaker as the prompt, different
 video) is the reference for held-out speaker similarity and for the ground-truth
-baseline. It ships on the HF dataset Zyphra/ZTTS2-Eval; this script rebuilds it from the
+baseline. It ships on the HF dataset utils.benchmark.HF_REPO_ID; this script rebuilds it from the
 raw VoxBlink2 audio.
 
 For each lang dir, this script:
@@ -31,17 +31,10 @@ import soundfile as sf
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from scripts.prep.voxblink_common import DATA_ROOT, wav_path  # noqa: E402
 from utils.scp import load_text  # noqa: E402
 
-# Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
-# point at your copy of the dataset.
-AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
-DATA_ROOT = "data/in-the-wild"
 SR = 16000  # stage_b writes 16 kHz PCM16; keep consistent.
-
-
-def wav_path(spk, vid, seg):
-    return f"{AUDIO_ROOT}/{spk}/{vid}/{seg}.wav"
 
 
 def read_slice(path, start, end):

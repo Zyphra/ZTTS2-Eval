@@ -122,10 +122,10 @@ class ClusteredBootstrapTest(unittest.TestCase):
 
 class SplitHalfGeometryTest(unittest.TestCase):
     def test_w2_fair_of_identical_samples_sits_at_the_ceiling(self):
-        from scripts.prosody import speaking_rate_dist as sr
+        from scripts.prosody import common
         ref = np.random.default_rng(0).normal(15, 3, 1000)
-        self.assertEqual(sr.w2(ref, ref), 0.0)
-        ratio = sr.w2_fair(ref, ref) / sr.ceiling(ref)
+        self.assertEqual(common.w2(ref, ref), 0.0)
+        ratio = common.w2_fair(ref, ref) / common.ceiling(ref)
         self.assertTrue(0.5 < ratio < 2, ratio)
 
 
@@ -145,16 +145,16 @@ class CharSecContentFilterTest(unittest.TestCase):
         return str(wavs)
 
     def test_only_utterances_the_asr_heard_are_scored(self):
-        from scripts.prosody import speaking_rate_dist as sr
+        from scripts.prosody import common
         with tempfile.TemporaryDirectory() as d:
-            files, share = sr.heard_files(self._leaf(d, [0.0, sr.MAX_WER, 0.75, None]))
+            files, share = common.heard_files(self._leaf(d, [0.0, common.MAX_WER, 0.75, None]))
         self.assertEqual([Path(f).stem for f in files], ["uttid_1", "uttid_2"])
         self.assertAlmostEqual(share, 0.5)
 
     def test_untranscribed_leaf_gets_no_char_s(self):
-        from scripts.prosody import speaking_rate_dist as sr
+        from scripts.prosody import common
         with tempfile.TemporaryDirectory() as d:
-            self.assertEqual(sr.heard_files(self._leaf(d, [None, None])), ([], 0.0))
+            self.assertEqual(common.heard_files(self._leaf(d, [None, None])), ([], 0.0))
 
     def test_duration_cache_rereads_a_regenerated_wav(self):
         # The per-leaf cache must not serve a stale duration after a wav is regenerated

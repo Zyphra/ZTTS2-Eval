@@ -28,6 +28,8 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.plots.tufte_common import PAPER, INK, MUT, GREY, MID, RED, BLUE  # noqa: E402
+from scripts.prosody.common import CEILING_ROW  # noqa: E402
+from utils.benchmark import leaf_dir, wer_footer  # noqa: E402
 
 SHORT = {
     "gt_in-the-wild": "GT (real speech)",
@@ -74,22 +76,16 @@ NUDGE = {
 
 
 def wer_clip(system, test_set, lang):
-    """WER_CLIP % from the system's .wer summary line (nested or flat layout)."""
-    for p in (os.path.join(REPO, "results", system, test_set, lang, "wav_res_ref_text.wer"),
-              os.path.join(REPO, "results", system, lang, "wav_res_ref_text.wer")):
-        if os.path.isfile(p):
-            with open(p) as fh:
-                for line in fh:
-                    if "WER_CLIP:" in line and "CI95" not in line:
-                        return float(line.rsplit("WER_CLIP:", 1)[1].strip().rstrip(","))
-    return None
+    """WER_CLIP % from the system's .wer footer (nested or flat layout), or None."""
+    w = wer_footer(os.path.join(leaf_dir(system, test_set, lang), "wav_res_ref_text.wer"))
+    return None if w is None else w[2]
 
 
 def load(csv_path, test_set, lang):
     rows = []
     with open(csv_path) as fh:
         for r in csv.DictReader(fh):
-            if r["system"] == "__CEILING_split_half__":
+            if r["system"] == CEILING_ROW:
                 continue
             rows.append(dict(system=SHORT.get(r["system"], r["system"]),
                              wer=wer_clip(r["system"], test_set, lang),

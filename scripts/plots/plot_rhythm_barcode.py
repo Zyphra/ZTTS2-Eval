@@ -37,7 +37,7 @@ from scripts.plots.tufte_common import PAPER, INK, MUT, GREY, MID, BLUE, RED  # 
 from scripts.plots.plot_rhythm_scatter import SHORT  # noqa: E402
 from scripts.prosody.rhythm_dist import (Tokenizer, run_lengths, anchor_key, CACHE_DIR,  # noqa: E402
                          _load_trim, FRAME_S)
-from scripts.prosody.speaking_rate_dist import find_systems  # noqa: E402
+from scripts.prosody.common import find_systems  # noqa: E402
 
 LONG_FRAMES = 10   # 200 ms: pause (clause-level, real speech does this)
 STALL_FRAMES = 25  # 500 ms: stall (pathological; different ink on purpose)

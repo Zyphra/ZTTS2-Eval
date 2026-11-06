@@ -37,7 +37,7 @@ sys.path.insert(0, REPO)
 from scripts.plots.tufte_common import PAPER, INK, MUT, GREY, MID, BLUE  # noqa: E402
 from scripts.plots.plot_rhythm_scatter import SHORT  # noqa: E402
 from scripts.plots.plot_rhythm_carpet import PANELS, AMBER  # noqa: E402
-from scripts.prosody.speaking_rate_dist import find_systems  # noqa: E402
+from scripts.prosody.common import find_systems  # noqa: E402
 from utils.pitch_range import (SR, HOP, METHOD, f0_track, semitone_dev,  # noqa: E402
                                utt_range_st)
 

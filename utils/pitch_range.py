@@ -21,10 +21,11 @@ pins far above it). With both, pYIN and PENN rank the Clean systems alike.
 pYIN is slow, so callers score a fixed uid sample (utils.benchmark.sample_uids).
 """
 import os
-import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
+
+from utils.atomic import write_text_atomic
 
 SR = 16000
 HOP = 320          # 20 ms, same grid as the rhythm views
@@ -124,15 +125,11 @@ def _read_tsv(path):
 
 
 def _write_tsv(path, data):
-    d = os.path.dirname(path) or "."
-    os.makedirs(d, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(f"#method\t{METHOD}\n")
-        for uid in sorted(data):
-            v = data[uid]
-            fh.write(f"{uid}\t{'' if v is None else repr(float(v))}\n")
-    os.replace(tmp, path)
+    lines = [f"#method\t{METHOD}\n"]
+    for uid in sorted(data):
+        v = data[uid]
+        lines.append(f"{uid}\t{'' if v is None else repr(float(v))}\n")
+    write_text_atomic(path, "".join(lines))
 
 
 def ranges_cached(wavs, cache_tsv, workers):
@@ -147,5 +144,8 @@ def ranges_cached(wavs, cache_tsv, workers):
         with ProcessPoolExecutor(workers) as ex:
             res = list(ex.map(range_st, [wavs[u] for u in todo], chunksize=1))
         cache.update(dict(zip(todo, res)))
-        _write_tsv(cache_tsv, cache)
+        try:
+            _write_tsv(cache_tsv, cache)
+        except OSError as e:                       # read-only tree: still correct, just uncached
+            print(f"[warn] pitch cache not written: {e}")
     return {u: cache[u] for u in wavs}

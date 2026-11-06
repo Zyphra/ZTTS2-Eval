@@ -36,16 +36,10 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.score.score_msr_utmos import DEFAULT_CKPT, load_model, score_wave  # noqa: E402
 from utils.scp import load_msr_utmos_cache  # noqa: E402
+from scripts.prep.voxblink_common import wav_path  # noqa: E402
 from utils.text_norm import near_duplicate  # noqa: E402
 
-# Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
-# point at your copy of the dataset.
-AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
 SR = 16000
-
-
-def wav_path(speaker, vid, seg):
-    return f"{AUDIO_ROOT}/{speaker}/{vid}/{seg}.wav"
 
 
 def load_manifest(path):

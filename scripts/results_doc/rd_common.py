@@ -10,14 +10,12 @@ One place for the things that used to drift as per-file copies:
     hard-coded model lists are how caches came to silently hold only stale
     baselines;
   - the language display order (`ordered_langs()`), derived from the frozen
-    baskets in utils/benchmark.py, previously seven diverging hard-coded lists;
-  - atomic JSON writes (`write_json_atomic()`), so a crash mid-dump can never
-    leave a truncated cache/snapshot file for the explorer to choke on.
+    baskets in utils/benchmark.py, previously seven diverging hard-coded lists.
+  Atomic JSON writes live in utils/atomic.py.
 """
 import json
 import os
 import sys
-import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 from pathlib import Path
@@ -457,27 +455,3 @@ def macro(idx, model, task, field, langs):
 def n_covered(idx, model, task, field, langs):
     """How many basket languages have a value for `field`."""
     return sum(v is not None for v in lang_values(idx, model, task, field, langs))
-
-
-
-# --- atomic JSON ------------------------------------------------------------
-def write_json_atomic(path, obj, **json_kw):
-    """json.dump to a temp file in the same directory, then os.replace().
-
-    Readers (the explorer, plot scripts) can never observe a half-written
-    file, and a crash leaves the previous version intact.
-    """
-    path = os.path.abspath(path)
-    d = os.path.dirname(path)
-    os.makedirs(d, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=d, prefix=os.path.basename(path) + ".", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            json.dump(obj, f, **json_kw)
-        os.replace(tmp, path)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise

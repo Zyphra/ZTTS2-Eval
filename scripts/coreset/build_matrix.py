@@ -42,6 +42,8 @@ REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
 from scripts.plots.tufte_common import ref_token_count  # noqa: E402  exact run_wer.py tokenization
+from scripts.coreset.common import METRICS  # noqa: E402
+from utils.benchmark import leaf_dir  # noqa: E402
 from utils.per_uid import load_leaf  # noqa: E402
 from utils.scp import load_msr_utmos_cache, load_scp, load_text  # noqa: E402
 
@@ -91,7 +93,6 @@ SYSTEMS = [
     ("indextts2",              "omni_indextts2",         "indextts",   False, "partial"),
 ]
 
-METRICS = ("wer", "wer_clip", "spk", "msr")
 EDIT_PARTS = ("ins", "del", "sub")
 
 _ABBREV_RE = re.compile(r"\b[A-Z]{2,}\b")
@@ -207,14 +208,6 @@ def build_items(task, langs, prompt_msr):
 # ---------------------------------------------------------------------------
 # matrix assembly
 # ---------------------------------------------------------------------------
-def leaf_dir(results_dir, task, lang):
-    """Model leaves nest the task; GT/whisper baselines fold it into the dir name."""
-    flat = os.path.join(REPO, "results", results_dir, lang)
-    if results_dir.startswith(("gt_", "whisper_")):
-        return flat
-    return os.path.join(REPO, "results", results_dir, task, lang)
-
-
 def build_set(set_name, verbose=True):
     cfg = SETS[set_name]
     task = cfg["task"]
@@ -243,7 +236,7 @@ def build_set(set_name, verbose=True):
     for si, (key, rdir, _family, _preset, _role) in enumerate(rows):
         n_cells = 0
         for lang in langs:
-            d = leaf_dir(rdir, task, lang)
+            d = leaf_dir(rdir, task, lang, root=REPO)
             if not os.path.isdir(d):
                 continue
             leaf = load_leaf(d)

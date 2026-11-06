@@ -33,7 +33,8 @@ OUT = os.path.join(CACHE_DIR, "reliability.json")
 
 # tufte_common lives in scripts/plots/ — reuse its exact loader + tokenisation.
 from scripts.plots import tufte_common as tc  # noqa: E402
-from scripts.results_doc.rd_common import label as model_label, write_json_atomic  # noqa: E402
+from scripts.results_doc.rd_common import label as model_label  # noqa: E402
+from utils.atomic import write_json_atomic  # noqa: E402
 
 KS = [1, 3, 5, 10]          # slopegraph severity thresholds (match tufte_slopegraph)
 BOOT = 2000                 # bootstrap resamples for the p99 CI (match tufte_p99)

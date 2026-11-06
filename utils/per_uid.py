@@ -30,6 +30,27 @@ CI_SEED = 20260717
 L50_THRESHOLD = 0.5
 
 
+def weighted_boot(pieces, boot=CI_BOOT, seed=CI_SEED):
+    """Draws of the weighted per-language bootstrap, the one resampling kernel every
+    CI/SE in the reports and the coreset derives from.
+
+    ``pieces`` is a list of ``(y, w)`` pairs, one per language (``y`` may also be a
+    paired difference). Each draw resamples items *within* each language -- the
+    sampling unit -- takes that language's weighted mean sum(w*y)/sum(w), then
+    averages across languages. Returns the unrounded ``(boot,)`` draws; callers take
+    percentiles (CI) or the std (SE). numpy is imported here so this module stays
+    stdlib-only at import time."""
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    acc = np.empty((len(pieces), boot))
+    for i, (y, w) in enumerate(pieces):
+        ya, wa = np.asarray(y, dtype=float), np.asarray(w, dtype=float)
+        j = rng.integers(0, ya.size, size=(boot, ya.size))
+        acc[i] = (wa[j] * ya[j]).sum(1) / wa[j].sum(1)
+    return acc.mean(0)
+
+
+
 def read_lines(path):
     """File contents as a list of lines, or ``[]`` if it cannot be read."""
     try:

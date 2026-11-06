@@ -6,7 +6,7 @@ conditioned on, which rewards copying that one recording (channel, mic, session)
 as the voice. The primary score instead compares against a DIFFERENT real recording of
 the same speaker: the recording behind the item's target text, stored at
 `data/in-the-wild/<lang>/target_wav/<uid>.wav` (ships on the HF dataset
-Zyphra/ZTTS2-Eval; rebuilt from raw VoxBlink2 by scripts/prep/extract_voxblink_gt.py).
+utils.benchmark.HF_REPO_ID; rebuilt from raw VoxBlink2 by scripts/prep/extract_voxblink_gt.py).
 
 Every uid of the current `text` is validated against `_stage_a/manifest.tsv`, joined on
 prompt_text exactly as extract_voxblink_gt.py does:
@@ -39,11 +39,11 @@ import soundfile as sf
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from scripts.prep.voxblink_common import DATA_ROOT  # noqa: E402
 from utils.benchmark import ITW_LANGS, data_uids  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
 
 TASK = "in-the-wild"
-DATA_ROOT = f"data/{TASK}"
 PANELS = (f"data/{TASK}_mini", f"data/{TASK}_delta")
 DUR_TOL_S = 0.05
 

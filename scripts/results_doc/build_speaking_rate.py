@@ -47,7 +47,8 @@ OUT = os.path.join(CACHE_DIR, "speaking_rate.json")
 from scripts.prosody import speaking_rate_dist as sr  # noqa: E402
 from utils.ground_truth_split import split_indices  # noqa: E402
 from utils.scp import load_text  # noqa: E402
-from scripts.results_doc.rd_common import write_json_atomic  # noqa: E402
+from scripts.prosody.common import boot_ci, ceiling, find_systems, heard_files, w2, w2_fair  # noqa: E402
+from utils.atomic import write_json_atomic  # noqa: E402
 
 # one label per test_set, mirroring build_reliability.py's dataset labels
 SET_LABEL = {
@@ -78,7 +79,7 @@ def langs_for(test_set, only):
 
 def build_panel(test_set, lang, args):
     base = os.path.join(REPO, "data", test_set, lang)
-    systems = {} if args.ground_truth_only else sr.find_systems(test_set, lang)
+    systems = {} if args.ground_truth_only else find_systems(test_set, lang)
     prompt_text = load_text(os.path.join(base, "prompt_text"))
     target_text = load_text(os.path.join(base, "text"))
 
@@ -87,14 +88,14 @@ def build_panel(test_set, lang, args):
     ref = ref_all[ref_all <= args.cap]
     if ref.size < (2 if args.ground_truth_only else args.min_utts):
         return None
-    ceil = sr.ceiling(ref)
+    ceil = ceiling(ref)
 
     series = []
     left_idx, right_idx = split_indices(ref.size, args.seed, f"{test_set}/{lang}")
     gt = ref[left_idx]
     gt_ref = ref[right_idx]
-    gt_d_ref = sr.w2(gt, gt_ref)
-    gt_lo, gt_hi = sr.boot_ci(gt, gt_ref, args.n_boot, args.seed)
+    gt_d_ref = w2(gt, gt_ref)
+    gt_lo, gt_hi = boot_ci(gt, gt_ref, args.n_boot, args.seed)
     series.append({
         "name": f"gt_{test_set}",
         "n": int(gt.size),
@@ -109,7 +110,7 @@ def build_panel(test_set, lang, args):
         "seed": args.seed,
     })
     for name, d in sorted(systems.items()):
-        files, heard_pct = sr.heard_files(d)          # content filter: WER <= sr.MAX_WER only
+        files, heard_pct = heard_files(d)             # content filter: WER <= common.MAX_WER only
         if len(files) < args.min_utts:
             continue
         rates, pad = sr.char_rates(files, target_text, args.top_db, args.workers)
@@ -117,8 +118,8 @@ def build_panel(test_set, lang, args):
             continue
         keep = rates[rates <= args.cap]
         trunc = 100.0 * (rates.size - keep.size) / rates.size
-        d_ref = sr.w2_fair(keep, ref)
-        lo, hi = sr.boot_ci(keep, ref, args.n_boot)
+        d_ref = w2_fair(keep, ref)
+        lo, hi = boot_ci(keep, ref, args.n_boot)
         series.append({
             "name": name,
             "n": int(rates.size),

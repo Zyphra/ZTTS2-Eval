@@ -33,7 +33,8 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import Fingerprints, Matrix, weighted_boot  # noqa: E402
+from scripts.coreset.common import Fingerprints, Matrix  # noqa: E402
+from utils.per_uid import weighted_boot  # noqa: E402
 from scripts.coreset.panel_select import build_panel  # noqa: E402
 from scripts.coreset.validate import MIN_LEAF_COVERAGE  # noqa: E402
 

@@ -19,13 +19,13 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import (Matrix, PANEL_DIR, SIGN_GAP_EDGES, load_panel,  # noqa: E402
-                    load_validation_rows, mae_cells, mean_se, pairwise_sign_stats)
+from scripts.coreset.common import (METRIC_LABEL, Matrix, PANEL_DIR, SIGN_GAP_EDGES,  # noqa: E402
+                    load_panel, load_validation_rows, mae_cells, mean_se,
+                    pairwise_sign_stats)
 
 SETS = [("clean", "Clean (FLEURS-R, 35 languages, 57,388 items)"),
         ("itw", "In-The-Wild (VoxBlink2, 20 languages, 17,319 items)")]
 FULL_N = {"clean": 57366, "itw": 17155}
-METRIC_LABEL = {"wer_clip": "WER_CLIP (%)", "spk": "speaker sim (x100)", "msr": "MSR-UTMOS"}
 SHIPPED = {"clean": 3500, "itw": 2000}
 SHIPPED_SELECTOR = "strat_meta"
 

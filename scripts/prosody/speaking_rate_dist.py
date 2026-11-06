@@ -88,7 +88,6 @@ import argparse
 import glob
 import os
 import sys
-import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 import librosa
@@ -97,64 +96,10 @@ import numpy as np
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from utils.per_uid import parse_wer  # noqa: E402
+from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, boot_ci,  # noqa: E402
+                                    ceiling, find_systems, heard_files, utt_of, w2_fair)
+from utils.atomic import write_text_atomic  # noqa: E402
 from utils.scp import load_text  # noqa: E402
-
-
-def w2(x, y, n_iter=10, seed=0):
-    """Sorted-quantile RMS distance == the 2-Wasserstein distance.
-
-    Byte-for-byte the same procedure as TTSDS2's `ttsds.util.distances.
-    wasserstein_distance` (util/distances.py:9-23) so numbers here are directly
-    comparable to the TTSDS2 columns. Note their loop is partly degenerate:
-    after the first iteration the shapes match, so iterations 2..n recompute an
-    identical value. Kept for exact comparability.
-    """
-    rng = np.random.RandomState(seed)
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    out = []
-    for _ in range(n_iter):
-        if len(x) > len(y):
-            x = x[rng.choice(len(x), len(y), replace=False)]
-        elif len(y) > len(x):
-            y = y[rng.choice(len(y), len(x), replace=False)]
-        out.append(np.mean((np.sort(x) - np.sort(y)) ** 2) ** 0.5)
-    return float(np.mean(out))
-
-
-def utt_of(path):
-    """Map a wav to its uid. Both test sets use the uttid_N scheme: the reference
-    waveform file is prompt_audio_N.wav (-> uttid_N), the system file is uttid_N.wav."""
-    base = os.path.basename(path).rsplit(".", 1)[0]
-    if base.startswith("prompt_audio_"):
-        return "uttid_" + base.split("_")[-1]
-    return base
-
-
-MAX_WER = 0.2
-
-
-def heard_uids(wav_dir, max_wer=MAX_WER):
-    """uids of a system leaf the ASR transcribed with WER <= max_wer, read from the
-    leaf's wav_res_ref_text.wer.raw (<wav path>\\t<WER fraction>\\t...); None when the
-    leaf has no transcription."""
-    raw = os.path.join(os.path.dirname(os.path.normpath(wav_dir)), "wav_res_ref_text.wer.raw")
-    if not os.path.isfile(raw):
-        return None
-    return {utt_of(u) for u, d in parse_wer(raw).items()
-            if d["wer"] is not None and d["wer"] <= max_wer}
-
-
-def heard_files(wav_dir):
-    """(the leaf's wavs the ASR heard, share of its wavs they are) — the content
-    filter (module docstring); ([], 0.0) for an untranscribed leaf."""
-    files = sorted(glob.glob(os.path.join(wav_dir, "*.wav")))
-    heard = heard_uids(wav_dir)
-    if heard is None or not files:
-        return [], 0.0
-    kept = [f for f in files if utt_of(f) in heard]
-    return kept, len(kept) / len(files)
 
 
 def _probe(args):
@@ -198,15 +143,12 @@ def _num(s):
 
 
 def _write_cache(path, rows):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".speaking_rate_", suffix=".tsv")
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write("name\tsize\tmtime_ns\ttop_db\td_trim\td_raw\n")
-        for name in sorted(rows):
-            size, mtime, top_db, d_trim, d_raw = rows[name]
-            fh.write(f"{name}\t{size}\t{mtime}\t{top_db}\t{'' if d_trim is None else d_trim}\t"
+    lines = ["name\tsize\tmtime_ns\ttop_db\td_trim\td_raw\n"]
+    for name in sorted(rows):
+        size, mtime, top_db, d_trim, d_raw = rows[name]
+        lines.append(f"{name}\t{size}\t{mtime}\t{top_db}\t{'' if d_trim is None else d_trim}\t"
                      f"{'' if d_raw is None else d_raw}\n")
-    os.replace(tmp, path)
+    write_text_atomic(path, "".join(lines))
 
 
 def durations(files, top_db, workers):
@@ -257,128 +199,16 @@ def char_rates(files, textmap, top_db, workers):
     return np.array(rates), (float(np.mean(pads)) if pads else float("nan"))
 
 
-def ceiling(ref, n_splits=32, seed=0):
-    """What a PERFECT system scores at finite n: disjoint halves of the reference.
-
-    Systems MUST be compared at this same half-vs-half geometry or the ceiling is
-    understated and systems are flattered.
-    """
-    rng = np.random.default_rng(seed)
-    half = len(ref) // 2
-    return float(np.mean([
-        w2(ref[(i := rng.permutation(len(ref)))[:half]], ref[i[half:2 * half]])
-        for _ in range(n_splits)
-    ]))
-
-
-def w2_fair(x, ref, n_splits=32, seed=0):
-    """W2 at the ceiling's half-vs-half geometry: mean over random n/2-vs-n/2
-    subsamples of both sides. Comparing full samples against a split-half
-    ceiling flatters systems (the W2 noise floor shrinks with n)."""
-    rng = np.random.default_rng(seed)
-    half = len(ref) // 2
-    return float(np.mean([
-        w2(x[rng.choice(len(x), min(half, len(x)), replace=False)],
-           ref[rng.choice(len(ref), half, replace=False)])
-        for _ in range(n_splits)
-    ]))
-
-
-def boot_ci(x, ref, n_boot=400, seed=0):
-    """Bootstrap CI of the split-half-geometry distance (same geometry as d_ref)."""
-    rng = np.random.default_rng(seed)
-    bs = np.array([
-        w2_fair(x[rng.integers(0, x.size, x.size)], ref[rng.integers(0, ref.size, ref.size)],
-                n_splits=4, seed=b)
-        for b in range(n_boot)
-    ])
-    return float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
-
-
-def is_reference_audio(wav_dir, test_set, lang, probe=8):
-    """True when a "system"'s wavs ARE the reference prompt recordings.
-
-    On FLEURS-R, results/gt_clean/<lang>/wavs/uttid_N.wav symlinks straight back
-    to data/clean/<lang>/waveform/prompt_audio_N.wav — so that baseline speaks
-    prompt_text, while every real system speaks the target text. Pairing its durations
-    with the target text measures len(one sentence) / duration(a different one), which
-    inflates d_ref without moving the median; pairing them with prompt_text instead
-    reproduces the reference sample exactly, for d_ref = 0 by construction. Neither is
-    a measurement, so the row is dropped.
-
-    VoxBlink2 is unaffected: there the GT baseline holds the *target* recordings, a
-    genuinely different sample from the prompts, and it scores near the ceiling.
-    """
-    scp = os.path.join(REPO, "data", test_set, lang, "prompt_wav.scp")
-    if not os.path.isfile(scp):
-        return False
-    prompts = {}
-    with open(scp, encoding="utf-8") as fh:
-        for line in fh:
-            uid, _, path = line.strip().partition(" ")
-            if uid and path:
-                prompts[uid] = os.path.realpath(
-                    path if os.path.isabs(path) else os.path.join(REPO, path))
-    hits = seen = 0
-    for f in sorted(glob.glob(os.path.join(wav_dir, "*.wav")))[:probe]:
-        p = prompts.get(utt_of(f))
-        if not p:
-            continue
-        seen += 1
-        hits += os.path.realpath(f) == p
-    return seen > 0 and hits == seen
-
-
-def find_systems(test_set, lang, only=None):
-    """Locate every system's wav dir for one (test_set, lang).
-
-    Two layouts are walked so the metric runs on both trees:
-      - nested (ZTTS1 / per-model gens):  results/<sys>/<test_set>/<lang>/wavs
-        (and results/<group>/<sys>/<test_set>/<lang>/wavs) -> name = <sys> / <group>/<sys>
-      - flat (ZTTS2 baselines): results/<backend>_<test_set>/<lang>/wavs, e.g.
-        gt_clean, whisper_clean -> name = the full dir (backend kept).
-        The `*<test_set>` glob keeps the two test-sets disjoint: results/*clean
-        does not match gt_in-the-wild, and vice versa.
-    """
-    results_root = os.path.join(REPO, "results")
-    out = {}
-    pats = (
-        f"results/*/{test_set}/{lang}/wavs",     # nested: results/<sys>/<set>/<lang>/wavs
-        f"results/*/*/{test_set}/{lang}/wavs",   # nested: results/<group>/<sys>/<set>/...
-        f"results/*{test_set}/{lang}/wavs",      # flat:   results/<backend>_<set>/<lang>/wavs
-    )
-    for pat in pats:
-        for d in glob.glob(os.path.join(REPO, pat)):
-            rel = os.path.relpath(d, results_root)          # <...>/<lang>/wavs
-            name = rel[: -len(f"/{lang}/wavs")]             # strip trailing /<lang>/wavs
-            if name.endswith(f"/{test_set}"):               # nested -> drop the /<set> segment
-                name = name[: -len(f"/{test_set}")]
-            out[name] = d
-    # whisper_* dirs are ASR-comparison diagnostics, not TTS systems
-    for name in [n for n in out if n.startswith("whisper_")]:
-        del out[name]
-    # a "system" that is really the reference recordings tells us nothing about pacing
-    for name in [n for n, d in out.items() if is_reference_audio(d, test_set, lang)]:
-        print(f"  skip {name} ({test_set}/{lang}): wavs are the reference prompt audio",
-              file=sys.stderr)
-        del out[name]
-    if only:
-        out = {k: v for k, v in out.items() if k in set(only)}
-    return out
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
-    ap.add_argument("--models", nargs="*", default=None, help="subset of system dirs; default = all found")
-    ap.add_argument("--out", default=None, help="CSV path; default results/speaking_rate_<set>_<lang>.csv")
+    add_common_prosody_args(ap)
     ap.add_argument("--cap", type=float, default=40.0,
                     help="char/s above this = truncated generation, excluded from d_ref (default 40; "
                          "reference median is ~16)")
     ap.add_argument("--top-db", type=float, default=35.0, help="librosa.effects.trim threshold (default 35)")
     ap.add_argument("--min-utts", type=int, default=100)
-    ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--n-boot", type=int, default=400)
     args = ap.parse_args()
 
@@ -425,7 +255,7 @@ def main():
         w = _csv.DictWriter(fh, fieldnames=["rank", "system", "n", "heard_pct", "char_s_median", "pad_s",
                                             "truncation_pct", "d_ref", "ci_lo", "ci_hi", "x_ceiling"])
         w.writeheader()
-        w.writerow(dict(rank=0, system="__CEILING_split_half__", n=ref.size, heard_pct=100.0,
+        w.writerow(dict(rank=0, system=CEILING_ROW, n=ref.size, heard_pct=100.0,
                         char_s_median=float(np.median(ref)), pad_s=ref_pad, truncation_pct=0.0,
                         d_ref=ceil, ci_lo="", ci_hi="", x_ceiling=1.0))
         for i, r in enumerate(rows):

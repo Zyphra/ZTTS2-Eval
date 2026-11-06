@@ -2,7 +2,7 @@
 """Fetch the ZTTS2-Eval audio from the Hugging Face Hub into data/.
 
 The metadata (text, prompt_text, prompt_wav.scp, target_wav.scp, ...) is tracked in
-git; the audio is the dataset Zyphra/ZTTS2-Eval: the prompt wavs
+git; the audio is the HF dataset utils.benchmark.HF_REPO_ID: the prompt wavs
 (data/<task>/<lang>/waveform/, 24 GB in total) and, for in-the-wild, the
 held-out target recordings (data/in-the-wild/<lang>/target_wav/) behind the
 speaker-similarity primary score. This script downloads them to the paths the
@@ -23,8 +23,9 @@ from pathlib import Path
 
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from utils.benchmark import FULL_TASKS, HF_REPO_ID  # noqa: E402
+
 DATA = Path(REPO) / "data"
-TASKS = ("clean", "in-the-wild")
 
 
 def langs_of(task):
@@ -59,12 +60,12 @@ def _scp_paths(task, lang, scp):
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--repo-id", default="Zyphra/ZTTS2-Eval",
+    ap.add_argument("--repo-id", default=HF_REPO_ID,
                     help="Hugging Face dataset repo (default %(default)s)")
     ap.add_argument("--revision", default=None,
                     help="dataset revision (branch, tag or commit); default = main. "
                          "Pin a commit for reproducibility")
-    ap.add_argument("--tasks", nargs="+", choices=TASKS, default=list(TASKS),
+    ap.add_argument("--tasks", nargs="+", choices=FULL_TASKS, default=list(FULL_TASKS),
                     help="sets to fetch (default: both)")
     ap.add_argument("--langs", nargs="+", default=None,
                     help="languages to fetch (default: every language of each task)")

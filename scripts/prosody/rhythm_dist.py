@@ -69,12 +69,11 @@ Usage
     python scripts/prosody/rhythm_dist.py --test-set in-the-wild --lang en
     python scripts/prosody/rhythm_dist.py --models omni_voxcpm2 --out /tmp/x.csv
 
-Reference is data/<test_set>/<lang>/waveform; systems are discovered with the
-same two-layout walk as speaking_rate_dist.py (which also supplies w2 and the
-reference-audio skip). Requires a GPU for the mHuBERT forward.
+Reference is data/<test_set>/<lang>/waveform; systems are discovered with
+scripts/prosody/common.find_systems (which, with w2 and the ceiling, is shared with
+speaking_rate_dist.py). Requires a GPU for the mHuBERT forward.
 """
 import argparse
-import hashlib
 import os
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -86,7 +85,8 @@ import numpy as np
 
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from scripts.prosody.speaking_rate_dist import w2, w2_fair, ceiling, find_systems, utt_of  # noqa: E402,F401
+from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, ceiling,  # noqa: E402
+                                    content_hash, find_systems, utt_of, w2_fair)
 from utils import vad  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION, MHUBERT, SILERO_VAD, data_uids  # noqa: E402
 
@@ -240,14 +240,8 @@ def anchor_key(ref_dir, layer, k, seed, long_frames, uids=None):
     # removing items from the benchmark invalidates it too. The edge trim (pinned Silero
     # revision + pad) is in the key: it decides which frames the anchor is fitted on.
     keep = None if uids is None else set(uids)
-    wavs = sorted(p for p in Path(ref_dir).iterdir() if p.suffix.lower() == ".wav"
-                  and (keep is None or utt_of(str(p)) in keep))
-    content = "\n".join(f"{p.name}\t{p.stat().st_size}\t{p.stat().st_mtime_ns}"
-                        for p in wavs)
     trim = f"silero:{SILERO_VAD[1]}:{vad.EDGE_PAD_S}"
-    h = hashlib.md5((content +
-                     f"|{layer}|{k}|{seed}|{trim}|{long_frames}|v4").encode())
-    return h.hexdigest()[:16]
+    return content_hash(ref_dir, f"|{layer}|{k}|{seed}|{trim}|{long_frames}|v4", keep)[0]
 
 
 def build_anchor(tok, ref_dir, layer, k, seed, long_frames, workers, uids=None):
@@ -285,9 +279,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
-    ap.add_argument("--models", nargs="*", default=None)
-    ap.add_argument("--out", default=None,
-                    help="CSV path; default results/rhythm_<set>_<lang>.csv")
+    add_common_prosody_args(ap)
     ap.add_argument("--layer", type=int, default=9,
                     help="mHuBERT hidden_states index (9 = the layer its own "
                          "training targets were clustered from)")
@@ -296,7 +288,6 @@ def main():
     ap.add_argument("--long-ms", type=float, default=200.0,
                     help="run length (ms) above which frames count as long_frac mass")
     ap.add_argument("--min-utts", type=int, default=100)
-    ap.add_argument("--workers", type=int, default=32)
     ap.add_argument("--dump-dir", default=None,
                     help="also write per-utterance dims + uids per system to "
                          "<dump-dir>/<system>.npz (for matched / dispersion audits)")
@@ -356,7 +347,7 @@ def main():
     with open(out, "w", newline="") as fh:
         wtr = csv.DictWriter(fh, fieldnames=fields)
         wtr.writeheader()
-        ceil_row = dict(rank=0, system="__CEILING_split_half__", n=len(ref["rate"]),
+        ceil_row = dict(rank=0, system=CEILING_ROW, n=len(ref["rate"]),
                         long_pct=float(100 * np.mean(ref["long_frac"] > 0)),
                         benchmark_version=BENCHMARK_VERSION)
         for d in DIMS:

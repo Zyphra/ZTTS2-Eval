@@ -37,11 +37,11 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import (Fingerprints, Matrix, OUT_DIR, SIGN_GAP_EDGES, check_weights,  # noqa: E402
-                    load_validation_rows, mae_cells, mean_se, pairwise_sign_stats)
+from scripts.coreset.common import (RESPONSE_METRICS, Fingerprints, Matrix, OUT_DIR,  # noqa: E402
+                    SIGN_GAP_EDGES, check_weights, load_validation_rows, mae_cells,
+                    mean_se, pairwise_sign_stats)
 from scripts.coreset.panel_select import build_panel  # noqa: E402
 
-EVAL_METRICS = ("wer_clip", "spk", "msr")
 STOCHASTIC = {"random_global", "random_perlang", "strat_meta", "strat_response", "strat_quantile"}
 # Greedy is O(k x N x M) per language; above this it dominates the sweep's runtime for no
 # new insight. The cap is reported in the output rather than silently applied.
@@ -130,7 +130,7 @@ def run(set_name, ks, selectors, seeds, out_csv, verbose=True):
                         raise AssertionError(f"weights do not sum to 1: {bad[:3]}")
                     for si in subjects:
                         novel = si in held
-                        for metric in EVAL_METRICS:
+                        for metric in RESPONSE_METRICS:
                             if metric == "spk" and M.preset[si]:
                                 continue  # preset engines do not clone; spk is meaningless
                             langs = eval_langs(M, si, panel, metric)

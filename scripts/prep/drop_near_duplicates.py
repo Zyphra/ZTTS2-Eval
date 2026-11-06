@@ -24,11 +24,11 @@ import sys
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from utils.benchmark import FULL_TASKS  # noqa: E402
 from utils.scp import load_text  # noqa: E402
 from utils.text_norm import near_duplicate, text_key  # noqa: E402
 
 DATA = os.path.join(REPO, "data")
-TASKS = ("clean", "in-the-wild")
 PANELS = ("clean_mini", "clean_delta", "in-the-wild_mini",
           "in-the-wild_delta")
 CRITERION = "text_key equal or SequenceMatcher ratio >= 0.8 (utils/text_norm.near_duplicate)"
@@ -135,7 +135,7 @@ def main():
         with open(log_path) as f:
             log = json.load(f)
         log["criterion"] = CRITERION
-    for task in TASKS:
+    for task in FULL_TASKS:
         dups = find_duplicates(task)
         n = sum(len(v) for v in dups.values())
         panel_n = {}

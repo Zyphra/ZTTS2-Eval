@@ -25,10 +25,10 @@ import os
 import pickle
 import random
 import sys
-
-# Local VoxBlink2 audio tree (<spk>/<vid>/<seg>.wav). Set VOXBLINK2_AUDIO_ROOT to
-# point at your copy of the dataset.
-AUDIO_ROOT = os.environ.get("VOXBLINK2_AUDIO_ROOT", "/path/to/VoxBlink2/audio")
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, REPO)
+from scripts.prep.voxblink_common import AUDIO_ROOT  # noqa: E402
 
 # Languages from the existing clean subset (parity), plus the most populous
 # additional VoxBlink2 languages. The last 6 are v2 additions with enough

@@ -4,7 +4,7 @@ Per utterance the pitch range is p90 - p10 of the voiced F0 in semitones around 
 utterance's own median (utils/pitch_range.py), so it measures how much the melody moves
 and ignores the speaker's register. A system is scored by the 2-Wasserstein distance
 between its distribution of per-utterance ranges and the reference's, at the same
-split-half geometry as the ceiling (speaking_rate_dist.w2_fair vs ceiling), so
+split-half geometry as the ceiling (scripts/prosody/common.w2_fair vs ceiling), so
 `x_ceiling` = 1 means "as close to real speech as two halves of real speech are to
 each other".
 
@@ -31,12 +31,11 @@ import numpy as np
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from scripts.prosody.speaking_rate_dist import ceiling, find_systems, w2_fair  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, sample_uids  # noqa: E402
+from scripts.prosody.common import (CEILING_ROW, add_common_prosody_args, ceiling,  # noqa: E402
+                                    find_systems, sample_and_need, w2_fair)
+from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 from utils.pitch_range import ranges_cached  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
-
-CEILING_ROW = "__CEILING_split_half__"
 
 
 def prompt_wavs(test_set, lang, uids):
@@ -55,19 +54,15 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--test-set", default="clean")
     ap.add_argument("--lang", default="en")
-    ap.add_argument("--models", nargs="*", default=None, help="subset of systems; default all")
-    ap.add_argument("--out", default=None,
-                    help="CSV path; default results/pitch_range_<set>_<lang>.csv")
+    add_common_prosody_args(ap)
     ap.add_argument("--n-utts", type=int, default=500, help="uid sample size (default 500)")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--min-utts", type=int, default=100,
                     help="minimum usable utterances per system (capped at 80%% of the "
                          "sample so small languages are not skipped)")
     args = ap.parse_args()
 
-    uids = sample_uids(args.test_set, args.lang, args.n_utts, args.seed)
-    need = min(args.min_utts, int(0.8 * len(uids)))
+    uids, need = sample_and_need(args.test_set, args.lang, args.n_utts, args.seed, args.min_utts)
 
     ref_wavs = prompt_wavs(args.test_set, args.lang, uids)
     ref_cache = os.path.join(REPO, "results", "_pitch_range_ref",

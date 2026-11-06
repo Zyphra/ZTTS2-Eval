@@ -33,13 +33,9 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import Matrix, weighted_boot  # noqa: E402
-from utils.per_uid import CI_BOOT, CI_SEED, load_leaf  # noqa: E402
+from scripts.coreset.common import LOWER_BETTER, METRIC_KEY, Matrix  # noqa: E402
+from utils.per_uid import CI_BOOT, CI_SEED, load_leaf, weighted_boot  # noqa: E402
 
-METRIC_KEY = {"wer_clip": "wer_clip", "spk": "spk", "msr": "msr"}
-# Metrics where a SMALLER value is the better one (error rates). Everything else
-# (spk, msr) is higher-is-better. Drives the direction of the paired "A wins" readout.
-LOWER_BETTER = {"wer", "wer_clip"}
 SET_OF_TASK = {"clean": "clean", "in-the-wild": "itw"}
 
 

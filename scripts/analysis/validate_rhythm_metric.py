@@ -59,7 +59,7 @@ import numpy as np
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from scripts.prosody.speaking_rate_dist import w2, ceiling  # noqa: E402
+from scripts.prosody.common import w2, ceiling  # noqa: E402
 from scripts.prosody.rhythm_dist import (Tokenizer, load_dir, fit_kmeans, dims_for_wavs,
                          DIMS, SR, FRAME_S)  # noqa: E402
 from utils import vad  # noqa: E402
@@ -151,7 +151,7 @@ def main():
     ap.add_argument("--kmeans-k", type=int, default=100)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--long-ms", type=float, default=200.0)
-    ap.add_argument("--workers", type=int, default=32)
+    ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--out", default=None,
                     help="CSV path; default results/rhythm_validation_<set>_<lang>_k<k>.csv")
     args = ap.parse_args()

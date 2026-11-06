@@ -14,12 +14,14 @@ ROOT = os.path.join(REPO, "results")
 DATA = os.path.join(REPO, "data")
 OUT_JSON = os.path.join(CACHE, "results_snapshot.json")
 
-from utils.per_uid import (CI_BOOT, CI_SEED, L50_THRESHOLD, load_leaf,  # noqa: E402
-                           parse_tsv, parse_wer)
-from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_panel_alias,  # noqa: E402
-                             langs_for, leaf_problems, msr_ci_footer, msr_mean,
-                             spk_avg_footer, tail50_footer, wer_ci_footer, wer_footer)
-from scripts.results_doc.rd_common import write_json_atomic  # noqa: E402
+from utils.per_uid import (L50_THRESHOLD, load_leaf, parse_tsv, parse_wer,  # noqa: E402
+                           weighted_boot)
+from utils.benchmark import (BENCHMARK_VERSION, data_uids, is_flat,  # noqa: E402
+                             is_panel_alias, langs_for, leaf_dir, leaf_problems,
+                             msr_ci_footer, msr_mean, spk_avg_footer, tail50_footer,
+                             wer_ci_footer, wer_footer)
+from utils.atomic import write_json_atomic  # noqa: E402
+from scripts.prosody.common import CEILING_ROW  # noqa: E402
 
 try:                      # only the coreset bootstrap needs it; the rest is stdlib
     import numpy as np
@@ -53,7 +55,7 @@ MPM_GT_DIR = os.path.join(ROOT, "_mpm_ground_truth")
 # input is stale, unless the leaf is listed in excluded_leaves.txt.
 # ---------------------------------------------------------------------------
 EXCLUDED_FILE = os.path.join(SCRIPT_DIR, "excluded_leaves.txt")
-CEILING_SYSTEM = "__CEILING_split_half__"
+CEILING_SYSTEM = CEILING_ROW
 
 
 def load_excluded(path=EXCLUDED_FILE):
@@ -82,9 +84,9 @@ EXCLUDED = load_excluded()
 
 
 def leaf_key(system, task, lang):
-    """(model, task, lang) record key of a system in a task: gt_* baselines are
-    stored task-less (flat results/gt_*/<lang>/ dirs)."""
-    return (system, "" if system.startswith("gt_") else task, lang)
+    """(model, task, lang) record key of a system in a task: flat baselines are
+    stored task-less (results/<gt_*|whisper_*>/<lang>/ dirs)."""
+    return (system, "" if is_flat(system) else task, lang)
 
 
 _STALE = collections.defaultdict(set)    # (relpath, version) -> {system}
@@ -265,34 +267,27 @@ def wmean(y, w):
     return (sum(a * b for a, b in zip(y, w)) / tot) if tot else None
 
 
-def wboot_ci(y, w, boot=CI_BOOT, seed=CI_SEED):
+def _ci95(draws):
+    return round(float(np.percentile(draws, 2.5)), 3), round(float(np.percentile(draws, 97.5)), 3)
+
+
+def wboot_ci(y, w):
     """95% CI for the weighted mean, resampling items with replacement and
     recomputing sum(w*y)/sum(w) -- the same scheme as scripts/coreset/score_panel.py
     so a board cell and the panel scorer agree. Returns (None, None) without numpy."""
     if np is None or len(y) < 2:
         return None, None
-    ya, wa = np.asarray(y, dtype=float), np.asarray(w, dtype=float)
-    rng = np.random.default_rng(seed)
-    j = rng.integers(0, ya.size, size=(boot, ya.size))
-    draws = (wa[j] * ya[j]).sum(1) / wa[j].sum(1)
-    return round(float(np.percentile(draws, 2.5)), 3), round(float(np.percentile(draws, 97.5)), 3)
+    return _ci95(weighted_boot([(y, w)]))
 
 
-def macro_boot_ci(pieces, boot=CI_BOOT, seed=CI_SEED):
+def macro_boot_ci(pieces):
     """95% CI for the macro estimate: resample items WITHIN each language, take that
     language's weighted mean, then average across languages -- score_panel.py's
     boot_ci(). Resampling within language is what makes it a CI for the macro: the
     languages are the panel's fixed strata, not a sample from a population of them."""
     if np is None or not pieces or all(len(y) < 2 for y, _w in pieces):
         return None, None
-    rng = np.random.default_rng(seed)
-    acc = np.empty((len(pieces), boot))
-    for i, (y, w) in enumerate(pieces):
-        ya, wa = np.asarray(y, dtype=float), np.asarray(w, dtype=float)
-        j = rng.integers(0, ya.size, size=(boot, ya.size))
-        acc[i] = (wa[j] * ya[j]).sum(1) / wa[j].sum(1)
-    draws = acc.mean(0)
-    return round(float(np.percentile(draws, 2.5)), 3), round(float(np.percentile(draws, 97.5)), 3)
+    return _ci95(weighted_boot(pieces))
 
 
 def collect_panel_leaf(model, task, setname, leaf_dir, panel):
@@ -507,17 +502,17 @@ def collect_all():
                 continue
             # nested results/<model>/<src>/<lang>/, or the baselines' flat
             # results/gt_<src>/<lang>/ (their task lives in the dir name)
-            base = os.path.join(ROOT, model, src)
-            flat = model == f"gt_{src}"
-            if not flat and not os.path.isdir(base):
+            flat = is_flat(model)
+            if flat and model != f"gt_{src}":
+                continue
+            if not flat and not os.path.isdir(os.path.join(ROOT, model, src)):
                 continue
             for setname in sorted(panel["w"]):
                 if (model, ptask, setname) in have:
                     continue
-                if (model, "" if flat else src, setname) in EXCLUDED:
+                if leaf_key(model, src, setname) in EXCLUDED:
                     continue
-                ldir = os.path.join(ROOT, model, setname) if flat \
-                    else os.path.join(base, setname)
+                ldir = leaf_dir(model, src, setname, root=REPO)
                 if not os.path.isdir(ldir):
                     continue
                 rec = collect_panel_leaf(model, ptask, setname, ldir, panel)

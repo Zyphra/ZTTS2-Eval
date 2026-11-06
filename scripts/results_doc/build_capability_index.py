@@ -63,7 +63,8 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 from scripts.results_doc.rd_common import (  # noqa: E402
-    PARAMS, RELEASES, SNAPSHOT_PATH, load_snapshot, rec_value, write_json_atomic)
+    PARAMS, RELEASES, SNAPSHOT_PATH, load_snapshot, rec_value)
+from utils.atomic import write_json_atomic  # noqa: E402
 
 TASKS = ("clean", "in-the-wild")
 REAL = "real speech"   # the gt_<task> baselines, merged into one system

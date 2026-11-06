@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the benchmark-v2 audio changes to the HF dataset Zyphra/ZTTS2-Eval.
+"""Publish the benchmark-v2 audio changes to the HF dataset utils.benchmark.HF_REPO_ID.
 
   1. Upload the held-out ITW target recordings
      (data/in-the-wild/<lang>/target_wav/*.wav).
@@ -19,8 +19,8 @@ from pathlib import Path
 
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from utils.benchmark import HF_REPO_ID as REPO_ID  # noqa: E402
 
-REPO_ID = "Zyphra/ZTTS2-Eval"
 DATA = Path(REPO) / "data"
 
 

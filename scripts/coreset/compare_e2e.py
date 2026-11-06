@@ -22,11 +22,9 @@ from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
 
-from scripts.coreset.common import Matrix  # noqa: E402
+from scripts.coreset.common import RESPONSE_METRICS, Matrix  # noqa: E402
 from scripts.coreset.score_panel import (SET_OF_TASK, boot_ci, collect, read_panel_manifest,  # noqa: E402
                          weighted_macro)
-
-METRICS = ("wer_clip", "spk", "msr")
 
 
 def main():
@@ -60,7 +58,7 @@ def main():
             print(f"{sysname:22s}(not in the historical matrix — panel estimate only)")
             si = None
 
-        for metric in METRICS:
+        for metric in RESPONSE_METRICS:
             est, pieces = weighted_macro(collected, manifest, metric)
             if not np.isfinite(est):
                 continue

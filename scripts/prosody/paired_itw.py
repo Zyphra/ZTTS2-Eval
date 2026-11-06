@@ -5,7 +5,7 @@ saying the target sentence (data/in-the-wild/<lang>/target_wav.scp), so prosody
 can be compared utterance by utterance instead of only as distributions:
 
   dur_log2    log2(trimmed duration of the generation / of the real recording), on the
-              generations the ASR heard (WER <= speaking_rate_dist.MAX_WER) only: the target
+              generations the ASR heard (WER <= common.MAX_WER) only: the target
               text is fixed, so a truncated or runaway generation is a content error, not
               pace (docs/controls_2026-08.md C7)
   pause_diff  #pauses(generation) - #pauses(real); a pause is a gap >= 0.2 s between two
@@ -38,9 +38,10 @@ import numpy as np
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from scripts.prosody.speaking_rate_dist import find_systems, heard_uids  # noqa: E402
+from scripts.prosody.common import (add_common_prosody_args, find_systems, heard_uids,  # noqa: E402
+                                    sample_and_need)
 from utils import vad  # noqa: E402
-from utils.benchmark import BENCHMARK_VERSION, sample_uids  # noqa: E402
+from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 from utils.pitch_range import ranges_cached  # noqa: E402
 from utils.scp import load_scp_items  # noqa: E402
 
@@ -90,17 +91,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lang", required=True)
-    ap.add_argument("--models", nargs="*", default=None)
-    ap.add_argument("--out", default=None, help="default results/paired_itw_<lang>.csv")
+    add_common_prosody_args(ap)
     ap.add_argument("--n-utts", type=int, default=500)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--workers", type=int, default=48)
     ap.add_argument("--min-utts", type=int, default=100,
                     help="minimum paired utterances per system (capped at 80%% of the sample)")
     args = ap.parse_args()
 
-    uids = sample_uids(TASK, args.lang, args.n_utts, args.seed)
-    need = min(args.min_utts, int(0.8 * len(uids)))
+    uids, need = sample_and_need(TASK, args.lang, args.n_utts, args.seed, args.min_utts)
     scp = os.path.join(REPO, "data", TASK, args.lang, "target_wav.scp")
     if not os.path.isfile(scp):
         raise SystemExit(f"missing {scp} (run scripts/prep/build_voxblink_targets.py)")

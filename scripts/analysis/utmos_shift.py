@@ -51,8 +51,9 @@ import numpy as np
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from scripts.prosody.rhythm_dist import w2_fair  # noqa: E402
-from scripts.prosody.speaking_rate_dist import boot_ci, ceiling, w2  # noqa: E402
+from scripts.prosody.common import (boot_ci, ceiling, dmean_band, dmean_ci,  # noqa: E402
+                                    spearman, w2, w2_fair)
+from utils.benchmark import iter_leaves  # noqa: E402
 from utils.per_uid import parse_score_path  # noqa: E402
 
 SCORE_FILE = "msr_utmos_scores.txt"
@@ -64,55 +65,12 @@ def read_scores(path):
 
 
 def find_score_files(test_set, lang, only=None):
-    """Same two-layout walk as speaking_rate_dist.find_systems, keyed on score files.
-
-    nested: results/<sys>/<set>/<lang>/msr_utmos_scores.txt (+ results/<group>/<sys>/...)
-    flat:   results/<backend>_<set>/<lang>/msr_utmos_scores.txt  (gt_, whisper_, ...)
-    The `*<set>` glob keeps clean and in-the-wild disjoint.
-    """
-    import glob
-    results_root = os.path.join(REPO, "results")
-    pats = (
-        f"results/*/{test_set}/{lang}/{SCORE_FILE}",
-        f"results/*/*/{test_set}/{lang}/{SCORE_FILE}",
-        f"results/*{test_set}/{lang}/{SCORE_FILE}",
-    )
-    out = {}
-    for pat in pats:
-        for f in glob.glob(os.path.join(REPO, pat)):
-            rel = os.path.relpath(os.path.dirname(f), results_root)   # <...>/<lang>
-            name = rel[: -len(f"/{lang}")]
-            if name.endswith(f"/{test_set}"):
-                name = name[: -len(f"/{test_set}")]
-            out[name] = f
+    """{system: score file} over utils.benchmark.iter_leaves (whisper_* kept)."""
+    out = {name: os.path.join(leaf, SCORE_FILE)
+           for name, leaf in iter_leaves(test_set, lang, SCORE_FILE).items()}
     if only:
         out = {k: v for k, v in out.items() if k in set(only)}
     return out
-
-
-def dmean_ci(x, ref, n_boot, seed=0):
-    """95% percentile CI of mean(x) - mean(ref) under independent utterance resamples."""
-    rng = np.random.default_rng(seed)
-    bx = rng.choice(x, size=(n_boot, x.size), replace=True).mean(axis=1)
-    br = rng.choice(ref, size=(n_boot, ref.size), replace=True).mean(axis=1)
-    d = bx - br
-    return float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5))
-
-
-def dmean_band(ref, n_draws=1000, seed=0):
-    """p95 of |mean(A*) - mean(B*)| over independent size-n bootstrap re-draw pairs
-    of the reference: the null distribution of dmean at the n-vs-n geometry dmean
-    is computed at (a half-vs-half split would be sqrt(2) wider)."""
-    rng = np.random.default_rng(seed)
-    a = rng.choice(ref, size=(n_draws, ref.size), replace=True).mean(axis=1)
-    b = rng.choice(ref, size=(n_draws, ref.size), replace=True).mean(axis=1)
-    return float(np.percentile(np.abs(a - b), 95))
-
-
-def spearman(a, b):
-    ra = np.argsort(np.argsort(a)).astype(float)
-    rb = np.argsort(np.argsort(b)).astype(float)
-    return float(np.corrcoef(ra, rb)[0, 1])
 
 
 def main():

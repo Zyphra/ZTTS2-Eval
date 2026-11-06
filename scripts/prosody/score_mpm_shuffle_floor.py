@@ -34,7 +34,6 @@ With no --synth-dir it just builds+caches the anchor and prints the split-GT
 self-distance (d_ref floor) for reference.
 """
 import argparse
-import hashlib
 import logging
 import multiprocessing
 import os
@@ -56,6 +55,7 @@ import librosa  # noqa: E402
 
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
+from scripts.prosody.common import content_hash  # noqa: E402
 from utils.benchmark import BENCHMARK_VERSION  # noqa: E402
 
 CACHE_DIR = Path(os.path.expanduser("~/.cache/ttsds/mpm_shuffle_floor"))
@@ -244,14 +244,11 @@ def _key(ref_dir, seed):
     repair, resampling fix, enriched-pkl reconstruction) must not silently reuse a
     stale anchor. Returns (key, n_wavs, total_bytes) so a cache hit can print the
     inputs it was keyed on."""
-    wavs = sorted(p for p in Path(ref_dir).iterdir() if p.suffix.lower() == ".wav")
-    content = "\n".join(f"{p.name}\t{p.stat().st_size}\t{p.stat().st_mtime_ns}"
-                        for p in wavs)
     # v3 = random (rather than sorted/interleaved) split-GT floor.
     # v4 = per-utterance p95 energy normalization (the featurization is part of the
     #      key by version tag, since the content hash cannot see code changes).
     # v5 = leading/trailing silence trimmed before featurization (TRIM_TOP_DB).
-    h = hashlib.md5((content + f"|seed={seed}|v5").encode()).hexdigest()[:16]
+    h, wavs = content_hash(ref_dir, f"|seed={seed}|v5")
     return h, len(wavs), sum(p.stat().st_size for p in wavs)
 
 

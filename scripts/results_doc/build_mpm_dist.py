@@ -29,7 +29,8 @@ GT_DIST_DIR = os.path.join(REPO, "results", "_mpm_ground_truth")
 CACHE = os.path.join(SCRIPT_DIR, "_cache")
 OUT = os.path.join(CACHE, "mpm_dist.json")
 
-from scripts.results_doc.rd_common import label as _clean, write_json_atomic  # noqa: E402
+from scripts.results_doc.rd_common import label as _clean  # noqa: E402
+from utils.atomic import write_json_atomic  # noqa: E402
 from utils.per_uid import parse_tsv  # noqa: E402
 
 ORDER = ["en", "de", "es", "fr", "it", "ja", "ko", "ru", "zh"]
