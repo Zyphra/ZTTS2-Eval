@@ -9,7 +9,7 @@
 #
 #   bash scripts/gen/run_zonos3_reftext.sh --task clean_mini --test-set "en zh" --limit 4
 #   bash scripts/gen/run_zonos3_reftext.sh --task in-the-wild --gpu 2
-#   GEN_DRIVER=scripts/gen/run_zonos3_reftext.sh GEN_MODEL=zonos3-rate30-20k-r2grpo-reftext_embedding \
+#   GEN_DRIVER=scripts/gen/run_zonos3_reftext.sh GEN_MODEL=zonos3-mini-reftext_embedding \
 #       sbatch --parsable --chdir="$(pwd -P)" --export=ALL --array=0-1 slurm/gen_job.sh
 #
 # Environment (required):
@@ -19,7 +19,7 @@
 #   ZONOS3_PY     python; empty -> $PYTHON from ZONOS3_ENV
 #
 # Options (Kaldi-style "--name value", parsed by utils/parse_options.sh):
-#   --model       system name                (default zonos3-rate30-20k-r2grpo-reftext_embedding)
+#   --model       system name                (default zonos3-mini-reftext_embedding)
 #   --task        task group                 (default clean)
 #   --test-set    languages within --task    (default: every language of the task)
 #   --list-langs  true = print the languages that would run and exit (default false)
@@ -37,7 +37,7 @@ set -e
 
 . scripts/gen/lib_gen.sh || { echo "error: run this from the repo root" 1>&2; exit 1; }
 
-model=zonos3-rate30-20k-r2grpo-reftext_embedding
+model=zonos3-mini-reftext_embedding
 task=clean
 test_set=
 out_root=

@@ -408,8 +408,8 @@ reference speech is not filtered.
   Clean and 71% of ITW leaves move by ≤ 0.3×.
 - **The large moves are content failures leaving the pace score.** omnivoice hr
   35.5× → 20.0× (10% of its utterances heard), zonos2_expressive hr 14.1× → 2.3×,
-  qwen3-tts-1.7b-reftext hi 18.8× → 6.6×. On In-The-Wild, zonos3-mini_reference zh
-  17.0× → 2.4× and ja 10.1× → 1.2×: its char/s distance there was almost all the
+  qwen3-tts-1.7b-reftext hi 18.8× → 6.6×. On In-The-Wild, an earlier ZONOS3 Mini checkpoint
+  (reference mode) zh 17.0× → 2.4× and ja 10.1× → 1.2×: its char/s distance there was almost all the
   18% of utterances it got wrong.
 - **Systems that fail a language outright now have no pace score in it** instead of an
   extreme one: fewer than 100 heard utterances drops the leaf (Clean: glm-tts 21
@@ -502,16 +502,15 @@ points): paired pauses are one In-The-Wild item of the pauses aspect.
 
 **Question.** Rhythm trimmed each file's edges with the 35 dB energy rule (C8 kept it
 there). Against the Silero speech span, the ZONOS3 variants' pause factors moved most
-(zonos3-rate30-20k_embedding `de` 3.2 → 0.7×). What is in that edge audio?
+(an earlier ZONOS3 checkpoint, embedding mode, `de` 3.2 → 0.7×). What is in that edge audio?
 
 **Measurement.** Spectrograms of the files where the two edges differ most: the disputed
 audio is almost always before the speech, and in generations it is mostly not silence or
 breath but sound the model produced: steady tones (10 s of a 400 Hz hum in
-zonos3-rate30-20k_reference `de` uttid_113), harmonic hums and broadband bursts as loud
+an earlier ZONOS3 checkpoint, `de` uttid_113), harmonic hums and broadband bursts as loud
 as the speech, and sometimes the prompt's background music carried over (glm-tts).
 Files with ≥ 1 s of non-speech at an edge (VoxBlink2, ASR-heard files): real recordings
-0.7%; zonos3-rate30-20k_reference 9.9%, zonos3-rate30-20k_embedding 6.8%, the other
-ZONOS3 variants 2.6–3.7%, omni_omnivoice 5.8%, omni_glm-tts 5.1%; ZONOS3 on Clean ≤ 0.8%.
+0.7%; earlier ZONOS3 checkpoints 2.6–9.9%, omni_omnivoice 5.8%, omni_glm-tts 5.1%; ZONOS3 on Clean ≤ 0.8%.
 The energy rule keeps all of it (it is within 35 dB of the peak), and the tokenizer reads
 a held tone as one long run: a stall.
 
@@ -535,8 +534,8 @@ responses ([rhythm.md](rhythm.md)).
 per-language Spearman of old vs new factors has a median of +0.92 for both the pause and
 the pace factor (lowest: Clean `cs` pause +0.62, VoxBlink2 `ja` pace +0.70). The
 largest In-The-Wild corrections are the ZONOS3 embedding variants, whose lead-in sounds
-had read as stalls: pause factor ×0.44 (zonos3-rate30-20k_embedding, median rank 17 → 6
-of 30) and ×0.59 (zonos3-mini_embedding, 12 → 4). On In-The-Wild the reference ceilings
+had read as stalls: pause factor ×0.44 and ×0.59 for two earlier
+ZONOS3 checkpoints (median rank 17 → 6 and 12 → 4 of 30). On In-The-Wild the reference ceilings
 barely move (median ×1.01). On Clean they move by language (×0.37–×1.83, median ×0.91):
 the FLEURS-R recordings carry edge clicks and breaths that the energy rule kept, and the
 few utterances they distorted dominate a split-half W2. The factors there change units

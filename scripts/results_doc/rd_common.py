@@ -86,45 +86,23 @@ CONDITIONS = {
                         "audio-only clone; accurate_mode=true; seed 0, temp 1.15 vendor sampling"),
     "zonos2_expressive": ("no-transcript",
                           "audio-only clone; accurate_mode=false; seed 0, temp 1.15 vendor sampling"),
-    # ZONOS3 Mini via the release minisgl server (scripts/gen/generate_zonos3.py -> /tts/generate): audio-only clone.
+    # ZONOS3 Mini via a minisgl server (scripts/gen/generate_zonos3.py -> /tts/generate): audio-only clone.
     "zonos3-mini_reference": ("no-transcript",
-                              "release server, raw reference prefix (speaker_mode=reference), no transcript; seed 0, "
+                              "minisgl server, raw reference prefix (speaker_mode=reference), no transcript; seed 0, "
                               "T 0.75 top-k 80 top-p 0.69, rep 96×2.4, CFG 1, 0.2 s silence prefill, "
                               "server TN for en zh de es fr it pt ja ko"),
     "zonos3-mini_embedding": ("x-vector",
-                              "release server, ownmect_s2 speaker embedding only (speaker_mode=embedding), "
+                              "minisgl server, ownmect_s2 speaker embedding only (speaker_mode=embedding), "
                               "no transcript; sampling as zonos3-mini_reference"),
-    # As above plus LACI (laci=true; alignment-guarded decoding with rollbacks), served from the z3m-laci
-    # runtime tree (d24d592).
-    "zonos3-mini-laci_reference": ("no-transcript",
-                                   "as zonos3-mini_reference plus LACI (laci=true; ZTTS3-Eval assets/laci heads: "
-                                   "zh heads for cmn, en heads for every other server language)"),
-    "zonos3-mini-laci_embedding": ("x-vector",
-                                   "as zonos3-mini_embedding plus LACI (laci=true; heads as zonos3-mini-laci_reference)"),
-    # Internal ZONOS3 Mini checkpoints, same client and sampling as zonos3-mini_*, served from gabriel's minisgl
-    # (inference-frozen-arch-20261012 @ 65ccd72 + per-table condition bucket counts [10, 10, 30]).
-    "zonos3-rate30-20k_reference": ("no-transcript",
-                                    "internal checkpoint: omni3b 60k recipe + 20k steps with 30 speaking-rate "
-                                    "buckets; as zonos3-mini_reference otherwise"),
-    "zonos3-rate30-20k_embedding": ("x-vector",
-                                    "internal checkpoint as zonos3-rate30-20k_reference; as zonos3-mini_embedding "
-                                    "otherwise"),
-    "zonos3-rate30-20k-r2grpo_reference": ("no-transcript",
-                                           "internal checkpoint: zonos3-rate30-20k + tail DPO + round-2 GRPO "
-                                           "(WER-first reward, step 587); as zonos3-mini_reference otherwise"),
-    "zonos3-rate30-20k-r2grpo_embedding": ("x-vector",
-                                           "internal checkpoint as zonos3-rate30-20k-r2grpo_reference; as "
-                                           "zonos3-mini_embedding otherwise"),
-    # Continuation in-process (no server: /tts/generate cannot prefill the prompt's frames), gabriel's minisgl @ 2c78070.
-    "zonos3-rate30-20k-r2grpo-reftext_embedding": ("with-transcript",
-                                                   "in-process TTSLLM (scripts/gen/generate_zonos3_reftext.py): prompt "
-                                                   "transcript + target text, the prompt's codec frames (edge "
-                                                   "silence trimmed, top_db 35; last 2 frames, the clip's end-of-file "
-                                                   "edge, dropped) prefilled after the 0.2 s silence "
-                                                   "prefill (output = audio after the prefill), plus the ownmect_s2 "
-                                                   "speaker embedding of the untrimmed prompt; checkpoint as "
-                                                   "zonos3-rate30-20k-r2grpo_reference; sampling as "
-                                                   "zonos3-mini_reference"),
+    # Continuation in-process (no server: /tts/generate cannot prefill the prompt's frames).
+    "zonos3-mini-reftext_embedding": ("with-transcript",
+                                      "in-process TTSLLM (scripts/gen/generate_zonos3_reftext.py): prompt "
+                                      "transcript + target text, the prompt's codec frames (edge "
+                                      "silence trimmed, top_db 35; last 2 frames, the clip's end-of-file "
+                                      "edge, dropped) prefilled after the 0.2 s silence "
+                                      "prefill (output = audio after the prefill), plus the ownmect_s2 "
+                                      "speaker embedding of the untrimmed prompt; checkpoint and sampling "
+                                      "as zonos3-mini_reference"),
     # vLLM-Omni served (scripts/gen/omni_models.sh reftext_policy + generate_omni.py);
     # all unseeded, server-default sampling.
     "omni_voxcpm2": ("no-transcript", "--no-ref-text (reftext_policy); unseeded server defaults"),
@@ -303,13 +281,7 @@ RELEASES = {
     "audio8-tts-realistic-0.6b": ("2026-10-29", "Edge0 launch post on X, 'Introducing Audio8-TTS-Realistic' (HF repo created 2026-10-14)"),
     "zonos3-mini_reference": ("2026-11-06", "Zyphra release plan"),
     "zonos3-mini_embedding": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-mini-laci_reference": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-mini-laci_embedding": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-rate30-20k_reference": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-rate30-20k_embedding": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-rate30-20k-r2grpo_reference": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-rate30-20k-r2grpo_embedding": ("2026-11-06", "Zyphra release plan"),
-    "zonos3-rate30-20k-r2grpo-reftext_embedding": ("2026-11-06", "Zyphra release plan"),
+    "zonos3-mini-reftext_embedding": ("2026-11-06", "Zyphra release plan"),
 }
 
 # --- parameter counts -----------------------------------------------------------
@@ -320,9 +292,7 @@ RELEASES = {
 # repo holds 2.7B with its tokenizers). For mixture-of-experts models `active` is the
 # per-token count; the chart plots `total`. Variants of one checkpoint share an entry.
 # Hosted API systems publish no size and have no entry.
-_Z3M = (0.886, 0.155, "release checkpoint lm/mect_60k tensor count (64 experts, top-2 routed)")
-# rate30 and its post-trains: the lm/mect_60k architecture plus 20 more speaking-rate bucket rows (0.88617 B).
-_Z3M_RATE30 = (0.886, 0.155, "zonos3-rate30-20k-r2grpo converted model.pth tensor count (lm/mect_60k arch, 30 rate buckets)")
+_Z3M = (0.886, 0.155, "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)")
 PARAMS = {
     "kokoro": (0.082, None, "model name (Kokoro-82M)"),
     "phonon-40m-multilingual": (0.04, None, "gradium/phonon-40m-multilingual card: 40M excluding the audio tokenizer"),
@@ -359,13 +329,7 @@ PARAMS = {
     "zonos2_expressive": (8.0, 0.9, "Zyphra blog, 'ZONOS2'"),
     "zonos3-mini_reference": _Z3M,
     "zonos3-mini_embedding": _Z3M,
-    "zonos3-mini-laci_reference": _Z3M,
-    "zonos3-mini-laci_embedding": _Z3M,
-    "zonos3-rate30-20k_reference": _Z3M_RATE30,
-    "zonos3-rate30-20k_embedding": _Z3M_RATE30,
-    "zonos3-rate30-20k-r2grpo_reference": _Z3M_RATE30,
-    "zonos3-rate30-20k-r2grpo_embedding": _Z3M_RATE30,
-    "zonos3-rate30-20k-r2grpo-reftext_embedding": _Z3M_RATE30,
+    "zonos3-mini-reftext_embedding": _Z3M,
 }
 
 # --- system discovery -------------------------------------------------------

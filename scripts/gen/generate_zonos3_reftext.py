@@ -22,7 +22,7 @@ against the release server (gz.POLICY, gz.TN_LANG, the matched decoder's headroo
 
 Usage (inside the runtime env; see scripts/gen/run_zonos3_reftext.sh):
     python scripts/gen/generate_zonos3_reftext.py --data-dir data/clean/en \\
-        --out-dir results/zonos3-rate30-20k-r2grpo-reftext_embedding/clean/en --model-path "$ZONOS3_MODEL"
+        --out-dir results/zonos3-mini-reftext_embedding/clean/en --model-path "$ZONOS3_MODEL"
 """
 import argparse
 import os
