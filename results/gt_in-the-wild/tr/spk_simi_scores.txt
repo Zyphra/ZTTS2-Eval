@@ -548,7 +548,7 @@ uttid_550 0.00 75.49
 uttid_551 0.00 67.01
 uttid_552 0.00 86.18
 uttid_553 0.00 92.07
-uttid_554 0.00 75.72
+uttid_554 0.00 75.71
 uttid_555 0.00 90.81
 uttid_556 0.00 83.54
 uttid_557 0.00 89.73
@@ -973,5 +973,5 @@ uttid_975 0.00 71.55
 avg 0.00 80.22
 #N_SCORED: 972
 #N_EXPECTED: 972
-#BENCHMARK_VERSION: 2
+#BENCHMARK_VERSION: 1
 #SPK_MODEL: PalabraAI/redimnet2@ffe8f272bfaf6a41efb7814b28d94377b1613ac9:b6:lm:vb2+vox2_v0

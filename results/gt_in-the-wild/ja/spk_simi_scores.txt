@@ -5,7 +5,7 @@ uttid_4 0.00 89.63
 uttid_5 0.00 90.63
 uttid_6 0.00 79.94
 uttid_7 0.00 75.69
-uttid_8 0.00 82.16
+uttid_8 0.00 82.15
 uttid_9 0.00 68.18
 uttid_10 0.00 88.62
 uttid_11 0.00 76.71
@@ -680,5 +680,5 @@ uttid_697 0.00 78.45
 avg 0.00 80.38
 #N_SCORED: 679
 #N_EXPECTED: 679
-#BENCHMARK_VERSION: 2
+#BENCHMARK_VERSION: 1
 #SPK_MODEL: PalabraAI/redimnet2@ffe8f272bfaf6a41efb7814b28d94377b1613ac9:b6:lm:vb2+vox2_v0

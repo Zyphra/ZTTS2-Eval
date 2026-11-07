@@ -381,7 +381,7 @@ uttid_384 0.00 72.96
 uttid_385 0.00 82.99
 uttid_386 0.00 86.04
 uttid_387 0.00 68.34
-uttid_388 0.00 90.33
+uttid_388 0.00 90.34
 uttid_389 0.00 65.25
 uttid_390 0.00 80.85
 uttid_391 0.00 87.56
@@ -1163,7 +1163,7 @@ uttid_1172 0.00 83.50
 uttid_1173 0.00 73.82
 uttid_1174 0.00 76.12
 uttid_1175 0.00 82.75
-uttid_1176 0.00 88.79
+uttid_1176 0.00 88.78
 uttid_1177 0.00 84.43
 uttid_1178 0.00 77.99
 uttid_1179 0.00 75.88
@@ -1491,5 +1491,5 @@ uttid_1500 0.00 28.77
 avg 0.00 79.19
 #N_SCORED: 1490
 #N_EXPECTED: 1490
-#BENCHMARK_VERSION: 2
+#BENCHMARK_VERSION: 1
 #SPK_MODEL: PalabraAI/redimnet2@ffe8f272bfaf6a41efb7814b28d94377b1613ac9:b6:lm:vb2+vox2_v0
