@@ -93,6 +93,23 @@ live (mostly un-shipped: multi-GB wavs, absolute-path `.scp`), so playback works
 only where those exist — the origin host or a tunnel to it, not a bare clone. The
 aggregate views work everywhere.
 
+### Static site (GitHub Pages)
+
+`.github/workflows/pages.yml` runs `explorer/build_static.py --out _site` on every
+push/PR: the page and scripts verbatim plus each aggregate route pre-rendered as
+`api/<name>.json` by `serve.py`'s own builders, marked `window.ZTTS2_STATIC` so the
+client reads those files instead of the API. It deploys from `main` only while the
+repository is public (a Team-plan Pages site is world-readable even from a private
+repo); making the repo public triggers the deploy.
+
+The static drill-down comes from Cloudflare R2 (`explorer/r2_media.py`): `export`
+writes every board cell's rows as `utt/<model>/<board task>/<lang>.json` and every
+referenced wav as 64 kbps mono Ogg Opus (Safari ≥ 18.4) into a private bucket,
+resumably; `publish` (at release) sets CORS for the Pages origin, attaches
+`ztts2-media.zyphra.com`, and sets the `ZTTS2_MEDIA_URL` repository variable that
+the build passes as `--media-url`. Without it the drawer reports the cell as not
+published. Credentials: `.env.example`.
+
 ## API
 
 | route | returns |
