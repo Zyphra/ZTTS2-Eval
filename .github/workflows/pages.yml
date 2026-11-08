@@ -1,0 +1,58 @@
+# Builds the explorer as a static site (explorer/build_static.py) on every push/PR and
+# deploys it to GitHub Pages from main — but only while the repository is public: on
+# the Team plan a Pages site is world-readable even from a private repo. The `public`
+# trigger publishes the moment the repository is made public. The repository variable
+# ZTTS2_MEDIA_URL (set by `explorer/r2_media.py publish`) points the drill-down at R2.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  public:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      visibility: ${{ steps.repo.outputs.visibility }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check explorer JS syntax
+        run: for f in explorer/*.js; do node --check "$f"; done
+      - name: Build static site
+        env:
+          MEDIA_URL: ${{ vars.ZTTS2_MEDIA_URL }}
+        run: python3 explorer/build_static.py --out _site --media-url "$MEDIA_URL"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - name: Read repository visibility
+        id: repo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(gh api "repos/${{ github.repository }}" --jq .visibility)
+          echo "repository visibility: $v"
+          echo "visibility=$v" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.build.outputs.visibility == 'public'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

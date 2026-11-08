@@ -65,6 +65,22 @@ const STATE = {
 let _cbN = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// GitHub Pages build (explorer/build_static.py) sets window.ZTTS2_STATIC: no server
+// behind the page, so each aggregate route GET /api/<name> is a pre-rendered
+// api/<name>.json beside index.html (relative: Pages serves under /<repo>/).
+// window.ZTTS2_MEDIA, when set, is the R2 base holding the per-utterance drill-down
+// (explorer/r2_media.py): utt/<model>/<board task>/<lang>.json + Opus audio.
+const STATIC_SITE = !!window.ZTTS2_STATIC;
+const MEDIA_BASE = window.ZTTS2_MEDIA || "";
+
+// "/api/meta?x=1" → "api/meta.json" (static files take no query)
+async function staticGet(path) {
+  const url = path.split("?")[0].replace(/^\//, "") + ".json";
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("HTTP " + resp.status + " " + url);
+  return resp.json();
+}
+
 function jsonp(path, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const cb = "__ztts2cb" + (++_cbN);
@@ -98,6 +114,7 @@ async function jsonpRetry(path, tries = 4) {
 // then fall back to JSONP for that request — so a hostile proxy can't blank us.
 let _bust = 0;
 async function apiGet(path, tries = 3) {
+  if (STATIC_SITE) return staticGet(path);
   for (let i = 0; i <= tries; i++) {
     try {
       const u = path + (path.includes("?") ? "&" : "?") + "_=" + (++_bust);
@@ -150,7 +167,9 @@ async function loadSnapshot() {
   $("#board-body").innerHTML = `<tr><td class="empty-state loading">acquiring snapshot</td></tr>`;
   try {
     const meta = await apiGet("/api/meta");                 // tiny: total + option lists
-    const rows = await pagedGet("/api/rows", meta.total, 120); // small paginated chunks
+    // the static site ships the rows whole (Pages gzips them); the server pages them for proxies
+    const rows = STATIC_SITE ? (await apiGet("/api/snapshot")).rows
+                             : await pagedGet("/api/rows", meta.total, 120);
     applySnapshot({ rows, models: meta.models, tasks: meta.tasks, sets: meta.sets,
                     panels: meta.panels || {} });
   } catch (e) {
@@ -720,6 +739,39 @@ function bindDrawer() {
   $("#dd-filter").oninput = (e) => filterUtt(e.target.value.toLowerCase());
 }
 
+// The published drill-down: one JSON per board cell on R2, audio keys relative to it.
+// Any failure (no media configured, cell not exported, network/CORS) is "not published".
+async function loadPublishedUtterances(model, task, lang) {
+  const none = { error: "per-utterance rows are not published for this cell", rows: [], total: 0 };
+  if (!MEDIA_BASE) return none;
+  const seg = (s) => s.split("/").map(encodeURIComponent).join("/");
+  let resp;
+  try { resp = await fetch(`${MEDIA_BASE}/utt/${seg(model)}/${seg(task)}/${seg(lang)}.json`); }
+  catch (e) { return none; }
+  if (!resp.ok) return none;
+  const d = await resp.json();
+  for (const r of d.rows || []) {
+    if (r.gen_url) r.gen_url = `${MEDIA_BASE}/${seg(r.gen_url)}`;
+    if (r.prompt_url) r.prompt_url = `${MEDIA_BASE}/${seg(r.prompt_url)}`;
+  }
+  return d;
+}
+
+// The local server's drill-down: the first page, then the rest in parallel.
+async function loadServerUtterances(base) {
+  const first = await apiGet(`${base}&offset=0&limit=120`);
+  if (first.error || !first.total) return first;
+  let rows = first.rows || [];
+  const offs = [];
+  for (let o = rows.length; o < first.total; o += 120) offs.push(o);
+  if (offs.length) {
+    const more = await Promise.all(offs.map((o) => apiGet(`${base}&offset=${o}&limit=120`)));
+    more.sort((a, b) => (a.offset || 0) - (b.offset || 0));
+    more.forEach((p) => { rows = rows.concat(p.rows || []); });
+  }
+  return { total: first.total, rows };
+}
+
 function openDrawer(model, task, lang) {
   resetAudio();   // the drawer body is about to be rebuilt — drop retained players
   $("#drawer").classList.remove("hidden");
@@ -748,19 +800,16 @@ function openDrawer(model, task, lang) {
   // for the baselines that means filtering their full-set leaf down to the panel.
   const pn = panelOf(task) ? `&panel=${encodeURIComponent(task)}` : "";
   const base = `/api/utterances?model=${encodeURIComponent(model)}&task=${encodeURIComponent(diskTask)}&lang=${encodeURIComponent(lang)}${pn}`;
-  apiGet(`${base}&offset=0&limit=120`).then(async (first) => {
-    if (first.error || !first.total) {
-      $("#dd-body").innerHTML = `<div class="empty-state">no per-utterance data on disk for this cell.<br><small>${first.error || ""}</small></div>`;
+  // the static site reads the whole cell from R2, keyed by the board task
+  const load = STATIC_SITE ? loadPublishedUtterances(model, task, lang) : loadServerUtterances(base);
+  load.then((res) => {
+    if (res.error || !res.total) {
+      $("#dd-body").innerHTML = STATIC_SITE
+        ? `<div class="empty-state">${res.error || "per-utterance rows are not published for this cell"}</div>`
+        : `<div class="empty-state">no per-utterance data on disk for this cell.<br><small>${res.error || ""}</small></div>`;
       return;
     }
-    let rows = first.rows || [];
-    const offs = [];
-    for (let o = rows.length; o < first.total; o += 120) offs.push(o);
-    if (offs.length) {
-      const more = await Promise.all(offs.map((o) => apiGet(`${base}&offset=${o}&limit=120`)));
-      more.sort((a, b) => (a.offset || 0) - (b.offset || 0));
-      more.forEach((p) => { rows = rows.concat(p.rows || []); });
-    }
+    const rows = res.rows || [];
     DD_ROWS = rows;
     renderStats(rows);
     renderUtt(rows);

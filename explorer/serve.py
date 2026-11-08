@@ -147,6 +147,15 @@ MPM_DIST = "mpm_dist.json"
 PANELS = "panels.json"
 CAPABILITY_INDEX = "capability_index.json"
 
+# chart-view routes: each answers its snapshot file verbatim (build_static.py
+# pre-renders the same table for the static site)
+VIEW_FILES = {
+    "/api/reliability": RELIABILITY,
+    "/api/speaking_rate": SPEAKING_RATE,
+    "/api/mpm_dist": MPM_DIST,
+    "/api/capability_index": CAPABILITY_INDEX,
+}
+
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/index.html": ("index.html", "text/html; charset=utf-8"),
@@ -604,12 +613,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_api(res, qs, code=res.pop("_code", 200))
         if route == "/api/audio":
             return self._serve_audio(qs)
-        if route in ("/api/reliability", "/api/speaking_rate",
-                     "/api/mpm_dist", "/api/capability_index"):
-            fmap = {"/api/reliability": RELIABILITY,
-                    "/api/speaking_rate": SPEAKING_RATE, "/api/mpm_dist": MPM_DIST,
-                    "/api/capability_index": CAPABILITY_INDEX}
-            data, err = _load_cache_json(fmap[route])
+        if route in VIEW_FILES:
+            data, err = _load_cache_json(VIEW_FILES[route])
             if err == "not found":   # 200 + error object: the ensure* helpers handle it
                 return self._send_api({"error": "not found"}, qs)
             if err:                  # corrupt/truncated (mid-rebuild) → transient → 503
