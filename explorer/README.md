@@ -105,10 +105,10 @@ repo); making the repo public triggers the deploy.
 The static drill-down comes from Cloudflare R2 (`explorer/r2_media.py`): `export`
 writes every board cell's rows as `utt/<model>/<board task>/<lang>.json` and every
 referenced wav as 64 kbps mono Ogg Opus (Safari ≥ 18.4) into a private bucket,
-resumably; `publish` (at release) sets CORS for the Pages origin, attaches
-`ztts2-media.zyphra.com`, and sets the `ZTTS2_MEDIA_URL` repository variable that
-the build passes as `--media-url`. Without it the drawer reports the cell as not
-published. Credentials: `.env.example`.
+resumably; `publish` (at release) sets CORS for the Pages origin, enables the
+bucket's Cloudflare-managed public URL (`https://pub-<bucket id>.r2.dev`), and sets
+the `ZTTS2_MEDIA_URL` repository variable that the build passes as `--media-url`.
+Without it the drawer reports the cell as not published. Credentials: `.env.example`.
 
 ## API
 

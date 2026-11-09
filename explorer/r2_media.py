@@ -11,8 +11,8 @@ Two subcommands:
            bucket. Resumable: clips already in the bucket are skipped, and cell JSON
            goes up last so no published cell links audio that is not there yet.
            --local DIR writes the same tree to disk instead of uploading.
-  publish  the release step: CORS for the Pages origin, the custom domain
-           ztts2-media.zyphra.com on the bucket, the ZTTS2_MEDIA_URL repository
+  publish  the release step: CORS for the Pages origin, the bucket's Cloudflare-managed
+           public URL (https://pub-<bucket id>.r2.dev), the ZTTS2_MEDIA_URL repository
            variable, and a Pages rebuild (which deploys only while the repo is public).
 
 Env: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (upload and publish), R2_BUCKET
@@ -45,8 +45,6 @@ import serve  # noqa: E402
 from utils.benchmark import FLAT_PREFIXES, SOURCE_TASK, is_panel_alias  # noqa: E402
 
 GH_REPO = "Zyphra/ZTTS2-Eval"
-MEDIA_HOST = "ztts2-media.zyphra.com"
-MEDIA_ZONE = "zyphra.com"
 DEFAULT_BUCKET = "ztts2-eval"
 CF_API = "https://api.cloudflare.com/client/v4"
 OPUS_ARGS = ["-ac", "1", "-ar", "48000", "-c:a", "libopus", "-b:a", "64k",
@@ -417,23 +415,21 @@ def cmd_publish(args):
         sys.exit(f"[r2_media] GitHub Pages is not enabled on {GH_REPO}: {html.stderr.strip()}")
     u = urllib.parse.urlsplit(html.stdout.strip())
     origin = f"{u.scheme}://{u.netloc}"
-    media_url = f"https://{MEDIA_HOST}"
     bpath = f"/accounts/{acct}/r2/buckets/{BUCKET}"
     cors = {"rules": [{
         "allowed": {"origins": [origin], "methods": ["GET", "HEAD"], "headers": ["Range"]},
         "exposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
         "maxAgeSeconds": 86400}]}
-    gh_cmds = [["gh", "variable", "set", "ZTTS2_MEDIA_URL", "--body", media_url, "-R", GH_REPO],
-               ["gh", "workflow", "run", "pages.yml", "-R", GH_REPO, "--ref", "main"]]
+    def gh_cmds(media_url):
+        return [["gh", "variable", "set", "ZTTS2_MEDIA_URL", "--body", media_url, "-R", GH_REPO],
+                ["gh", "workflow", "run", "pages.yml", "-R", GH_REPO, "--ref", "main"]]
 
     if args.dry_run:
         log(f"pages origin: {origin}")
         log(f"PUT {bpath}/cors {json.dumps(cors)}")
-        log(f"GET /zones?name={MEDIA_ZONE}")
-        log(f"GET {bpath}/domains/custom")
-        log(f"POST {bpath}/domains/custom "
-            f"{json.dumps({'domain': MEDIA_HOST, 'zoneId': '<zone id>', 'enabled': True})}")
-        for c in gh_cmds:
+        log(f"PUT {bpath}/domains/managed {json.dumps({'enabled': True})}  "
+            f"→ <media url> = https://<result.domain>")
+        for c in gh_cmds("https://<result.domain>"):
             log("would run: " + " ".join(c))
         return 0
 
@@ -442,31 +438,15 @@ def cmd_publish(args):
         sys.exit(f"[r2_media] set CORS: {got}")
     log(f"CORS: GET/HEAD from {origin}")
 
-    zones = cf("GET", f"/zones?name={MEDIA_ZONE}").get("result") or []
-    if not zones:
-        sys.exit(f"[r2_media] zone {MEDIA_ZONE} not visible to this token")
-    zid = zones[0]["id"]
-    doms = cf("GET", f"{bpath}/domains/custom")
-    if doms.get("_status") == 403:
-        res = doms
-    else:
-        cur = {d["domain"]: d for d in (doms.get("result") or {}).get("domains") or []}
-        if MEDIA_HOST not in cur:
-            res = cf("POST", f"{bpath}/domains/custom",
-                     {"domain": MEDIA_HOST, "zoneId": zid, "enabled": True})
-        elif not cur[MEDIA_HOST].get("enabled"):
-            res = cf("PUT", f"{bpath}/domains/custom/{MEDIA_HOST}", {"enabled": True})
-        else:
-            res = {"success": True}
-    if res.get("_status") == 403:
-        log(f"connect {MEDIA_HOST} to bucket {BUCKET} in the Cloudflare dashboard "
-            f"(R2 → bucket → Settings → Custom Domains)")
-    elif not res.get("success"):
-        sys.exit(f"[r2_media] custom domain {MEDIA_HOST}: {res}")
-    else:
-        log(f"custom domain {MEDIA_HOST} enabled on bucket {BUCKET}")
-
-    for c in gh_cmds:
+    # the r2.dev URL Cloudflare assigns the bucket (pub-<bucket id>.r2.dev); enabling it
+    # is what makes the bucket publicly readable
+    got = cf("PUT", f"{bpath}/domains/managed", {"enabled": True})
+    domain = (got.get("result") or {}).get("domain")
+    if not got.get("success") or not domain:
+        sys.exit(f"[r2_media] enable r2.dev URL: {got}")
+    media_url = f"https://{domain}"
+    log(f"public r2.dev URL enabled on bucket {BUCKET}: {media_url}")
+    for c in gh_cmds(media_url):
         subprocess.run(c, check=True)
     log(f"media public at {media_url}; Pages rebuild dispatched "
         f"(deploys only while the repo is public)")
