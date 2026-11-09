@@ -109,6 +109,9 @@ resumably; `publish` (at release) sets CORS for the Pages origin, enables the
 bucket's Cloudflare-managed public URL (`https://pub-<bucket id>.r2.dev`), and sets
 the `ZTTS2_MEDIA_URL` repository variable that the build passes as `--media-url`.
 Without it the drawer reports the cell as not published. Credentials: `.env.example`.
+Before release, `r2_media.py stage --port 28440` previews exactly that site with the
+still-private bucket from one loopback origin
+(`http://localhost:28440/ZTTS2-Eval/index.html`, e.g. over `ssh -L 28440:localhost:28440`).
 
 ## API
 

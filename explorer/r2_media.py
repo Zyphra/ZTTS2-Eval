@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Host the explorer's per-utterance drill-down on Cloudflare R2.
 
-Two subcommands:
+Three subcommands:
 
   export   for every board cell of the snapshot, writes serve.build_utterances' rows
            as utt/<model>/<board task>/<lang>.json and every generated/prompt wav they
@@ -14,14 +14,19 @@ Two subcommands:
   publish  the release step: CORS for the Pages origin, the bucket's Cloudflare-managed
            public URL (https://pub-<bucket id>.r2.dev), the ZTTS2_MEDIA_URL repository
            variable, and a Pages rebuild (which deploys only while the repo is public).
+  stage    a private preview of the published site before release: builds it with
+           build_static.py and serves it plus the still-private bucket from one
+           loopback origin (rclone serve http), at
+           http://localhost:<port>/ZTTS2-Eval/index.html.
 
-Env: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (upload and publish), R2_BUCKET
+Env: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (upload, publish, stage), R2_BUCKET
 (default ztts2-eval), RCLONE (default rclone; must be >= 1.59). The S3 keys rclone
 uses are derived from the token; ~/.config/rclone/rclone.conf is not touched.
 
     set -a && . ./.env && set +a
     python3 explorer/r2_media.py export --allow-root /data/groups/audio/ZTTS2-Eval/results --jobs 64 --prune
     python3 explorer/r2_media.py publish            # at release; --dry-run to preview
+    python3 explorer/r2_media.py stage --port 28440 # preview; ssh -L 28440:localhost:28440
 """
 
 import argparse
@@ -453,6 +458,26 @@ def cmd_publish(args):
     return 0
 
 
+# ---------------------------------------------------------------------------
+# stage
+# ---------------------------------------------------------------------------
+def cmd_stage(args):
+    """Build the site against /media and serve it with the bucket from one origin, so
+    the drill-down works while the bucket is private and needs no CORS."""
+    require_env()
+    check_tools(transcode=False, upload=True)
+    env = s3_env()
+    site = os.path.join(os.path.abspath(args.out), "ZTTS2-Eval")   # the Pages path
+    subprocess.run([sys.executable, os.path.join(HERE, "build_static.py"),
+                    "--out", site, "--media-url", "/media"], check=True)
+    env["RCLONE_CONFIG_STAGE_TYPE"] = "combine"
+    env["RCLONE_CONFIG_STAGE_UPSTREAMS"] = f'"ZTTS2-Eval={site}" "media=r2:{BUCKET}"'
+    log(f"staging at http://localhost:{args.port}/ZTTS2-Eval/index.html (loopback only; "
+        f"the first clip of each cell takes a few seconds while its directory is listed)")
+    os.execvpe(RCLONE, [RCLONE, "serve", "http", "stage:", "--read-only",
+                        "--addr", f"127.0.0.1:{args.port}", "--dir-cache-time", "1h"], env)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -472,8 +497,12 @@ def main():
     pub = sub.add_parser("publish", help="make the bucket public and point the site at it")
     pub.add_argument("--dry-run", action="store_true",
                      help="print the Cloudflare requests and gh commands instead of sending them")
+    st = sub.add_parser("stage", help="preview the site with the private bucket on localhost")
+    st.add_argument("--port", type=int, default=28440, help="loopback port to serve on")
+    st.add_argument("--out", default=os.path.join(serve.ROOT, "logs", "pages-stage"),
+                    help="where the preview site is built")
     args = ap.parse_args()
-    sys.exit(cmd_export(args) if args.cmd == "export" else cmd_publish(args))
+    sys.exit({"export": cmd_export, "publish": cmd_publish, "stage": cmd_stage}[args.cmd](args))
 
 
 if __name__ == "__main__":

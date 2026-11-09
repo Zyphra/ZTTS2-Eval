@@ -38,10 +38,11 @@ def payloads():
 
 
 def page_mark(media_url):
-    """The <script> injected before </head>: static mode plus the optional media base."""
+    """The <script> injected before </head>: static mode plus the optional media base
+    (an absolute http(s) URL, or a root-relative path served by the same origin)."""
     media_url = media_url.rstrip("/")
-    if media_url and not re.fullmatch(
-            r"https?://[A-Za-z0-9.\-]+(:\d+)?(/[A-Za-z0-9._~\-/]*)?", media_url):
+    if media_url and not re.fullmatch(r"https?://[A-Za-z0-9.\-]+(:\d+)?(/[A-Za-z0-9._~\-/]*)?"
+                                      r"|/(?!/)[A-Za-z0-9._~\-/]*", media_url):
         sys.exit(f"[build_static] bad --media-url: {media_url!r}")
     mark = b"<script>window.ZTTS2_STATIC=true;"
     if media_url:
@@ -54,7 +55,8 @@ def main():
     ap.add_argument("--out", default=os.path.join(serve.ROOT, "_site"),
                     help="output directory (created; existing files are overwritten in place)")
     ap.add_argument("--media-url", default="",
-                    help="R2 base URL of the per-utterance drill-down (explorer/r2_media.py)")
+                    help="base of the per-utterance drill-down (explorer/r2_media.py): "
+                         "the R2 URL, or a root-relative path such as /media")
     args = ap.parse_args()
 
     # everything that can fail runs before the first write
