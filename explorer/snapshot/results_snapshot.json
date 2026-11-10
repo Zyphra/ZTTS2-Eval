@@ -1760,6 +1760,2151 @@
     "n": 700
   },
   {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ar",
+    "wer": [
+      5.111,
+      5.111,
+      5.111
+    ],
+    "wer_ci": [
+      3.855,
+      6.465,
+      3.855,
+      6.465
+    ],
+    "tail50": 0.0,
+    "spk": 87.151,
+    "spk_xutt": null,
+    "msr_utmos": 3.2668,
+    "msr_utmos_ci": [
+      3.191,
+      3.339
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 107,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 107,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "bg",
+    "wer": [
+      5.829,
+      5.829,
+      5.829
+    ],
+    "wer_ci": [
+      4.642,
+      7.13,
+      4.642,
+      7.13
+    ],
+    "tail50": 0.0,
+    "spk": 83.051,
+    "spk_xutt": null,
+    "msr_utmos": 3.0336,
+    "msr_utmos_ci": [
+      2.983,
+      3.084
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ca",
+    "wer": [
+      17.868,
+      15.138,
+      17.868
+    ],
+    "wer_ci": [
+      14.928,
+      21.172,
+      14.928,
+      21.172
+    ],
+    "tail50": 4.773,
+    "spk": 82.612,
+    "spk_xutt": null,
+    "msr_utmos": 3.0133,
+    "msr_utmos_ci": [
+      2.949,
+      3.078
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 104,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 104,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "cs",
+    "wer": [
+      4.943,
+      4.943,
+      4.943
+    ],
+    "wer_ci": [
+      3.664,
+      6.41,
+      3.664,
+      6.41
+    ],
+    "tail50": 0.0,
+    "spk": 84.165,
+    "spk_xutt": null,
+    "msr_utmos": 3.0467,
+    "msr_utmos_ci": [
+      2.989,
+      3.103
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "da",
+    "wer": [
+      5.589,
+      5.589,
+      5.589
+    ],
+    "wer_ci": [
+      4.178,
+      7.077,
+      4.178,
+      7.077
+    ],
+    "tail50": 0.0,
+    "spk": 85.586,
+    "spk_xutt": null,
+    "msr_utmos": 3.3585,
+    "msr_utmos_ci": [
+      3.317,
+      3.401
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 125,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 125,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "de",
+    "wer": [
+      2.502,
+      2.502,
+      2.502
+    ],
+    "wer_ci": [
+      1.354,
+      3.911,
+      1.354,
+      3.911
+    ],
+    "tail50": 0.0,
+    "spk": 84.342,
+    "spk_xutt": null,
+    "msr_utmos": 3.2186,
+    "msr_utmos_ci": [
+      3.157,
+      3.281
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 77,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 77,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "el",
+    "wer": [
+      7.627,
+      7.627,
+      7.627
+    ],
+    "wer_ci": [
+      6.128,
+      9.163,
+      6.128,
+      9.163
+    ],
+    "tail50": 0.0,
+    "spk": 84.726,
+    "spk_xutt": null,
+    "msr_utmos": 3.0555,
+    "msr_utmos_ci": [
+      2.993,
+      3.118
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 94,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 94,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "en",
+    "wer": [
+      1.865,
+      1.865,
+      1.865
+    ],
+    "wer_ci": [
+      0.934,
+      2.974,
+      0.934,
+      2.974
+    ],
+    "tail50": 0.0,
+    "spk": 82.646,
+    "spk_xutt": null,
+    "msr_utmos": 3.6131,
+    "msr_utmos_ci": [
+      3.567,
+      3.661
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 53,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 53,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "es",
+    "wer": [
+      1.688,
+      1.688,
+      1.688
+    ],
+    "wer_ci": [
+      0.835,
+      2.673,
+      0.835,
+      2.673
+    ],
+    "tail50": 0.0,
+    "spk": 86.794,
+    "spk_xutt": null,
+    "msr_utmos": 2.9528,
+    "msr_utmos_ci": [
+      2.87,
+      3.04
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 61,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 61,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "fa",
+    "wer": [
+      47.231,
+      37.523,
+      47.231
+    ],
+    "wer_ci": [
+      44.417,
+      50.095,
+      44.417,
+      50.095
+    ],
+    "tail50": 36.999,
+    "spk": 81.612,
+    "spk_xutt": null,
+    "msr_utmos": 3.0792,
+    "msr_utmos_ci": [
+      3.023,
+      3.139
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "fi",
+    "wer": [
+      4.434,
+      4.434,
+      4.434
+    ],
+    "wer_ci": [
+      3.193,
+      5.757,
+      3.193,
+      5.757
+    ],
+    "tail50": 0.0,
+    "spk": 86.702,
+    "spk_xutt": null,
+    "msr_utmos": 3.3388,
+    "msr_utmos_ci": [
+      3.27,
+      3.405
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "fil",
+    "wer": [
+      8.159,
+      6.951,
+      8.159
+    ],
+    "wer_ci": [
+      6.115,
+      10.551,
+      6.115,
+      10.551
+    ],
+    "tail50": 2.49,
+    "spk": 88.718,
+    "spk_xutt": null,
+    "msr_utmos": 2.9246,
+    "msr_utmos_ci": [
+      2.856,
+      2.996
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 81,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 81,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "fr",
+    "wer": [
+      2.343,
+      2.343,
+      2.343
+    ],
+    "wer_ci": [
+      1.406,
+      3.38,
+      1.406,
+      3.38
+    ],
+    "tail50": 0.0,
+    "spk": 82.601,
+    "spk_xutt": null,
+    "msr_utmos": 3.3758,
+    "msr_utmos_ci": [
+      3.303,
+      3.446
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 75,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 75,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "he",
+    "wer": [
+      10.152,
+      10.152,
+      10.152
+    ],
+    "wer_ci": [
+      8.296,
+      12.094,
+      8.296,
+      12.094
+    ],
+    "tail50": 0.0,
+    "spk": 83.617,
+    "spk_xutt": null,
+    "msr_utmos": 3.2432,
+    "msr_utmos_ci": [
+      3.184,
+      3.304
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "hi",
+    "wer": [
+      9.336,
+      9.336,
+      9.336
+    ],
+    "wer_ci": [
+      7.983,
+      10.747,
+      7.983,
+      10.747
+    ],
+    "tail50": 0.0,
+    "spk": 86.822,
+    "spk_xutt": null,
+    "msr_utmos": 3.0107,
+    "msr_utmos_ci": [
+      2.958,
+      3.065
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 133,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 133,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "hr",
+    "wer": [
+      6.319,
+      6.319,
+      6.319
+    ],
+    "wer_ci": [
+      4.85,
+      7.88,
+      4.85,
+      7.88
+    ],
+    "tail50": 0.0,
+    "spk": 84.496,
+    "spk_xutt": null,
+    "msr_utmos": 3.2169,
+    "msr_utmos_ci": [
+      3.16,
+      3.276
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 119,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 119,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "hu",
+    "wer": [
+      7.465,
+      7.465,
+      7.465
+    ],
+    "wer_ci": [
+      5.671,
+      9.388,
+      5.671,
+      9.388
+    ],
+    "tail50": 0.0,
+    "spk": 85.251,
+    "spk_xutt": null,
+    "msr_utmos": 3.3271,
+    "msr_utmos_ci": [
+      3.266,
+      3.39
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 112,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 112,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "id",
+    "wer": [
+      3.863,
+      3.863,
+      3.863
+    ],
+    "wer_ci": [
+      2.812,
+      4.969,
+      2.812,
+      4.969
+    ],
+    "tail50": 0.0,
+    "spk": 87.248,
+    "spk_xutt": null,
+    "msr_utmos": 2.8709,
+    "msr_utmos_ci": [
+      2.822,
+      2.919
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "it",
+    "wer": [
+      1.22,
+      1.22,
+      1.22
+    ],
+    "wer_ci": [
+      0.501,
+      2.172,
+      0.501,
+      2.172
+    ],
+    "tail50": 0.0,
+    "spk": 84.186,
+    "spk_xutt": null,
+    "msr_utmos": 2.8759,
+    "msr_utmos_ci": [
+      2.819,
+      2.933
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ja",
+    "wer": [
+      3.022,
+      3.022,
+      3.022
+    ],
+    "wer_ci": [
+      1.974,
+      4.233,
+      1.974,
+      4.233
+    ],
+    "tail50": 0.0,
+    "spk": 87.741,
+    "spk_xutt": null,
+    "msr_utmos": 3.3248,
+    "msr_utmos_ci": [
+      3.248,
+      3.397
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 76,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 76,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ko",
+    "wer": [
+      3.354,
+      2.61,
+      3.354
+    ],
+    "wer_ci": [
+      1.697,
+      5.541,
+      1.697,
+      5.541
+    ],
+    "tail50": 1.297,
+    "spk": 87.653,
+    "spk_xutt": null,
+    "msr_utmos": 3.0822,
+    "msr_utmos_ci": [
+      3.021,
+      3.143
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ms",
+    "wer": [
+      4.917,
+      4.917,
+      4.917
+    ],
+    "wer_ci": [
+      3.593,
+      6.391,
+      3.593,
+      6.391
+    ],
+    "tail50": 0.0,
+    "spk": 87.834,
+    "spk_xutt": null,
+    "msr_utmos": 2.9762,
+    "msr_utmos_ci": [
+      2.92,
+      3.033
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 110,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 110,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "nb",
+    "wer": [
+      4.713,
+      4.713,
+      4.713
+    ],
+    "wer_ci": [
+      3.69,
+      5.751,
+      3.69,
+      5.751
+    ],
+    "tail50": 0.0,
+    "spk": 85.253,
+    "spk_xutt": null,
+    "msr_utmos": 3.051,
+    "msr_utmos_ci": [
+      3.011,
+      3.094
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "nl",
+    "wer": [
+      7.25,
+      5.046,
+      6.479
+    ],
+    "wer_ci": [
+      4.265,
+      11.492,
+      4.259,
+      9.217
+    ],
+    "tail50": 1.95,
+    "spk": 83.787,
+    "spk_xutt": null,
+    "msr_utmos": 3.2843,
+    "msr_utmos_ci": [
+      3.229,
+      3.342
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "pl",
+    "wer": [
+      2.18,
+      2.18,
+      2.18
+    ],
+    "wer_ci": [
+      1.364,
+      3.052,
+      1.364,
+      3.052
+    ],
+    "tail50": 0.0,
+    "spk": 84.991,
+    "spk_xutt": null,
+    "msr_utmos": 3.0058,
+    "msr_utmos_ci": [
+      2.948,
+      3.066
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 98,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 98,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "pt",
+    "wer": [
+      1.416,
+      1.416,
+      1.416
+    ],
+    "wer_ci": [
+      0.695,
+      2.298,
+      0.695,
+      2.298
+    ],
+    "tail50": 0.0,
+    "spk": 85.391,
+    "spk_xutt": null,
+    "msr_utmos": 3.0008,
+    "msr_utmos_ci": [
+      2.94,
+      3.064
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ro",
+    "wer": [
+      2.499,
+      2.499,
+      2.499
+    ],
+    "wer_ci": [
+      1.716,
+      3.332,
+      1.716,
+      3.332
+    ],
+    "tail50": 0.0,
+    "spk": 86.727,
+    "spk_xutt": null,
+    "msr_utmos": 3.138,
+    "msr_utmos_ci": [
+      3.087,
+      3.187
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 109,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 109,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ru",
+    "wer": [
+      3.865,
+      3.865,
+      3.865
+    ],
+    "wer_ci": [
+      2.628,
+      5.245,
+      2.628,
+      5.245
+    ],
+    "tail50": 0.0,
+    "spk": 84.211,
+    "spk_xutt": null,
+    "msr_utmos": 3.0901,
+    "msr_utmos_ci": [
+      3.029,
+      3.15
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "sk",
+    "wer": [
+      7.397,
+      7.397,
+      7.397
+    ],
+    "wer_ci": [
+      5.91,
+      8.935,
+      5.91,
+      8.935
+    ],
+    "tail50": 0.0,
+    "spk": 84.132,
+    "spk_xutt": null,
+    "msr_utmos": 2.989,
+    "msr_utmos_ci": [
+      2.917,
+      3.061
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "sv",
+    "wer": [
+      4.113,
+      3.604,
+      4.113
+    ],
+    "wer_ci": [
+      2.778,
+      5.697,
+      2.778,
+      5.697
+    ],
+    "tail50": 0.807,
+    "spk": 86.184,
+    "spk_xutt": null,
+    "msr_utmos": 3.2538,
+    "msr_utmos_ci": [
+      3.202,
+      3.305
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 123,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 123,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "th",
+    "wer": [
+      3.349,
+      3.349,
+      3.349
+    ],
+    "wer_ci": [
+      2.39,
+      4.444,
+      2.39,
+      4.444
+    ],
+    "tail50": 0.0,
+    "spk": 88.892,
+    "spk_xutt": null,
+    "msr_utmos": 3.1048,
+    "msr_utmos_ci": [
+      3.032,
+      3.177
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 89,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 89,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "tr",
+    "wer": [
+      4.56,
+      4.56,
+      4.56
+    ],
+    "wer_ci": [
+      3.23,
+      5.975,
+      3.23,
+      5.975
+    ],
+    "tail50": 0.0,
+    "spk": 85.446,
+    "spk_xutt": null,
+    "msr_utmos": 3.0516,
+    "msr_utmos_ci": [
+      3.005,
+      3.097
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "uk",
+    "wer": [
+      4.454,
+      4.454,
+      4.454
+    ],
+    "wer_ci": [
+      2.901,
+      6.209,
+      2.901,
+      6.209
+    ],
+    "tail50": 0.0,
+    "spk": 84.542,
+    "spk_xutt": null,
+    "msr_utmos": 3.1776,
+    "msr_utmos_ci": [
+      3.111,
+      3.243
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 90,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 90,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "vi",
+    "wer": [
+      2.306,
+      2.306,
+      2.306
+    ],
+    "wer_ci": [
+      1.678,
+      2.983,
+      1.678,
+      2.983
+    ],
+    "tail50": 0.0,
+    "spk": 89.373,
+    "spk_xutt": null,
+    "msr_utmos": 3.0166,
+    "msr_utmos_ci": [
+      2.959,
+      3.074
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 149,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 149,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "zh",
+    "wer": [
+      3.986,
+      3.986,
+      3.986
+    ],
+    "wer_ci": [
+      2.485,
+      5.631,
+      2.485,
+      5.631
+    ],
+    "tail50": 0.0,
+    "spk": 86.035,
+    "spk_xutt": null,
+    "msr_utmos": 3.201,
+    "msr_utmos_ci": [
+      3.139,
+      3.266
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "ar",
+    "wer": [
+      6.31,
+      5.37,
+      6.31
+    ],
+    "wer_ci": [
+      3.997,
+      8.947,
+      3.997,
+      8.947
+    ],
+    "tail50": 1.855,
+    "spk": 77.446,
+    "spk_xutt": 69.217,
+    "msr_utmos": 2.5369,
+    "msr_utmos_ci": [
+      2.442,
+      2.632
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 115,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 115,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "de",
+    "wer": [
+      1.971,
+      1.971,
+      1.971
+    ],
+    "wer_ci": [
+      1.158,
+      2.868,
+      1.158,
+      2.868
+    ],
+    "tail50": 0.0,
+    "spk": 75.359,
+    "spk_xutt": 65.7,
+    "msr_utmos": 2.854,
+    "msr_utmos_ci": [
+      2.692,
+      3.017
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "en",
+    "wer": [
+      1.136,
+      1.136,
+      1.136
+    ],
+    "wer_ci": [
+      0.441,
+      1.95,
+      0.441,
+      1.95
+    ],
+    "tail50": 0.0,
+    "spk": 72.818,
+    "spk_xutt": 62.646,
+    "msr_utmos": 3.01,
+    "msr_utmos_ci": [
+      2.852,
+      3.162
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 50,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 50,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "es",
+    "wer": [
+      0.774,
+      0.774,
+      0.774
+    ],
+    "wer_ci": [
+      0.313,
+      1.335,
+      0.313,
+      1.335
+    ],
+    "tail50": 0.0,
+    "spk": 76.647,
+    "spk_xutt": 67.291,
+    "msr_utmos": 2.7145,
+    "msr_utmos_ci": [
+      2.574,
+      2.854
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "fr",
+    "wer": [
+      0.876,
+      0.876,
+      0.876
+    ],
+    "wer_ci": [
+      0.466,
+      1.341,
+      0.466,
+      1.341
+    ],
+    "tail50": 0.0,
+    "spk": 74.124,
+    "spk_xutt": 64.462,
+    "msr_utmos": 2.7448,
+    "msr_utmos_ci": [
+      2.622,
+      2.864
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "hi",
+    "wer": [
+      7.36,
+      7.276,
+      7.36
+    ],
+    "wer_ci": [
+      5.693,
+      9.294,
+      5.693,
+      9.294
+    ],
+    "tail50": 0.135,
+    "spk": 73.22,
+    "spk_xutt": 64.542,
+    "msr_utmos": 2.6944,
+    "msr_utmos_ci": [
+      2.579,
+      2.812
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 101,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 101,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "id",
+    "wer": [
+      8.761,
+      6.759,
+      8.761
+    ],
+    "wer_ci": [
+      6.378,
+      11.41,
+      6.378,
+      11.41
+    ],
+    "tail50": 3.031,
+    "spk": 78.078,
+    "spk_xutt": 68.275,
+    "msr_utmos": 2.5637,
+    "msr_utmos_ci": [
+      2.475,
+      2.652
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 134,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 134,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "it",
+    "wer": [
+      1.867,
+      1.867,
+      1.867
+    ],
+    "wer_ci": [
+      0.918,
+      2.968,
+      0.918,
+      2.968
+    ],
+    "tail50": 0.0,
+    "spk": 76.124,
+    "spk_xutt": 66.586,
+    "msr_utmos": 2.5255,
+    "msr_utmos_ci": [
+      2.395,
+      2.657
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "ja",
+    "wer": [
+      1.813,
+      1.813,
+      1.813
+    ],
+    "wer_ci": [
+      0.672,
+      3.285,
+      0.672,
+      3.285
+    ],
+    "tail50": 0.0,
+    "spk": 76.915,
+    "spk_xutt": 70.191,
+    "msr_utmos": 2.5676,
+    "msr_utmos_ci": [
+      2.432,
+      2.705
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "ko",
+    "wer": [
+      2.592,
+      1.322,
+      2.592
+    ],
+    "wer_ci": [
+      0.757,
+      5.48,
+      0.757,
+      5.48
+    ],
+    "tail50": 1.525,
+    "spk": 78.346,
+    "spk_xutt": 70.379,
+    "msr_utmos": 2.7279,
+    "msr_utmos_ci": [
+      2.622,
+      2.838
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 88,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 88,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "nl",
+    "wer": [
+      2.471,
+      2.471,
+      2.471
+    ],
+    "wer_ci": [
+      1.716,
+      3.325,
+      1.716,
+      3.325
+    ],
+    "tail50": 0.0,
+    "spk": 72.814,
+    "spk_xutt": 62.873,
+    "msr_utmos": 2.8693,
+    "msr_utmos_ci": [
+      2.764,
+      2.973
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "pl",
+    "wer": [
+      2.588,
+      2.319,
+      2.552
+    ],
+    "wer_ci": [
+      1.504,
+      3.961,
+      1.498,
+      3.891
+    ],
+    "tail50": 0.238,
+    "spk": 79.545,
+    "spk_xutt": 69.546,
+    "msr_utmos": 2.7768,
+    "msr_utmos_ci": [
+      2.679,
+      2.875
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "pt",
+    "wer": [
+      1.893,
+      1.893,
+      1.893
+    ],
+    "wer_ci": [
+      1.188,
+      2.687,
+      1.188,
+      2.687
+    ],
+    "tail50": 0.0,
+    "spk": 75.475,
+    "spk_xutt": 66.722,
+    "msr_utmos": 2.7119,
+    "msr_utmos_ci": [
+      2.581,
+      2.84
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 87,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 87,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "ru",
+    "wer": [
+      2.812,
+      2.812,
+      2.812
+    ],
+    "wer_ci": [
+      1.791,
+      3.947,
+      1.791,
+      3.947
+    ],
+    "tail50": 0.0,
+    "spk": 76.904,
+    "spk_xutt": 64.602,
+    "msr_utmos": 2.6543,
+    "msr_utmos_ci": [
+      2.527,
+      2.776
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 73,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 73,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "th",
+    "wer": [
+      1.784,
+      1.784,
+      1.784
+    ],
+    "wer_ci": [
+      1.139,
+      2.521,
+      1.139,
+      2.521
+    ],
+    "tail50": 0.0,
+    "spk": 79.504,
+    "spk_xutt": 72.565,
+    "msr_utmos": 2.729,
+    "msr_utmos_ci": [
+      2.64,
+      2.818
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 122,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 122,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "tl",
+    "wer": [
+      5.641,
+      4.826,
+      5.641
+    ],
+    "wer_ci": [
+      3.855,
+      7.898,
+      3.855,
+      7.898
+    ],
+    "tail50": 0.938,
+    "spk": 74.258,
+    "spk_xutt": 65.538,
+    "msr_utmos": 2.8662,
+    "msr_utmos_ci": [
+      2.778,
+      2.957
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 120,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 120,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "tr",
+    "wer": [
+      5.196,
+      4.499,
+      5.196
+    ],
+    "wer_ci": [
+      3.612,
+      7.183,
+      3.612,
+      7.183
+    ],
+    "tail50": 0.73,
+    "spk": 76.942,
+    "spk_xutt": 67.549,
+    "msr_utmos": 2.6401,
+    "msr_utmos_ci": [
+      2.549,
+      2.725
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 138,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 138,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "uk",
+    "wer": [
+      4.169,
+      4.169,
+      4.169
+    ],
+    "wer_ci": [
+      3.074,
+      5.376,
+      3.074,
+      5.376
+    ],
+    "tail50": 0.0,
+    "spk": 77.555,
+    "spk_xutt": 68.262,
+    "msr_utmos": 2.8182,
+    "msr_utmos_ci": [
+      2.726,
+      2.908
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 116,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 116,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "vi",
+    "wer": [
+      1.579,
+      1.579,
+      1.579
+    ],
+    "wer_ci": [
+      0.945,
+      2.314,
+      0.945,
+      2.314
+    ],
+    "tail50": 0.0,
+    "spk": 78.859,
+    "spk_xutt": 71.915,
+    "msr_utmos": 2.6141,
+    "msr_utmos_ci": [
+      2.506,
+      2.721
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "zh",
+    "wer": [
+      1.986,
+      1.845,
+      1.986
+    ],
+    "wer_ci": [
+      1.142,
+      2.981,
+      1.142,
+      2.981
+    ],
+    "tail50": 0.143,
+    "spk": 77.855,
+    "spk_xutt": 70.33,
+    "msr_utmos": 2.713,
+    "msr_utmos_ci": [
+      2.585,
+      2.836
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 91,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 91,
+      "coverage": 1.0
+    }
+  },
+  {
     "model": "cosyvoice3",
     "task": "clean",
     "set": "bg",
@@ -3230,6 +5375,2307 @@
     "paired_pause": 0.678714859437751,
     "paired_range": 0.4115759548912955,
     "n": 700
+  },
+  {
+    "model": "elevenlabs_v4_clone",
+    "task": "clean_mini",
+    "set": "de",
+    "wer": [
+      1.944,
+      1.944,
+      1.944
+    ],
+    "wer_ci": [
+      1.062,
+      3.002,
+      1.062,
+      3.002
+    ],
+    "tail50": 0.0,
+    "spk": 81.058,
+    "spk_xutt": null,
+    "msr_utmos": 3.4365,
+    "msr_utmos_ci": [
+      3.375,
+      3.495
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 76,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 77,
+      "coverage": 0.9874
+    }
+  },
+  {
+    "model": "elevenlabs_v4_clone",
+    "task": "clean_mini",
+    "set": "en",
+    "wer": [
+      1.264,
+      1.264,
+      1.264
+    ],
+    "wer_ci": [
+      0.505,
+      2.183,
+      0.505,
+      2.183
+    ],
+    "tail50": 0.0,
+    "spk": 81.01,
+    "spk_xutt": null,
+    "msr_utmos": 3.7514,
+    "msr_utmos_ci": [
+      3.673,
+      3.823
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 53,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 53,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_clone",
+    "task": "clean_mini",
+    "set": "es",
+    "wer": [
+      2.207,
+      2.207,
+      2.207
+    ],
+    "wer_ci": [
+      1.101,
+      3.513,
+      1.101,
+      3.513
+    ],
+    "tail50": 0.0,
+    "spk": 84.998,
+    "spk_xutt": null,
+    "msr_utmos": 3.081,
+    "msr_utmos_ci": [
+      3.012,
+      3.15
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 61,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 61,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_clone",
+    "task": "clean_mini",
+    "set": "zh",
+    "wer": [
+      2.959,
+      2.959,
+      2.959
+    ],
+    "wer_ci": [
+      1.785,
+      4.255,
+      1.785,
+      4.255
+    ],
+    "tail50": 0.0,
+    "spk": 84.661,
+    "spk_xutt": null,
+    "msr_utmos": 3.3682,
+    "msr_utmos_ci": [
+      3.301,
+      3.433
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ar",
+    "wer": [
+      5.358,
+      5.358,
+      5.358
+    ],
+    "wer_ci": [
+      3.99,
+      6.831,
+      3.99,
+      6.831
+    ],
+    "tail50": 0.0,
+    "spk": 26.43,
+    "spk_xutt": null,
+    "msr_utmos": 3.0508,
+    "msr_utmos_ci": [
+      2.982,
+      3.122
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 107,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 107,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "bg",
+    "wer": [
+      5.531,
+      5.531,
+      5.531
+    ],
+    "wer_ci": [
+      4.322,
+      6.873,
+      4.322,
+      6.873
+    ],
+    "tail50": 0.0,
+    "spk": 22.295,
+    "spk_xutt": null,
+    "msr_utmos": 3.0593,
+    "msr_utmos_ci": [
+      2.986,
+      3.137
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ca",
+    "wer": [
+      4.376,
+      4.376,
+      4.376
+    ],
+    "wer_ci": [
+      2.928,
+      6.116,
+      2.928,
+      6.116
+    ],
+    "tail50": 0.0,
+    "spk": 18.79,
+    "spk_xutt": null,
+    "msr_utmos": 3.0591,
+    "msr_utmos_ci": [
+      2.987,
+      3.136
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 104,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 104,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "cs",
+    "wer": [
+      5.275,
+      5.275,
+      5.275
+    ],
+    "wer_ci": [
+      3.976,
+      6.778,
+      3.976,
+      6.778
+    ],
+    "tail50": 0.0,
+    "spk": 29.556,
+    "spk_xutt": null,
+    "msr_utmos": 3.0832,
+    "msr_utmos_ci": [
+      3.007,
+      3.161
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "da",
+    "wer": [
+      5.355,
+      5.355,
+      5.355
+    ],
+    "wer_ci": [
+      4.208,
+      6.544,
+      4.208,
+      6.544
+    ],
+    "tail50": 0.0,
+    "spk": 27.178,
+    "spk_xutt": null,
+    "msr_utmos": 3.18,
+    "msr_utmos_ci": [
+      3.112,
+      3.249
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 125,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 125,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "de",
+    "wer": [
+      2.052,
+      2.052,
+      2.052
+    ],
+    "wer_ci": [
+      1.157,
+      3.129,
+      1.157,
+      3.129
+    ],
+    "tail50": 0.0,
+    "spk": 80.352,
+    "spk_xutt": null,
+    "msr_utmos": 3.4379,
+    "msr_utmos_ci": [
+      3.378,
+      3.496
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 77,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 77,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "el",
+    "wer": [
+      7.177,
+      7.177,
+      7.177
+    ],
+    "wer_ci": [
+      5.727,
+      8.646,
+      5.727,
+      8.646
+    ],
+    "tail50": 0.0,
+    "spk": 28.319,
+    "spk_xutt": null,
+    "msr_utmos": 3.1148,
+    "msr_utmos_ci": [
+      3.042,
+      3.19
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 94,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 94,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "en",
+    "wer": [
+      1.264,
+      1.264,
+      1.264
+    ],
+    "wer_ci": [
+      0.505,
+      2.183,
+      0.505,
+      2.183
+    ],
+    "tail50": 0.0,
+    "spk": 81.01,
+    "spk_xutt": null,
+    "msr_utmos": 3.7514,
+    "msr_utmos_ci": [
+      3.673,
+      3.823
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 53,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 53,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "es",
+    "wer": [
+      2.207,
+      2.207,
+      2.207
+    ],
+    "wer_ci": [
+      1.101,
+      3.513,
+      1.101,
+      3.513
+    ],
+    "tail50": 0.0,
+    "spk": 84.998,
+    "spk_xutt": null,
+    "msr_utmos": 3.081,
+    "msr_utmos_ci": [
+      3.012,
+      3.15
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 61,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 61,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "fa",
+    "wer": [
+      20.865,
+      20.142,
+      20.865
+    ],
+    "wer_ci": [
+      18.876,
+      22.982,
+      18.876,
+      22.982
+    ],
+    "tail50": 1.774,
+    "spk": 29.84,
+    "spk_xutt": null,
+    "msr_utmos": 3.1999,
+    "msr_utmos_ci": [
+      3.12,
+      3.28
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "fi",
+    "wer": [
+      5.143,
+      5.143,
+      5.143
+    ],
+    "wer_ci": [
+      3.846,
+      6.526,
+      3.846,
+      6.526
+    ],
+    "tail50": 0.0,
+    "spk": 30.385,
+    "spk_xutt": null,
+    "msr_utmos": 3.1401,
+    "msr_utmos_ci": [
+      3.068,
+      3.214
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "fil",
+    "wer": [
+      7.358,
+      7.358,
+      7.358
+    ],
+    "wer_ci": [
+      5.716,
+      9.069,
+      5.716,
+      9.069
+    ],
+    "tail50": 0.0,
+    "spk": 29.931,
+    "spk_xutt": null,
+    "msr_utmos": 3.0892,
+    "msr_utmos_ci": [
+      3.003,
+      3.177
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 81,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 81,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "fr",
+    "wer": [
+      2.082,
+      2.082,
+      2.082
+    ],
+    "wer_ci": [
+      1.214,
+      3.04,
+      1.214,
+      3.04
+    ],
+    "tail50": 0.0,
+    "spk": 22.949,
+    "spk_xutt": null,
+    "msr_utmos": 3.1589,
+    "msr_utmos_ci": [
+      3.066,
+      3.253
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 75,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 75,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "he",
+    "wer": [
+      9.662,
+      9.121,
+      9.662
+    ],
+    "wer_ci": [
+      7.727,
+      11.737,
+      7.727,
+      11.737
+    ],
+    "tail50": 1.165,
+    "spk": 16.584,
+    "spk_xutt": null,
+    "msr_utmos": 3.1517,
+    "msr_utmos_ci": [
+      3.071,
+      3.235
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "hi",
+    "wer": [
+      10.584,
+      9.266,
+      10.584
+    ],
+    "wer_ci": [
+      8.5,
+      13.028,
+      8.5,
+      13.028
+    ],
+    "tail50": 1.507,
+    "spk": 20.223,
+    "spk_xutt": null,
+    "msr_utmos": 3.2042,
+    "msr_utmos_ci": [
+      3.133,
+      3.276
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 133,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 133,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "hr",
+    "wer": [
+      5.054,
+      5.054,
+      5.054
+    ],
+    "wer_ci": [
+      3.761,
+      6.413,
+      3.761,
+      6.413
+    ],
+    "tail50": 0.0,
+    "spk": 23.076,
+    "spk_xutt": null,
+    "msr_utmos": 3.0976,
+    "msr_utmos_ci": [
+      3.027,
+      3.17
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 119,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 119,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "hu",
+    "wer": [
+      6.322,
+      6.322,
+      6.322
+    ],
+    "wer_ci": [
+      4.871,
+      7.875,
+      4.871,
+      7.875
+    ],
+    "tail50": 0.0,
+    "spk": 24.502,
+    "spk_xutt": null,
+    "msr_utmos": 3.2197,
+    "msr_utmos_ci": [
+      3.144,
+      3.298
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 112,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 112,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "id",
+    "wer": [
+      2.605,
+      2.605,
+      2.605
+    ],
+    "wer_ci": [
+      1.792,
+      3.477,
+      1.792,
+      3.477
+    ],
+    "tail50": 0.0,
+    "spk": 25.035,
+    "spk_xutt": null,
+    "msr_utmos": 2.984,
+    "msr_utmos_ci": [
+      2.903,
+      3.068
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "it",
+    "wer": [
+      1.857,
+      1.857,
+      1.857
+    ],
+    "wer_ci": [
+      0.898,
+      3.057,
+      0.898,
+      3.057
+    ],
+    "tail50": 0.0,
+    "spk": 19.899,
+    "spk_xutt": null,
+    "msr_utmos": 2.9263,
+    "msr_utmos_ci": [
+      2.841,
+      3.017
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ja",
+    "wer": [
+      4.098,
+      4.098,
+      4.098
+    ],
+    "wer_ci": [
+      2.791,
+      5.533,
+      2.791,
+      5.533
+    ],
+    "tail50": 0.0,
+    "spk": 28.51,
+    "spk_xutt": null,
+    "msr_utmos": 3.332,
+    "msr_utmos_ci": [
+      3.247,
+      3.418
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 76,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 76,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ko",
+    "wer": [
+      4.1,
+      3.365,
+      4.1
+    ],
+    "wer_ci": [
+      2.397,
+      6.313,
+      2.397,
+      6.313
+    ],
+    "tail50": 1.297,
+    "spk": 30.59,
+    "spk_xutt": null,
+    "msr_utmos": 3.2098,
+    "msr_utmos_ci": [
+      3.111,
+      3.313
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ms",
+    "wer": [
+      4.61,
+      4.61,
+      4.61
+    ],
+    "wer_ci": [
+      3.325,
+      6.04,
+      3.325,
+      6.04
+    ],
+    "tail50": 0.0,
+    "spk": 25.182,
+    "spk_xutt": null,
+    "msr_utmos": 2.9595,
+    "msr_utmos_ci": [
+      2.876,
+      3.045
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 110,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 110,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "nb",
+    "wer": [
+      6.104,
+      6.104,
+      6.104
+    ],
+    "wer_ci": [
+      4.901,
+      7.368,
+      4.901,
+      7.368
+    ],
+    "tail50": 0.0,
+    "spk": 26.44,
+    "spk_xutt": null,
+    "msr_utmos": 3.0165,
+    "msr_utmos_ci": [
+      2.949,
+      3.085
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "nl",
+    "wer": [
+      2.843,
+      2.843,
+      2.843
+    ],
+    "wer_ci": [
+      1.72,
+      4.195,
+      1.72,
+      4.195
+    ],
+    "tail50": 0.0,
+    "spk": 20.228,
+    "spk_xutt": null,
+    "msr_utmos": 3.2535,
+    "msr_utmos_ci": [
+      3.169,
+      3.34
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "pl",
+    "wer": [
+      3.489,
+      2.87,
+      3.489
+    ],
+    "wer_ci": [
+      2.114,
+      5.241,
+      2.114,
+      5.241
+    ],
+    "tail50": 1.019,
+    "spk": 24.999,
+    "spk_xutt": null,
+    "msr_utmos": 3.0562,
+    "msr_utmos_ci": [
+      2.981,
+      3.132
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 98,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 98,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "pt",
+    "wer": [
+      1.847,
+      1.847,
+      1.847
+    ],
+    "wer_ci": [
+      1.038,
+      2.782,
+      1.038,
+      2.782
+    ],
+    "tail50": 0.0,
+    "spk": 22.481,
+    "spk_xutt": null,
+    "msr_utmos": 3.1685,
+    "msr_utmos_ci": [
+      3.08,
+      3.262
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ro",
+    "wer": [
+      2.842,
+      2.842,
+      2.842
+    ],
+    "wer_ci": [
+      1.982,
+      3.793,
+      1.982,
+      3.793
+    ],
+    "tail50": 0.0,
+    "spk": 31.372,
+    "spk_xutt": null,
+    "msr_utmos": 3.0859,
+    "msr_utmos_ci": [
+      3.013,
+      3.161
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 109,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 109,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ru",
+    "wer": [
+      4.141,
+      4.141,
+      4.141
+    ],
+    "wer_ci": [
+      2.656,
+      5.791,
+      2.656,
+      5.791
+    ],
+    "tail50": 0.0,
+    "spk": 23.864,
+    "spk_xutt": null,
+    "msr_utmos": 3.0941,
+    "msr_utmos_ci": [
+      3.003,
+      3.187
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "sk",
+    "wer": [
+      8.014,
+      7.149,
+      8.014
+    ],
+    "wer_ci": [
+      6.129,
+      10.092,
+      6.129,
+      10.092
+    ],
+    "tail50": 1.708,
+    "spk": 24.881,
+    "spk_xutt": null,
+    "msr_utmos": 3.0388,
+    "msr_utmos_ci": [
+      2.968,
+      3.113
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "sv",
+    "wer": [
+      3.655,
+      3.142,
+      3.655
+    ],
+    "wer_ci": [
+      2.399,
+      5.219,
+      2.399,
+      5.219
+    ],
+    "tail50": 0.807,
+    "spk": 24.731,
+    "spk_xutt": null,
+    "msr_utmos": 3.1711,
+    "msr_utmos_ci": [
+      3.099,
+      3.243
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 123,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 123,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "th",
+    "wer": [
+      2.829,
+      2.829,
+      2.829
+    ],
+    "wer_ci": [
+      2.076,
+      3.66,
+      2.076,
+      3.66
+    ],
+    "tail50": 0.0,
+    "spk": 31.874,
+    "spk_xutt": null,
+    "msr_utmos": 3.0842,
+    "msr_utmos_ci": [
+      2.991,
+      3.179
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 89,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 89,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "tr",
+    "wer": [
+      5.21,
+      5.21,
+      5.21
+    ],
+    "wer_ci": [
+      3.806,
+      6.731,
+      3.806,
+      6.731
+    ],
+    "tail50": 0.0,
+    "spk": 27.616,
+    "spk_xutt": null,
+    "msr_utmos": 3.2651,
+    "msr_utmos_ci": [
+      3.18,
+      3.351
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "uk",
+    "wer": [
+      4.54,
+      4.54,
+      4.54
+    ],
+    "wer_ci": [
+      3.284,
+      5.937,
+      3.284,
+      5.937
+    ],
+    "tail50": 0.0,
+    "spk": 23.693,
+    "spk_xutt": null,
+    "msr_utmos": 3.0936,
+    "msr_utmos_ci": [
+      3.009,
+      3.18
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 90,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 90,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "vi",
+    "wer": [
+      2.02,
+      2.02,
+      2.02
+    ],
+    "wer_ci": [
+      1.439,
+      2.696,
+      1.439,
+      2.696
+    ],
+    "tail50": 0.0,
+    "spk": 29.045,
+    "spk_xutt": null,
+    "msr_utmos": 3.1583,
+    "msr_utmos_ci": [
+      3.091,
+      3.227
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 149,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 149,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "zh",
+    "wer": [
+      2.959,
+      2.959,
+      2.959
+    ],
+    "wer_ci": [
+      1.785,
+      4.255,
+      1.785,
+      4.255
+    ],
+    "tail50": 0.0,
+    "spk": 84.661,
+    "spk_xutt": null,
+    "msr_utmos": 3.3682,
+    "msr_utmos_ci": [
+      3.301,
+      3.433
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "ar",
+    "wer": [
+      2.904,
+      2.904,
+      2.904
+    ],
+    "wer_ci": [
+      1.519,
+      4.719,
+      1.519,
+      4.719
+    ],
+    "tail50": 0.0,
+    "spk": 22.463,
+    "spk_xutt": 23.658,
+    "msr_utmos": 3.0578,
+    "msr_utmos_ci": [
+      2.98,
+      3.139
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 115,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 115,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "de",
+    "wer": [
+      1.245,
+      1.245,
+      1.245
+    ],
+    "wer_ci": [
+      0.609,
+      1.959,
+      0.609,
+      1.959
+    ],
+    "tail50": 0.0,
+    "spk": 10.163,
+    "spk_xutt": 12.068,
+    "msr_utmos": 3.2701,
+    "msr_utmos_ci": [
+      3.182,
+      3.36
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "en",
+    "wer": [
+      1.219,
+      1.219,
+      1.219
+    ],
+    "wer_ci": [
+      0.473,
+      2.119,
+      0.473,
+      2.119
+    ],
+    "tail50": 0.0,
+    "spk": 6.174,
+    "spk_xutt": 6.494,
+    "msr_utmos": 3.4554,
+    "msr_utmos_ci": [
+      3.356,
+      3.553
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 50,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 50,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "es",
+    "wer": [
+      0.384,
+      0.384,
+      0.384
+    ],
+    "wer_ci": [
+      0.075,
+      0.783,
+      0.075,
+      0.783
+    ],
+    "tail50": 0.0,
+    "spk": 14.267,
+    "spk_xutt": 15.874,
+    "msr_utmos": 3.0869,
+    "msr_utmos_ci": [
+      2.984,
+      3.195
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "fr",
+    "wer": [
+      1.685,
+      1.685,
+      1.685
+    ],
+    "wer_ci": [
+      1.132,
+      2.287,
+      1.132,
+      2.287
+    ],
+    "tail50": 0.0,
+    "spk": 13.884,
+    "spk_xutt": 13.135,
+    "msr_utmos": 3.1177,
+    "msr_utmos_ci": [
+      3.018,
+      3.218
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "hi",
+    "wer": [
+      8.154,
+      8.066,
+      8.154
+    ],
+    "wer_ci": [
+      6.259,
+      10.279,
+      6.259,
+      10.279
+    ],
+    "tail50": 0.135,
+    "spk": 16.876,
+    "spk_xutt": 17.749,
+    "msr_utmos": 3.2096,
+    "msr_utmos_ci": [
+      3.12,
+      3.302
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 101,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 101,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "id",
+    "wer": [
+      7.136,
+      6.11,
+      7.136
+    ],
+    "wer_ci": [
+      5.156,
+      9.408,
+      5.156,
+      9.408
+    ],
+    "tail50": 1.528,
+    "spk": 22.846,
+    "spk_xutt": 23.506,
+    "msr_utmos": 3.0214,
+    "msr_utmos_ci": [
+      2.953,
+      3.093
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 134,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 134,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "it",
+    "wer": [
+      3.364,
+      1.695,
+      3.364
+    ],
+    "wer_ci": [
+      1.005,
+      7.228,
+      1.005,
+      7.228
+    ],
+    "tail50": 2.131,
+    "spk": 17.53,
+    "spk_xutt": 18.202,
+    "msr_utmos": 2.9784,
+    "msr_utmos_ci": [
+      2.892,
+      3.071
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "ja",
+    "wer": [
+      1.641,
+      1.641,
+      1.641
+    ],
+    "wer_ci": [
+      0.924,
+      2.458,
+      0.924,
+      2.458
+    ],
+    "tail50": 0.0,
+    "spk": 25.54,
+    "spk_xutt": 25.859,
+    "msr_utmos": 3.3313,
+    "msr_utmos_ci": [
+      3.251,
+      3.414
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "ko",
+    "wer": [
+      3.134,
+      1.872,
+      3.134
+    ],
+    "wer_ci": [
+      0.934,
+      6.25,
+      0.934,
+      6.25
+    ],
+    "tail50": 1.525,
+    "spk": 25.603,
+    "spk_xutt": 25.986,
+    "msr_utmos": 3.1458,
+    "msr_utmos_ci": [
+      3.052,
+      3.242
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 88,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 88,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "nl",
+    "wer": [
+      1.732,
+      1.732,
+      1.732
+    ],
+    "wer_ci": [
+      1.198,
+      2.312,
+      1.198,
+      2.312
+    ],
+    "tail50": 0.0,
+    "spk": 17.99,
+    "spk_xutt": 18.819,
+    "msr_utmos": 3.2194,
+    "msr_utmos_ci": [
+      3.14,
+      3.3
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "pl",
+    "wer": [
+      1.643,
+      1.643,
+      1.643
+    ],
+    "wer_ci": [
+      0.896,
+      2.549,
+      0.896,
+      2.549
+    ],
+    "tail50": 0.0,
+    "spk": 22.265,
+    "spk_xutt": 22.867,
+    "msr_utmos": 3.1146,
+    "msr_utmos_ci": [
+      3.045,
+      3.186
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "pt",
+    "wer": [
+      1.504,
+      1.504,
+      1.504
+    ],
+    "wer_ci": [
+      0.851,
+      2.239,
+      0.851,
+      2.239
+    ],
+    "tail50": 0.0,
+    "spk": 19.479,
+    "spk_xutt": 18.879,
+    "msr_utmos": 3.2046,
+    "msr_utmos_ci": [
+      3.118,
+      3.293
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 87,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 87,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "ru",
+    "wer": [
+      2.618,
+      2.618,
+      2.618
+    ],
+    "wer_ci": [
+      1.633,
+      3.745,
+      1.633,
+      3.745
+    ],
+    "tail50": 0.0,
+    "spk": 20.2,
+    "spk_xutt": 20.618,
+    "msr_utmos": 3.1473,
+    "msr_utmos_ci": [
+      3.048,
+      3.252
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 73,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 73,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "th",
+    "wer": [
+      2.257,
+      2.257,
+      2.257
+    ],
+    "wer_ci": [
+      1.385,
+      3.289,
+      1.385,
+      3.289
+    ],
+    "tail50": 0.0,
+    "spk": 30.556,
+    "spk_xutt": 31.349,
+    "msr_utmos": 3.0407,
+    "msr_utmos_ci": [
+      2.961,
+      3.122
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 122,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 122,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "tl",
+    "wer": [
+      4.988,
+      4.988,
+      4.988
+    ],
+    "wer_ci": [
+      3.53,
+      6.605,
+      3.53,
+      6.605
+    ],
+    "tail50": 0.0,
+    "spk": 13.036,
+    "spk_xutt": 13.297,
+    "msr_utmos": 3.3002,
+    "msr_utmos_ci": [
+      3.231,
+      3.372
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 120,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 120,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "tr",
+    "wer": [
+      5.036,
+      4.583,
+      5.036
+    ],
+    "wer_ci": [
+      3.591,
+      6.735,
+      3.591,
+      6.735
+    ],
+    "tail50": 0.73,
+    "spk": 23.595,
+    "spk_xutt": 23.737,
+    "msr_utmos": 3.3351,
+    "msr_utmos_ci": [
+      3.263,
+      3.407
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 138,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 138,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "uk",
+    "wer": [
+      3.435,
+      3.435,
+      3.435
+    ],
+    "wer_ci": [
+      2.421,
+      4.567,
+      2.421,
+      4.567
+    ],
+    "tail50": 0.0,
+    "spk": 18.97,
+    "spk_xutt": 18.616,
+    "msr_utmos": 3.1538,
+    "msr_utmos_ci": [
+      3.079,
+      3.23
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 116,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 116,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "vi",
+    "wer": [
+      1.546,
+      1.546,
+      1.546
+    ],
+    "wer_ci": [
+      0.948,
+      2.237,
+      0.948,
+      2.237
+    ],
+    "tail50": 0.0,
+    "spk": 27.834,
+    "spk_xutt": 27.955,
+    "msr_utmos": 3.1234,
+    "msr_utmos_ci": [
+      3.046,
+      3.2
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "zh",
+    "wer": [
+      1.703,
+      1.583,
+      1.703
+    ],
+    "wer_ci": [
+      0.87,
+      2.726,
+      0.87,
+      2.726
+    ],
+    "tail50": 0.143,
+    "spk": 25.329,
+    "spk_xutt": 25.709,
+    "msr_utmos": 3.314,
+    "msr_utmos_ci": [
+      3.229,
+      3.401
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 91,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 91,
+      "coverage": 1.0
+    }
   },
   {
     "model": "gemini_3.8-flash",
@@ -8895,6 +13341,2151 @@
     "paired_pause": null,
     "paired_range": null,
     "n": 700
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ar",
+    "wer": [
+      7.556,
+      7.556,
+      7.556
+    ],
+    "wer_ci": [
+      6.188,
+      8.959,
+      6.188,
+      8.959
+    ],
+    "tail50": 0.0,
+    "spk": 77.291,
+    "spk_xutt": null,
+    "msr_utmos": 3.3444,
+    "msr_utmos_ci": [
+      3.269,
+      3.417
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 107,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 107,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "bg",
+    "wer": [
+      9.461,
+      9.461,
+      9.461
+    ],
+    "wer_ci": [
+      7.815,
+      11.213,
+      7.815,
+      11.213
+    ],
+    "tail50": 0.0,
+    "spk": 71.541,
+    "spk_xutt": null,
+    "msr_utmos": 3.1481,
+    "msr_utmos_ci": [
+      3.096,
+      3.201
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ca",
+    "wer": [
+      6.551,
+      6.551,
+      6.551
+    ],
+    "wer_ci": [
+      4.858,
+      8.482,
+      4.858,
+      8.482
+    ],
+    "tail50": 0.0,
+    "spk": 70.834,
+    "spk_xutt": null,
+    "msr_utmos": 3.2528,
+    "msr_utmos_ci": [
+      3.197,
+      3.309
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 104,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 104,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "cs",
+    "wer": [
+      8.585,
+      7.063,
+      8.295
+    ],
+    "wer_ci": [
+      6.319,
+      11.595,
+      6.294,
+      10.728
+    ],
+    "tail50": 1.742,
+    "spk": 72.942,
+    "spk_xutt": null,
+    "msr_utmos": 3.2462,
+    "msr_utmos_ci": [
+      3.192,
+      3.301
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "da",
+    "wer": [
+      9.553,
+      9.553,
+      9.553
+    ],
+    "wer_ci": [
+      7.971,
+      11.233,
+      7.971,
+      11.233
+    ],
+    "tail50": 0.0,
+    "spk": 73.412,
+    "spk_xutt": null,
+    "msr_utmos": 3.5058,
+    "msr_utmos_ci": [
+      3.469,
+      3.541
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 125,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 125,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "de",
+    "wer": [
+      2.777,
+      2.777,
+      2.777
+    ],
+    "wer_ci": [
+      1.714,
+      4.065,
+      1.714,
+      4.065
+    ],
+    "tail50": 0.0,
+    "spk": 68.084,
+    "spk_xutt": null,
+    "msr_utmos": 3.4951,
+    "msr_utmos_ci": [
+      3.437,
+      3.552
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 77,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 77,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "el",
+    "wer": [
+      9.123,
+      9.123,
+      9.123
+    ],
+    "wer_ci": [
+      7.464,
+      10.886,
+      7.464,
+      10.886
+    ],
+    "tail50": 0.0,
+    "spk": 73.066,
+    "spk_xutt": null,
+    "msr_utmos": 3.228,
+    "msr_utmos_ci": [
+      3.167,
+      3.287
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 94,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 94,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "en",
+    "wer": [
+      1.781,
+      1.781,
+      1.781
+    ],
+    "wer_ci": [
+      0.794,
+      2.95,
+      0.794,
+      2.95
+    ],
+    "tail50": 0.0,
+    "spk": 66.909,
+    "spk_xutt": null,
+    "msr_utmos": 3.7074,
+    "msr_utmos_ci": [
+      3.653,
+      3.76
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 53,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 53,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "es",
+    "wer": [
+      2.13,
+      2.13,
+      2.13
+    ],
+    "wer_ci": [
+      1.114,
+      3.347,
+      1.114,
+      3.347
+    ],
+    "tail50": 0.0,
+    "spk": 75.067,
+    "spk_xutt": null,
+    "msr_utmos": 3.1755,
+    "msr_utmos_ci": [
+      3.117,
+      3.237
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 61,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 61,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "fa",
+    "wer": [
+      29.031,
+      26.353,
+      29.031
+    ],
+    "wer_ci": [
+      26.329,
+      31.885,
+      26.329,
+      31.885
+    ],
+    "tail50": 7.992,
+    "spk": 76.026,
+    "spk_xutt": null,
+    "msr_utmos": 3.2732,
+    "msr_utmos_ci": [
+      3.221,
+      3.328
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "fi",
+    "wer": [
+      9.018,
+      9.018,
+      9.018
+    ],
+    "wer_ci": [
+      7.514,
+      10.567,
+      7.514,
+      10.567
+    ],
+    "tail50": 0.0,
+    "spk": 74.417,
+    "spk_xutt": null,
+    "msr_utmos": 3.4938,
+    "msr_utmos_ci": [
+      3.431,
+      3.556
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "fil",
+    "wer": [
+      15.943,
+      14.933,
+      15.943
+    ],
+    "wer_ci": [
+      13.512,
+      18.562,
+      13.512,
+      18.562
+    ],
+    "tail50": 2.546,
+    "spk": 79.32,
+    "spk_xutt": null,
+    "msr_utmos": 3.076,
+    "msr_utmos_ci": [
+      3.009,
+      3.142
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 81,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 81,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "fr",
+    "wer": [
+      2.204,
+      2.204,
+      2.204
+    ],
+    "wer_ci": [
+      1.297,
+      3.197,
+      1.297,
+      3.197
+    ],
+    "tail50": 0.0,
+    "spk": 68.913,
+    "spk_xutt": null,
+    "msr_utmos": 3.4462,
+    "msr_utmos_ci": [
+      3.383,
+      3.51
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 75,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 75,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "he",
+    "wer": [
+      11.612,
+      11.612,
+      11.612
+    ],
+    "wer_ci": [
+      9.562,
+      13.693,
+      9.562,
+      13.693
+    ],
+    "tail50": 0.0,
+    "spk": 69.602,
+    "spk_xutt": null,
+    "msr_utmos": 3.3925,
+    "msr_utmos_ci": [
+      3.347,
+      3.439
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "hi",
+    "wer": [
+      9.779,
+      9.779,
+      9.779
+    ],
+    "wer_ci": [
+      8.449,
+      11.169,
+      8.449,
+      11.169
+    ],
+    "tail50": 0.0,
+    "spk": 75.718,
+    "spk_xutt": null,
+    "msr_utmos": 3.1663,
+    "msr_utmos_ci": [
+      3.116,
+      3.217
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 133,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 133,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "hr",
+    "wer": [
+      10.817,
+      9.579,
+      10.817
+    ],
+    "wer_ci": [
+      8.499,
+      13.35,
+      8.499,
+      13.35
+    ],
+    "tail50": 1.665,
+    "spk": 70.718,
+    "spk_xutt": null,
+    "msr_utmos": 3.3252,
+    "msr_utmos_ci": [
+      3.275,
+      3.378
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 119,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 119,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "hu",
+    "wer": [
+      12.38,
+      12.38,
+      12.38
+    ],
+    "wer_ci": [
+      10.258,
+      14.562,
+      10.258,
+      14.562
+    ],
+    "tail50": 0.0,
+    "spk": 75.606,
+    "spk_xutt": null,
+    "msr_utmos": 3.4799,
+    "msr_utmos_ci": [
+      3.42,
+      3.54
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 112,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 112,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "id",
+    "wer": [
+      3.925,
+      3.925,
+      3.925
+    ],
+    "wer_ci": [
+      2.921,
+      4.962,
+      2.921,
+      4.962
+    ],
+    "tail50": 0.0,
+    "spk": 77.05,
+    "spk_xutt": null,
+    "msr_utmos": 3.1437,
+    "msr_utmos_ci": [
+      3.088,
+      3.198
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "it",
+    "wer": [
+      1.779,
+      1.779,
+      1.779
+    ],
+    "wer_ci": [
+      0.92,
+      2.844,
+      0.92,
+      2.844
+    ],
+    "tail50": 0.0,
+    "spk": 72.254,
+    "spk_xutt": null,
+    "msr_utmos": 3.035,
+    "msr_utmos_ci": [
+      2.976,
+      3.095
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ja",
+    "wer": [
+      3.819,
+      3.819,
+      3.819
+    ],
+    "wer_ci": [
+      2.525,
+      5.372,
+      2.525,
+      5.372
+    ],
+    "tail50": 0.0,
+    "spk": 77.476,
+    "spk_xutt": null,
+    "msr_utmos": 3.4746,
+    "msr_utmos_ci": [
+      3.417,
+      3.529
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 76,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 76,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ko",
+    "wer": [
+      4.994,
+      4.377,
+      4.994
+    ],
+    "wer_ci": [
+      3.029,
+      7.433,
+      3.029,
+      7.433
+    ],
+    "tail50": 1.297,
+    "spk": 77.427,
+    "spk_xutt": null,
+    "msr_utmos": 3.3316,
+    "msr_utmos_ci": [
+      3.267,
+      3.395
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ms",
+    "wer": [
+      8.938,
+      7.94,
+      8.938
+    ],
+    "wer_ci": [
+      6.723,
+      11.426,
+      6.723,
+      11.426
+    ],
+    "tail50": 1.806,
+    "spk": 75.607,
+    "spk_xutt": null,
+    "msr_utmos": 3.1029,
+    "msr_utmos_ci": [
+      3.046,
+      3.158
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 110,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 110,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "nb",
+    "wer": [
+      9.117,
+      8.622,
+      9.117
+    ],
+    "wer_ci": [
+      7.435,
+      10.988,
+      7.435,
+      10.988
+    ],
+    "tail50": 0.816,
+    "spk": 70.781,
+    "spk_xutt": null,
+    "msr_utmos": 3.2056,
+    "msr_utmos_ci": [
+      3.172,
+      3.24
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 126,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 126,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "nl",
+    "wer": [
+      4.447,
+      4.447,
+      4.447
+    ],
+    "wer_ci": [
+      3.239,
+      5.798,
+      3.239,
+      5.798
+    ],
+    "tail50": 0.0,
+    "spk": 70.734,
+    "spk_xutt": null,
+    "msr_utmos": 3.4728,
+    "msr_utmos_ci": [
+      3.425,
+      3.522
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "pl",
+    "wer": [
+      2.426,
+      2.426,
+      2.426
+    ],
+    "wer_ci": [
+      1.668,
+      3.24,
+      1.668,
+      3.24
+    ],
+    "tail50": 0.0,
+    "spk": 72.044,
+    "spk_xutt": null,
+    "msr_utmos": 3.1266,
+    "msr_utmos_ci": [
+      3.065,
+      3.19
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 98,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 98,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "pt",
+    "wer": [
+      2.032,
+      2.032,
+      2.032
+    ],
+    "wer_ci": [
+      1.169,
+      3.072,
+      1.169,
+      3.072
+    ],
+    "tail50": 0.0,
+    "spk": 74.323,
+    "spk_xutt": null,
+    "msr_utmos": 3.1879,
+    "msr_utmos_ci": [
+      3.132,
+      3.245
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ro",
+    "wer": [
+      5.133,
+      5.133,
+      5.133
+    ],
+    "wer_ci": [
+      4.066,
+      6.261,
+      4.066,
+      6.261
+    ],
+    "tail50": 0.0,
+    "spk": 75.879,
+    "spk_xutt": null,
+    "msr_utmos": 3.2437,
+    "msr_utmos_ci": [
+      3.193,
+      3.295
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 109,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 109,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ru",
+    "wer": [
+      5.032,
+      5.032,
+      5.032
+    ],
+    "wer_ci": [
+      3.411,
+      6.945,
+      3.411,
+      6.945
+    ],
+    "tail50": 0.0,
+    "spk": 72.427,
+    "spk_xutt": null,
+    "msr_utmos": 3.1593,
+    "msr_utmos_ci": [
+      3.103,
+      3.217
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "sk",
+    "wer": [
+      10.768,
+      10.768,
+      10.768
+    ],
+    "wer_ci": [
+      9.059,
+      12.562,
+      9.059,
+      12.562
+    ],
+    "tail50": 0.0,
+    "spk": 71.36,
+    "spk_xutt": null,
+    "msr_utmos": 3.1497,
+    "msr_utmos_ci": [
+      3.089,
+      3.212
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "sv",
+    "wer": [
+      7.224,
+      6.605,
+      7.224
+    ],
+    "wer_ci": [
+      5.447,
+      9.348,
+      5.447,
+      9.348
+    ],
+    "tail50": 0.807,
+    "spk": 73.031,
+    "spk_xutt": null,
+    "msr_utmos": 3.4195,
+    "msr_utmos_ci": [
+      3.369,
+      3.468
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 123,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 123,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "th",
+    "wer": [
+      3.673,
+      3.673,
+      3.673
+    ],
+    "wer_ci": [
+      2.813,
+      4.62,
+      2.813,
+      4.62
+    ],
+    "tail50": 0.0,
+    "spk": 78.481,
+    "spk_xutt": null,
+    "msr_utmos": 3.2953,
+    "msr_utmos_ci": [
+      3.236,
+      3.353
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 89,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 89,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "tr",
+    "wer": [
+      6.773,
+      6.246,
+      6.773
+    ],
+    "wer_ci": [
+      5.068,
+      8.689,
+      5.068,
+      8.689
+    ],
+    "tail50": 0.873,
+    "spk": 76.217,
+    "spk_xutt": null,
+    "msr_utmos": 3.2277,
+    "msr_utmos_ci": [
+      3.172,
+      3.282
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "uk",
+    "wer": [
+      7.866,
+      7.866,
+      7.866
+    ],
+    "wer_ci": [
+      6.195,
+      9.585,
+      6.195,
+      9.585
+    ],
+    "tail50": 0.0,
+    "spk": 74.88,
+    "spk_xutt": null,
+    "msr_utmos": 3.2628,
+    "msr_utmos_ci": [
+      3.195,
+      3.33
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 90,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 90,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "vi",
+    "wer": [
+      3.172,
+      3.172,
+      3.172
+    ],
+    "wer_ci": [
+      2.48,
+      3.907,
+      2.48,
+      3.907
+    ],
+    "tail50": 0.0,
+    "spk": 78.177,
+    "spk_xutt": null,
+    "msr_utmos": 3.1986,
+    "msr_utmos_ci": [
+      3.15,
+      3.247
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 149,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 149,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "zh",
+    "wer": [
+      3.21,
+      3.21,
+      3.21
+    ],
+    "wer_ci": [
+      1.945,
+      4.635,
+      1.945,
+      4.635
+    ],
+    "tail50": 0.0,
+    "spk": 75.957,
+    "spk_xutt": null,
+    "msr_utmos": 3.3456,
+    "msr_utmos_ci": [
+      3.287,
+      3.405
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "ar",
+    "wer": [
+      7.171,
+      6.738,
+      7.171
+    ],
+    "wer_ci": [
+      4.989,
+      9.692,
+      4.989,
+      9.692
+    ],
+    "tail50": 0.936,
+    "spk": 62.863,
+    "spk_xutt": 57.36,
+    "msr_utmos": 2.8543,
+    "msr_utmos_ci": [
+      2.785,
+      2.923
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 115,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 115,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "de",
+    "wer": [
+      2.242,
+      2.242,
+      2.242
+    ],
+    "wer_ci": [
+      1.303,
+      3.249,
+      1.303,
+      3.249
+    ],
+    "tail50": 0.0,
+    "spk": 57.635,
+    "spk_xutt": 52.117,
+    "msr_utmos": 3.2798,
+    "msr_utmos_ci": [
+      3.17,
+      3.389
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "en",
+    "wer": [
+      0.981,
+      0.981,
+      0.981
+    ],
+    "wer_ci": [
+      0.385,
+      1.709,
+      0.385,
+      1.709
+    ],
+    "tail50": 0.0,
+    "spk": 59.076,
+    "spk_xutt": 53.353,
+    "msr_utmos": 3.4969,
+    "msr_utmos_ci": [
+      3.41,
+      3.584
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 50,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 50,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "es",
+    "wer": [
+      1.149,
+      1.149,
+      1.149
+    ],
+    "wer_ci": [
+      0.506,
+      1.933,
+      0.506,
+      1.933
+    ],
+    "tail50": 0.0,
+    "spk": 60.415,
+    "spk_xutt": 54.179,
+    "msr_utmos": 3.1083,
+    "msr_utmos_ci": [
+      3.01,
+      3.208
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "fr",
+    "wer": [
+      1.682,
+      1.682,
+      1.682
+    ],
+    "wer_ci": [
+      0.983,
+      2.461,
+      0.983,
+      2.461
+    ],
+    "tail50": 0.0,
+    "spk": 55.442,
+    "spk_xutt": 49.209,
+    "msr_utmos": 3.1678,
+    "msr_utmos_ci": [
+      3.089,
+      3.246
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "hi",
+    "wer": [
+      8.307,
+      8.21,
+      8.307
+    ],
+    "wer_ci": [
+      6.468,
+      10.339,
+      6.468,
+      10.339
+    ],
+    "tail50": 0.135,
+    "spk": 59.163,
+    "spk_xutt": 53.68,
+    "msr_utmos": 3.2045,
+    "msr_utmos_ci": [
+      3.128,
+      3.28
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 101,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 101,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "id",
+    "wer": [
+      9.142,
+      7.906,
+      9.142
+    ],
+    "wer_ci": [
+      6.854,
+      11.701,
+      6.854,
+      11.701
+    ],
+    "tail50": 1.541,
+    "spk": 62.249,
+    "spk_xutt": 56.781,
+    "msr_utmos": 3.1597,
+    "msr_utmos_ci": [
+      3.101,
+      3.221
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 134,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 134,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "it",
+    "wer": [
+      2.514,
+      2.514,
+      2.514
+    ],
+    "wer_ci": [
+      1.319,
+      3.866,
+      1.319,
+      3.866
+    ],
+    "tail50": 0.0,
+    "spk": 59.879,
+    "spk_xutt": 54.98,
+    "msr_utmos": 3.0438,
+    "msr_utmos_ci": [
+      2.943,
+      3.143
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "ja",
+    "wer": [
+      2.03,
+      2.03,
+      2.03
+    ],
+    "wer_ci": [
+      0.956,
+      3.37,
+      0.956,
+      3.37
+    ],
+    "tail50": 0.0,
+    "spk": 63.422,
+    "spk_xutt": 60.156,
+    "msr_utmos": 3.3817,
+    "msr_utmos_ci": [
+      3.306,
+      3.455
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "ko",
+    "wer": [
+      2.954,
+      1.69,
+      2.954
+    ],
+    "wer_ci": [
+      1.091,
+      5.855,
+      1.091,
+      5.855
+    ],
+    "tail50": 1.525,
+    "spk": 62.353,
+    "spk_xutt": 58.723,
+    "msr_utmos": 3.085,
+    "msr_utmos_ci": [
+      3.0,
+      3.17
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 88,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 88,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "nl",
+    "wer": [
+      2.792,
+      2.281,
+      2.792
+    ],
+    "wer_ci": [
+      1.822,
+      4.094,
+      1.822,
+      4.094
+    ],
+    "tail50": 0.848,
+    "spk": 59.741,
+    "spk_xutt": 52.409,
+    "msr_utmos": 3.1404,
+    "msr_utmos_ci": [
+      3.056,
+      3.223
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 113,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 113,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "pl",
+    "wer": [
+      1.724,
+      1.724,
+      1.724
+    ],
+    "wer_ci": [
+      0.93,
+      2.818,
+      0.93,
+      2.818
+    ],
+    "tail50": 0.0,
+    "spk": 64.778,
+    "spk_xutt": 57.485,
+    "msr_utmos": 3.087,
+    "msr_utmos_ci": [
+      3.016,
+      3.158
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 114,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 114,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "pt",
+    "wer": [
+      1.412,
+      1.412,
+      1.412
+    ],
+    "wer_ci": [
+      0.905,
+      1.979,
+      0.905,
+      1.979
+    ],
+    "tail50": 0.0,
+    "spk": 60.514,
+    "spk_xutt": 54.071,
+    "msr_utmos": 3.2257,
+    "msr_utmos_ci": [
+      3.158,
+      3.291
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 87,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 87,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "ru",
+    "wer": [
+      2.958,
+      2.958,
+      2.958
+    ],
+    "wer_ci": [
+      1.951,
+      4.033,
+      1.951,
+      4.033
+    ],
+    "tail50": 0.0,
+    "spk": 60.498,
+    "spk_xutt": 52.093,
+    "msr_utmos": 3.0823,
+    "msr_utmos_ci": [
+      2.993,
+      3.174
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 73,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 73,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "th",
+    "wer": [
+      3.026,
+      3.026,
+      3.026
+    ],
+    "wer_ci": [
+      2.03,
+      4.204,
+      2.03,
+      4.204
+    ],
+    "tail50": 0.0,
+    "spk": 65.092,
+    "spk_xutt": 61.224,
+    "msr_utmos": 3.2541,
+    "msr_utmos_ci": [
+      3.186,
+      3.324
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 122,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 122,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "tl",
+    "wer": [
+      6.635,
+      6.635,
+      6.635
+    ],
+    "wer_ci": [
+      5.126,
+      8.268,
+      5.126,
+      8.268
+    ],
+    "tail50": 0.0,
+    "spk": 60.495,
+    "spk_xutt": 55.624,
+    "msr_utmos": 3.3456,
+    "msr_utmos_ci": [
+      3.29,
+      3.4
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 120,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 120,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "tr",
+    "wer": [
+      6.111,
+      5.42,
+      6.111
+    ],
+    "wer_ci": [
+      4.443,
+      8.127,
+      4.443,
+      8.127
+    ],
+    "tail50": 0.73,
+    "spk": 62.672,
+    "spk_xutt": 56.971,
+    "msr_utmos": 3.1774,
+    "msr_utmos_ci": [
+      3.115,
+      3.237
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 138,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 138,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "uk",
+    "wer": [
+      6.963,
+      6.963,
+      6.963
+    ],
+    "wer_ci": [
+      5.489,
+      8.529,
+      5.489,
+      8.529
+    ],
+    "tail50": 0.0,
+    "spk": 60.339,
+    "spk_xutt": 55.273,
+    "msr_utmos": 3.0915,
+    "msr_utmos_ci": [
+      3.024,
+      3.158
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 116,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 116,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "vi",
+    "wer": [
+      3.57,
+      3.57,
+      3.57
+    ],
+    "wer_ci": [
+      2.592,
+      4.624,
+      2.592,
+      4.624
+    ],
+    "tail50": 0.0,
+    "spk": 67.053,
+    "spk_xutt": 63.171,
+    "msr_utmos": 3.1441,
+    "msr_utmos_ci": [
+      3.071,
+      3.217
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "zh",
+    "wer": [
+      1.984,
+      1.863,
+      1.984
+    ],
+    "wer_ci": [
+      1.093,
+      3.044,
+      1.093,
+      3.044
+    ],
+    "tail50": 0.143,
+    "spk": 64.555,
+    "spk_xutt": 59.898,
+    "msr_utmos": 3.0214,
+    "msr_utmos_ci": [
+      2.932,
+      3.108
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 91,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 91,
+      "coverage": 1.0
+    }
   },
   {
     "model": "kokoro",
@@ -39120,6 +45711,1215 @@
     "paired_pause": 1.6993987975951903,
     "paired_range": 0.428678551623098,
     "n": 1496
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "ar",
+    "wer": [
+      5.993,
+      5.993,
+      5.993
+    ],
+    "wer_ci": [
+      4.649,
+      7.393,
+      4.649,
+      7.393
+    ],
+    "tail50": 0.0,
+    "spk": 88.409,
+    "spk_xutt": null,
+    "msr_utmos": 3.4376,
+    "msr_utmos_ci": [
+      3.37,
+      3.502
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 107,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 107,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "de",
+    "wer": [
+      2.33,
+      2.33,
+      2.33
+    ],
+    "wer_ci": [
+      1.283,
+      3.592,
+      1.283,
+      3.592
+    ],
+    "tail50": 0.0,
+    "spk": 86.56,
+    "spk_xutt": null,
+    "msr_utmos": 3.518,
+    "msr_utmos_ci": [
+      3.463,
+      3.572
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 77,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 77,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "en",
+    "wer": [
+      1.812,
+      1.812,
+      1.812
+    ],
+    "wer_ci": [
+      0.964,
+      2.748,
+      0.964,
+      2.748
+    ],
+    "tail50": 0.0,
+    "spk": 87.079,
+    "spk_xutt": null,
+    "msr_utmos": 3.7109,
+    "msr_utmos_ci": [
+      3.649,
+      3.771
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 53,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 53,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "es",
+    "wer": [
+      2.252,
+      2.252,
+      2.252
+    ],
+    "wer_ci": [
+      1.048,
+      3.818,
+      1.048,
+      3.818
+    ],
+    "tail50": 0.0,
+    "spk": 85.787,
+    "spk_xutt": null,
+    "msr_utmos": 3.1934,
+    "msr_utmos_ci": [
+      3.138,
+      3.248
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 61,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 61,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "fil",
+    "wer": [
+      6.547,
+      6.547,
+      6.547
+    ],
+    "wer_ci": [
+      5.166,
+      7.954,
+      5.166,
+      7.954
+    ],
+    "tail50": 0.0,
+    "spk": 90.261,
+    "spk_xutt": null,
+    "msr_utmos": 3.3045,
+    "msr_utmos_ci": [
+      3.248,
+      3.363
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 81,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 81,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "fr",
+    "wer": [
+      2.347,
+      2.347,
+      2.347
+    ],
+    "wer_ci": [
+      1.388,
+      3.383,
+      1.388,
+      3.383
+    ],
+    "tail50": 0.0,
+    "spk": 86.808,
+    "spk_xutt": null,
+    "msr_utmos": 3.5103,
+    "msr_utmos_ci": [
+      3.453,
+      3.566
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 75,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 75,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "id",
+    "wer": [
+      3.013,
+      3.013,
+      3.013
+    ],
+    "wer_ci": [
+      2.034,
+      4.13,
+      2.034,
+      4.13
+    ],
+    "tail50": 0.0,
+    "spk": 90.048,
+    "spk_xutt": null,
+    "msr_utmos": 3.2048,
+    "msr_utmos_ci": [
+      3.15,
+      3.26
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 105,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 105,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "it",
+    "wer": [
+      1.852,
+      1.852,
+      1.852
+    ],
+    "wer_ci": [
+      0.798,
+      3.267,
+      0.798,
+      3.267
+    ],
+    "tail50": 0.0,
+    "spk": 87.071,
+    "spk_xutt": null,
+    "msr_utmos": 3.266,
+    "msr_utmos_ci": [
+      3.209,
+      3.324
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "ja",
+    "wer": [
+      2.833,
+      2.833,
+      2.833
+    ],
+    "wer_ci": [
+      1.948,
+      3.811,
+      1.948,
+      3.811
+    ],
+    "tail50": 0.0,
+    "spk": 90.259,
+    "spk_xutt": null,
+    "msr_utmos": 3.4417,
+    "msr_utmos_ci": [
+      3.389,
+      3.494
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 76,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 76,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "ko",
+    "wer": [
+      2.786,
+      2.14,
+      2.786
+    ],
+    "wer_ci": [
+      1.521,
+      4.568,
+      1.521,
+      4.568
+    ],
+    "tail50": 1.297,
+    "spk": 89.614,
+    "spk_xutt": null,
+    "msr_utmos": 3.4436,
+    "msr_utmos_ci": [
+      3.386,
+      3.502
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "ms",
+    "wer": [
+      5.551,
+      5.551,
+      5.551
+    ],
+    "wer_ci": [
+      4.143,
+      7.097,
+      4.143,
+      7.097
+    ],
+    "tail50": 0.0,
+    "spk": 90.917,
+    "spk_xutt": null,
+    "msr_utmos": 3.2593,
+    "msr_utmos_ci": [
+      3.207,
+      3.311
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 110,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 110,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "pt",
+    "wer": [
+      2.672,
+      2.672,
+      2.672
+    ],
+    "wer_ci": [
+      1.357,
+      4.315,
+      1.357,
+      4.315
+    ],
+    "tail50": 0.0,
+    "spk": 86.642,
+    "spk_xutt": null,
+    "msr_utmos": 3.236,
+    "msr_utmos_ci": [
+      3.176,
+      3.298
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "ru",
+    "wer": [
+      5.043,
+      5.043,
+      5.043
+    ],
+    "wer_ci": [
+      3.46,
+      6.777,
+      3.46,
+      6.777
+    ],
+    "tail50": 0.0,
+    "spk": 87.521,
+    "spk_xutt": null,
+    "msr_utmos": 3.2924,
+    "msr_utmos_ci": [
+      3.227,
+      3.36
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 70,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "th",
+    "wer": [
+      3.247,
+      3.247,
+      3.247
+    ],
+    "wer_ci": [
+      2.293,
+      4.348,
+      2.293,
+      4.348
+    ],
+    "tail50": 0.0,
+    "spk": 90.814,
+    "spk_xutt": null,
+    "msr_utmos": 3.6616,
+    "msr_utmos_ci": [
+      3.618,
+      3.704
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 89,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 89,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "vi",
+    "wer": [
+      2.156,
+      2.156,
+      2.156
+    ],
+    "wer_ci": [
+      1.604,
+      2.754,
+      1.604,
+      2.754
+    ],
+    "tail50": 0.0,
+    "spk": 90.1,
+    "spk_xutt": null,
+    "msr_utmos": 3.4502,
+    "msr_utmos_ci": [
+      3.405,
+      3.493
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 149,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 149,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "clean_mini",
+    "set": "zh",
+    "wer": [
+      3.061,
+      3.061,
+      3.061
+    ],
+    "wer_ci": [
+      1.907,
+      4.345,
+      1.907,
+      4.345
+    ],
+    "tail50": 0.0,
+    "spk": 91.29,
+    "spk_xutt": null,
+    "msr_utmos": 3.5054,
+    "msr_utmos_ci": [
+      3.455,
+      3.557
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 95,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 95,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "ar",
+    "wer": [
+      5.587,
+      5.587,
+      5.587
+    ],
+    "wer_ci": [
+      3.693,
+      7.834,
+      3.693,
+      7.834
+    ],
+    "tail50": 0.0,
+    "spk": 83.542,
+    "spk_xutt": 71.793,
+    "msr_utmos": 2.8505,
+    "msr_utmos_ci": [
+      2.771,
+      2.929
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 115,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 115,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "de",
+    "wer": [
+      2.583,
+      2.583,
+      2.583
+    ],
+    "wer_ci": [
+      1.654,
+      3.622,
+      1.654,
+      3.622
+    ],
+    "tail50": 0.0,
+    "spk": 83.98,
+    "spk_xutt": 70.083,
+    "msr_utmos": 3.2057,
+    "msr_utmos_ci": [
+      3.1,
+      3.308
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "en",
+    "wer": [
+      1.802,
+      1.802,
+      1.802
+    ],
+    "wer_ci": [
+      0.916,
+      2.878,
+      0.916,
+      2.878
+    ],
+    "tail50": 0.0,
+    "spk": 85.554,
+    "spk_xutt": 71.367,
+    "msr_utmos": 3.1985,
+    "msr_utmos_ci": [
+      3.073,
+      3.32
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 50,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 50,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "es",
+    "wer": [
+      0.758,
+      0.758,
+      0.758
+    ],
+    "wer_ci": [
+      0.285,
+      1.351,
+      0.285,
+      1.351
+    ],
+    "tail50": 0.0,
+    "spk": 83.443,
+    "spk_xutt": 70.485,
+    "msr_utmos": 2.8834,
+    "msr_utmos_ci": [
+      2.773,
+      2.991
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 65,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 65,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "fr",
+    "wer": [
+      1.255,
+      1.255,
+      1.255
+    ],
+    "wer_ci": [
+      0.751,
+      1.826,
+      0.751,
+      1.826
+    ],
+    "tail50": 0.0,
+    "spk": 84.992,
+    "spk_xutt": 69.71,
+    "msr_utmos": 2.9206,
+    "msr_utmos_ci": [
+      2.81,
+      3.031
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 69,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 70,
+      "coverage": 0.9848
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "id",
+    "wer": [
+      7.359,
+      6.374,
+      7.359
+    ],
+    "wer_ci": [
+      5.453,
+      9.507,
+      5.453,
+      9.507
+    ],
+    "tail50": 1.541,
+    "spk": 85.891,
+    "spk_xutt": 73.72,
+    "msr_utmos": 2.9269,
+    "msr_utmos_ci": [
+      2.853,
+      3.001
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 134,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 134,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "it",
+    "wer": [
+      2.403,
+      2.403,
+      2.403
+    ],
+    "wer_ci": [
+      1.277,
+      3.727,
+      1.277,
+      3.727
+    ],
+    "tail50": 0.0,
+    "spk": 85.583,
+    "spk_xutt": 72.485,
+    "msr_utmos": 2.7858,
+    "msr_utmos_ci": [
+      2.664,
+      2.91
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 67,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 67,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "ja",
+    "wer": [
+      1.626,
+      1.626,
+      1.626
+    ],
+    "wer_ci": [
+      0.876,
+      2.46,
+      0.876,
+      2.46
+    ],
+    "tail50": 0.0,
+    "spk": 86.392,
+    "spk_xutt": 75.496,
+    "msr_utmos": 2.9329,
+    "msr_utmos_ci": [
+      2.82,
+      3.049
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 82,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 82,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "ko",
+    "wer": [
+      2.592,
+      1.441,
+      2.592
+    ],
+    "wer_ci": [
+      0.894,
+      5.27,
+      0.894,
+      5.27
+    ],
+    "tail50": 1.525,
+    "spk": 86.638,
+    "spk_xutt": 74.847,
+    "msr_utmos": 2.9007,
+    "msr_utmos_ci": [
+      2.782,
+      3.012
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 88,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 88,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "pt",
+    "wer": [
+      1.82,
+      1.82,
+      1.82
+    ],
+    "wer_ci": [
+      1.088,
+      2.676,
+      1.088,
+      2.676
+    ],
+    "tail50": 0.0,
+    "spk": 83.584,
+    "spk_xutt": 70.335,
+    "msr_utmos": 2.9578,
+    "msr_utmos_ci": [
+      2.869,
+      3.046
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 86,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 87,
+      "coverage": 0.9881
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "ru",
+    "wer": [
+      2.625,
+      2.625,
+      2.625
+    ],
+    "wer_ci": [
+      1.642,
+      3.691,
+      1.642,
+      3.691
+    ],
+    "tail50": 0.0,
+    "spk": 85.304,
+    "spk_xutt": 68.842,
+    "msr_utmos": 2.911,
+    "msr_utmos_ci": [
+      2.817,
+      3.006
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 73,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 73,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "th",
+    "wer": [
+      1.94,
+      1.94,
+      1.94
+    ],
+    "wer_ci": [
+      1.189,
+      2.877,
+      1.189,
+      2.877
+    ],
+    "tail50": 0.0,
+    "spk": 87.391,
+    "spk_xutt": 76.998,
+    "msr_utmos": 3.1159,
+    "msr_utmos_ci": [
+      3.03,
+      3.201
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 121,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 122,
+      "coverage": 0.9917
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "tl",
+    "wer": [
+      4.499,
+      4.499,
+      4.499
+    ],
+    "wer_ci": [
+      3.296,
+      5.802,
+      3.296,
+      5.802
+    ],
+    "tail50": 0.0,
+    "spk": 81.708,
+    "spk_xutt": 68.095,
+    "msr_utmos": 3.063,
+    "msr_utmos_ci": [
+      2.985,
+      3.141
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 120,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 120,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "vi",
+    "wer": [
+      1.769,
+      1.769,
+      1.769
+    ],
+    "wer_ci": [
+      1.044,
+      2.602,
+      1.044,
+      2.602
+    ],
+    "tail50": 0.0,
+    "spk": 86.26,
+    "spk_xutt": 75.448,
+    "msr_utmos": 3.0517,
+    "msr_utmos_ci": [
+      2.957,
+      3.144
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 108,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 108,
+      "coverage": 1.0
+    }
+  },
+  {
+    "model": "qwen-audio-3.1-plus-tts_clone",
+    "task": "in-the-wild_mini",
+    "set": "zh",
+    "wer": [
+      2.115,
+      1.867,
+      2.01
+    ],
+    "wer_ci": [
+      1.184,
+      3.211,
+      1.148,
+      3.016
+    ],
+    "tail50": 0.147,
+    "spk": 87.213,
+    "spk_xutt": 76.061,
+    "msr_utmos": 2.8212,
+    "msr_utmos_ci": [
+      2.704,
+      2.932
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 89,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 91,
+      "coverage": 0.9783
+    }
   },
   {
     "model": "vibevoice-1.5b",
@@ -168938,6 +176738,90 @@
     }
   },
   {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "clean_mini",
+    "set": "ALL",
+    "wer": [
+      6.198,
+      5.709,
+      6.176
+    ],
+    "wer_ci": [
+      5.934,
+      6.484,
+      5.92,
+      6.444
+    ],
+    "tail50": 1.38,
+    "spk": 85.443,
+    "spk_xutt": null,
+    "msr_utmos": 3.1306,
+    "msr_utmos_ci": [
+      3.12,
+      3.141
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 3500,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 3500,
+      "coverage": 1.0,
+      "langs": 35,
+      "backfilled": false,
+      "aggregate": true
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "clean_mini",
+    "set": "ALL",
+    "wer": [
+      4.955,
+      4.803,
+      4.955
+    ],
+    "wer_ci": [
+      4.718,
+      5.194,
+      4.718,
+      5.194
+    ],
+    "tail50": 0.265,
+    "spk": 32.043,
+    "spk_xutt": null,
+    "msr_utmos": 3.1527,
+    "msr_utmos_ci": [
+      3.14,
+      3.166
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 3500,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 3500,
+      "coverage": 1.0,
+      "langs": 35,
+      "backfilled": false,
+      "aggregate": true
+    }
+  },
+  {
     "model": "gemini_3.8-flash",
     "task": "clean_mini",
     "set": "ALL",
@@ -169018,6 +176902,48 @@
       "coverage": 1.0,
       "langs": 35,
       "backfilled": true,
+      "aggregate": true
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "clean_mini",
+    "set": "ALL",
+    "wer": [
+      7.218,
+      6.941,
+      7.21
+    ],
+    "wer_ci": [
+      6.931,
+      7.499,
+      6.927,
+      7.488
+    ],
+    "tail50": 0.558,
+    "spk": 73.816,
+    "spk_xutt": null,
+    "msr_utmos": 3.2897,
+    "msr_utmos_ci": [
+      3.28,
+      3.299
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 3500,
+    "panel": {
+      "kind": "mini",
+      "source_task": "clean",
+      "selector": "strat_meta",
+      "k": 3500,
+      "coverage": 1.0,
+      "langs": 35,
+      "backfilled": false,
       "aggregate": true
     }
   },
@@ -170870,6 +178796,90 @@
     }
   },
   {
+    "model": "cartesia_sonic-3.6_clone",
+    "task": "in-the-wild_mini",
+    "set": "ALL",
+    "wer": [
+      3.179,
+      2.868,
+      3.177
+    ],
+    "wer_ci": [
+      2.868,
+      3.516,
+      2.866,
+      3.514
+    ],
+    "tail50": 0.43,
+    "spk": 76.439,
+    "spk_xutt": 67.46,
+    "msr_utmos": 2.7166,
+    "msr_utmos_ci": [
+      2.691,
+      2.742
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 1919,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 1919,
+      "coverage": 1.0,
+      "langs": 20,
+      "backfilled": false,
+      "aggregate": true
+    }
+  },
+  {
+    "model": "elevenlabs_v4_mixed",
+    "task": "in-the-wild_mini",
+    "set": "ALL",
+    "wer": [
+      2.866,
+      2.635,
+      2.866
+    ],
+    "wer_ci": [
+      2.554,
+      3.215,
+      2.554,
+      3.215
+    ],
+    "tail50": 0.31,
+    "spk": 19.73,
+    "spk_xutt": 20.219,
+    "msr_utmos": 3.1814,
+    "msr_utmos_ci": [
+      3.162,
+      3.201
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 1919,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 1919,
+      "coverage": 1.0,
+      "langs": 20,
+      "backfilled": false,
+      "aggregate": true
+    }
+  },
+  {
     "model": "gemini_3.8-flash",
     "task": "in-the-wild_mini",
     "set": "ALL",
@@ -170950,6 +178960,48 @@
       "coverage": 1.0,
       "langs": 20,
       "backfilled": true,
+      "aggregate": true
+    }
+  },
+  {
+    "model": "inworld_2_clone",
+    "task": "in-the-wild_mini",
+    "set": "ALL",
+    "wer": [
+      3.767,
+      3.55,
+      3.767
+    ],
+    "wer_ci": [
+      3.447,
+      4.107,
+      3.447,
+      4.107
+    ],
+    "tail50": 0.293,
+    "spk": 61.412,
+    "spk_xutt": 55.938,
+    "msr_utmos": 3.1676,
+    "msr_utmos_ci": [
+      3.15,
+      3.185
+    ],
+    "mpm_span": null,
+    "rhythm_x": null,
+    "rhythm_rate_x": null,
+    "pitch_range_x": null,
+    "paired_dur": null,
+    "paired_pause": null,
+    "paired_range": null,
+    "n": 1919,
+    "panel": {
+      "kind": "mini",
+      "source_task": "in-the-wild",
+      "selector": "strat_meta",
+      "k": 1919,
+      "coverage": 1.0,
+      "langs": 20,
+      "backfilled": false,
       "aggregate": true
     }
   },
