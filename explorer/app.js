@@ -21,18 +21,19 @@ const fmt1 = (v) => (v == null || isNaN(v) ? null : (+v).toFixed(1));
 
 // `ci` is the 95% interval where one is on record — shown on panel boards, where the
 // sampling error of the subsample is the whole reason to be careful with the number.
+// `short` stands in for a long label where space is tight (the phone board's pills).
 const METRICS = [
   { key: "wer",       label: "WER",   get: (r) => clip(r.wer),      fmt: fmt2, low: true,
     ci: (r) => (r.wer_ci && r.wer_ci.length >= 4 ? [r.wer_ci[2], r.wer_ci[3]] : null) },
   { key: "tail50",    label: "Tail>50%", get: (r) => r.tail50,     fmt: fmt1, low: true  },
-  { key: "spk_xutt",  label: "SPK held-out", get: (r) => r.spk_xutt, fmt: fmt1, low: false },
-  { key: "spk",       label: "SPK prompt", get: (r) => r.spk,     fmt: fmt1, low: false },
+  { key: "spk_xutt",  label: "SPK held-out", short: "SPK ho", get: (r) => r.spk_xutt, fmt: fmt1, low: false },
+  { key: "spk",       label: "SPK prompt", short: "SPK pr", get: (r) => r.spk,     fmt: fmt1, low: false },
   { key: "msr_utmos", label: "MSR",   get: (r) => r.msr_utmos,     fmt: fmt2, low: false,
     ci: (r) => (r.msr_utmos_ci && r.msr_utmos_ci[0] != null ? r.msr_utmos_ci : null) },
-  { key: "mpm_span",  label: "MPM (Clean only)", get: (r) => r.mpm_span, fmt: fmt2, low: true  },
-  { key: "rhythm_rate_x", label: "Rhythm pace ×ceil", get: (r) => r.rhythm_rate_x, fmt: fmt2, low: true },
-  { key: "rhythm_x",  label: "Rhythm pause ×ceil", get: (r) => r.rhythm_x, fmt: fmt2, low: true },
-  { key: "pitch_range_x", label: "Pitch range ×ceil", get: (r) => r.pitch_range_x, fmt: fmt2, low: true },
+  { key: "mpm_span",  label: "MPM (Clean only)", short: "MPM", get: (r) => r.mpm_span, fmt: fmt2, low: true  },
+  { key: "rhythm_rate_x", label: "Rhythm pace ×ceil", short: "Pace ×ceil", get: (r) => r.rhythm_rate_x, fmt: fmt2, low: true },
+  { key: "rhythm_x",  label: "Rhythm pause ×ceil", short: "Pause ×ceil", get: (r) => r.rhythm_x, fmt: fmt2, low: true },
+  { key: "pitch_range_x", label: "Pitch range ×ceil", short: "Pitch ×ceil", get: (r) => r.pitch_range_x, fmt: fmt2, low: true },
   { key: "paired_dur", label: "Dur |log2|", get: (r) => r.paired_dur, fmt: fmt2, low: true },
   { key: "paired_pause", label: "Pause Δ", get: (r) => r.paired_pause, fmt: fmt2, low: true },
   { key: "paired_range", label: "Range |log2|", get: (r) => r.paired_range, fmt: fmt2, low: true },
@@ -49,6 +50,7 @@ const STATE = {
   sortKey: "wer",
   sortDir: null, // 'asc' | 'desc'
   filter: "",
+  boardOpen: null, // phone board: the model whose row is expanded
   // grid colour range: `gridClip` trims that percent of the cells off EACH end of the
   // automatic range; `gridRange[metric]` = manual {lo, hi} (either null = automatic)
   gridClip: 0,
@@ -335,6 +337,16 @@ function bindConsole() {
   $("#sel-task").onchange = (e) => { STATE.task = e.target.value; refreshLangSelect(); render(); };
   $("#sel-lang").onchange = (e) => { STATE.lang = e.target.value; render(); };
   $("#inp-filter").oninput = (e) => { STATE.filter = e.target.value.toLowerCase(); render(); };
+  // phones: the filter field sits behind a search button (app.css). Closing it clears
+  // the filter, so the board is never filtered by text that is out of sight.
+  $("#filter-toggle").onclick = () => {
+    const open = !$("#console").classList.contains("searching");
+    $("#console").classList.toggle("searching", open);
+    $("#filter-toggle").setAttribute("aria-expanded", String(open));
+    const inp = $("#inp-filter");
+    if (open) inp.focus();
+    else if (inp.value) { inp.value = ""; STATE.filter = ""; render(); }
+  };
   $$("#view-seg button").forEach((b) => {
     b.onclick = () => {
       STATE.view = b.dataset.view;
@@ -383,7 +395,7 @@ function modelTag(model) {
   if (model.startsWith("zonos3")) return ["zonos", "Z3"];
   if (model.startsWith("omni_")) return ["", "OMNI"];
   if (model.startsWith("fal")) return ["", "FAL"];
-  if (/^(elevenlabs|cartesia|inworld|gemini)_/.test(model)) return ["", "API"];
+  if (/^(elevenlabs|cartesia|inworld|gemini)_|^qwen-audio-/.test(model)) return ["", "API"];
   return ["", ""];
 }
 // Pretty display names for results dirs whose on-disk name is not the public
@@ -420,6 +432,7 @@ function render() {
     const c = elm.closest(".ctl");
     if (c) c.style.display = selfSel || hide[elm.id] ? "none" : "";
   });
+  $("#filter-toggle").hidden = selfSel;
   // before the self-selecting views return early — those ignore STATE.task, so a
   // panel note left over from the board would caption data it has nothing to do with
   renderPanelNote();
@@ -458,6 +471,10 @@ function renderBoard() {
   if (STATE.sortKey !== "model" && !cols.some((m) => m.key === STATE.sortKey)) {
     STATE.sortKey = "wer"; STATE.sortDir = null;
   }
+  // the direction applied: the metric's better end first until the user flips it
+  const sm = METRIC[STATE.sortKey];
+  const dir = STATE.sortDir || (sm && sm.low ? "asc" : "desc");
+  const arrow = dir === "asc" ? "▲" : "▼";
 
   // header
   const head = $("#board-head");
@@ -469,10 +486,7 @@ function renderBoard() {
   cols.forEach((m) => {
     const th = el("th");
     th.append(document.createTextNode(m.label));
-    if (STATE.sortKey === m.key) {
-      const a = el("span", "arr", STATE.sortDir === "asc" ? "▲" : "▼");
-      th.append(a);
-    }
+    if (STATE.sortKey === m.key) th.append(el("span", "arr", arrow));
     th.onclick = () => setSort(m.key);
     tr.append(th);
   });
@@ -487,8 +501,6 @@ function renderBoard() {
   });
 
   // sort
-  const sm = METRIC[STATE.sortKey];
-  const dir = STATE.sortDir || (sm && sm.low ? "asc" : "desc");
   const sorted = rows.slice().sort((a, b) => {
     if (STATE.sortKey === "model") return a.model.localeCompare(b.model) * (dir === "asc" ? 1 : -1);
     let va = sm.get(a), vb = sm.get(b);
@@ -496,6 +508,7 @@ function renderBoard() {
     return (va - vb) * (dir === "asc" ? 1 : -1);
   });
 
+  renderBoardList(sorted, cols, ranges, arrow);
   const body = $("#board-body");
   body.innerHTML = "";
   if (!sorted.length) {
@@ -505,38 +518,14 @@ function renderBoard() {
 
   sorted.forEach((r, i) => {
     const row = el("tr");
-    const isGt = isBaseline(r.model);
-    if (isGt) row.classList.add("gt");
+    if (isBaseline(r.model)) row.classList.add("gt");
     row.style.animationDelay = `${Math.min(i * 22, 600)}ms`;
 
     const lead = el("td", "lead");
     const wrap = el("div", "model-name");
-    const [tcls, tlab] = modelTag(r.model);
-    if (tlab) wrap.append(el("span", `tag ${tcls}`, tlab));
-    wrap.append(el("span", "nm", cleanName(r.model)));
-    // On a panel board almost every row is the full-set leaf restricted to the
-    // panel, so the rare thing worth marking is a row that was actually generated
-    // on the panel task; and a leaf that misses part of the panel is estimating a
-    // slightly different population, so it says how much it covers.
-    if (r.panel) {
-      if (!r.panel.backfilled) {
-        const t = el("span", "tag run", "run");
-        t.title = "generated and scored on the panel task itself";
-        wrap.append(t);
-      }
-      if (r.panel.coverage != null && r.panel.coverage < 0.999) {
-        const t = el("span", "tag thin", `${Math.round(r.panel.coverage * 100)}%`);
-        t.title = `leaf covers ${(r.panel.coverage * 100).toFixed(1)}% of this language's panel weight; weights renormalised over what it has`;
-        wrap.append(t);
-      }
-    }
-    // a full-set macro needs every language: a system scored on fewer says how many
-    if (r.macro && r.macro.langs < r.macro.of) {
-      const t = el("span", "tag thin", `${r.macro.langs}/${r.macro.of} langs`);
-      t.title = `scored on ${r.macro.langs} of the set's ${r.macro.of} languages: no macro, ` +
-        `a mean over a different language subset is a different quantity`;
-      wrap.append(t);
-    }
+    const [tag, extra] = rowTags(r);
+    if (tag) wrap.append(tag);
+    wrap.append(el("span", "nm", cleanName(r.model)), ...extra);
     lead.append(wrap);
     row.append(lead);
 
@@ -545,32 +534,12 @@ function renderBoard() {
       const v = m.get(r);
       const cell = el("div", "cell");
       const vs = m.fmt(v);
-      const vSpan = el("span", "v" + (vs == null ? " na" : ""), vs == null ? "—" : vs);
-      cell.append(vSpan);
+      cell.append(el("span", "v" + (vs == null ? " na" : ""), vs == null ? "—" : vs));
       // On a panel board the cell is an estimate from a subsample, so it carries its
       // interval: without it the extra digits read as precision the panel doesn't have.
-      const ci = r.panel && m.ci ? m.ci(r) : null;
-      if (ci && vs != null) {
-        cell.append(el("span", "ci", `${m.fmt(ci[0])} – ${m.fmt(ci[1])}`));
-      }
-      if (vs != null && !m.neutral) {
-        const [lo, hi] = ranges[m.key];
-        let t = hi > lo ? (v - lo) / (hi - lo) : 1;       // 0..1 raw
-        if (m.low) t = 1 - t;                             // 1 = best
-        const g = el("div", "gauge");
-        const bar = el("i");
-        bar.style.width = `${Math.max(4, t * 100)}%`;
-        if (t < 0.34) bar.classList.add("bad");
-        else if (t < 0.67) bar.classList.add("warn");
-        g.append(bar);
-        cell.append(g);
-      } else if (m.neutral && vs != null) {
-        const g = el("div", "gauge");
-        const bar = el("i");
-        const [lo, hi] = ranges[m.key];
-        bar.style.width = `${hi > lo ? Math.max(8, ((v - lo) / (hi - lo)) * 100) : 100}%`;
-        g.append(bar); cell.append(g);
-      }
+      const ci = cellCi(r, m);
+      if (ci) cell.append(ci);
+      if (vs != null) cell.append(gaugeEl(m, v, ranges[m.key]));
       td.append(cell);
       row.append(td);
     });
@@ -580,12 +549,165 @@ function renderBoard() {
   });
 }
 
+// The tags beside a model name: its family tag (before the name) and the row's
+// provenance tags (after it).
+function rowTags(r) {
+  const [tcls, tlab] = modelTag(r.model);
+  const extra = [];
+  // On a panel board almost every row is the full-set leaf restricted to the
+  // panel, so the rare thing worth marking is a row that was actually generated
+  // on the panel task; and a leaf that misses part of the panel is estimating a
+  // slightly different population, so it says how much it covers.
+  if (r.panel) {
+    if (!r.panel.backfilled) {
+      const t = el("span", "tag run", "run");
+      t.title = "generated and scored on the panel task itself";
+      extra.push(t);
+    }
+    if (r.panel.coverage != null && r.panel.coverage < 0.999) {
+      const t = el("span", "tag thin", `${Math.round(r.panel.coverage * 100)}%`);
+      t.title = `leaf covers ${(r.panel.coverage * 100).toFixed(1)}% of this language's panel weight; weights renormalised over what it has`;
+      extra.push(t);
+    }
+  }
+  // a full-set macro needs every language: a system scored on fewer says how many
+  if (r.macro && r.macro.langs < r.macro.of) {
+    const t = el("span", "tag thin", `${r.macro.langs}/${r.macro.of} langs`);
+    t.title = `scored on ${r.macro.langs} of the set's ${r.macro.of} languages: no macro, ` +
+      `a mean over a different language subset is a different quantity`;
+    extra.push(t);
+  }
+  return [tlab ? el("span", `tag ${tcls}`, tlab) : null, extra];
+}
+
+// a panel board's 95% interval for metric `m` of row `r`, or null (full sets, no value)
+function cellCi(r, m) {
+  const ci = r.panel && m.ci ? m.ci(r) : null;
+  return ci && m.fmt(m.get(r)) != null ? el("span", "ci", `${m.fmt(ci[0])} – ${m.fmt(ci[1])}`) : null;
+}
+
+// the bar under a board value: its place in the column's range over the real models,
+// full = best (orange / amber for the bottom / middle third); a neutral column (N)
+// just scales with the value
+function gaugeEl(m, v, [lo, hi]) {
+  const g = el("div", "gauge");
+  const bar = el("i");
+  if (m.neutral) {
+    bar.style.width = `${hi > lo ? Math.max(8, ((v - lo) / (hi - lo)) * 100) : 100}%`;
+  } else {
+    let t = hi > lo ? (v - lo) / (hi - lo) : 1;       // 0..1 raw
+    if (m.low) t = 1 - t;                             // 1 = best
+    bar.style.width = `${Math.max(4, t * 100)}%`;
+    if (t < 0.34) bar.classList.add("bad");
+    else if (t < 0.67) bar.classList.add("warn");
+  }
+  g.append(bar);
+  return g;
+}
+
+// Phone board (app.css, ≤ 720px wide): a ranked list in place of the table. The
+// "rank by" pills pick the sort; the ranking metric gets the big number and gauge,
+// the next two peek under the name, and a tap opens every metric plus the drawer.
+function renderBoardList(sorted, cols, ranges, arrow) {
+  const pills = $("#rank-pills");
+  pills.innerHTML = "";
+  cols.forEach((m) => {
+    const on = STATE.sortKey === m.key;
+    const b = el("button", on ? "on" : "", (m.short || m.label) + (on ? ` ${arrow}` : ""));
+    b.type = "button";
+    b.title = m.label;
+    b.onclick = () => setSort(m.key);
+    pills.append(b);
+  });
+  revealChip(pills);
+
+  const list = $("#board-list");
+  list.innerHTML = "";
+  const pm = METRIC[STATE.sortKey] || METRIC.wer;   // sorted by name: WER still headlines
+  const peek = cols.filter((m) => m !== pm).slice(0, 2);
+  const more = cols.length - 1 - peek.length;
+  const lab = (m) => (m.short || m.label).toLowerCase();
+  let rank = 0;
+  sorted.forEach((r, i) => {
+    const li = el("li", "bl-row" + (isBaseline(r.model) ? " gt" : ""));
+    li.style.animationDelay = `${Math.min(i * 22, 600)}ms`;
+    const main = el("button", "bl-main");
+    main.type = "button";
+    main.setAttribute("aria-expanded", "false");
+    const v = pm.get(r), vs = pm.fmt(v);
+    // a reference (GT, Whisper) or a row without the metric holds no place in the ranking
+    const ranked = vs != null && !isBaseline(r.model);
+    main.append(el("span", "bl-rank", ranked ? String(++rank).padStart(2, "0") : ""));
+
+    const id = el("span", "bl-id");
+    const name = el("span", "bl-name");
+    const [tag, extra] = rowTags(r);
+    if (tag) name.append(tag);
+    name.append(el("span", "nm", cleanName(r.model)), ...extra);
+    const sub = el("span", "bl-sub");
+    // whole items that wrap, never an ellipsis that would cut a value off
+    peek.forEach((m) => sub.append(el("span", "", `${lab(m)} ${m.fmt(m.get(r)) ?? "—"}`)));
+    if (more > 0) sub.append(el("span", "", `+${more}`));
+    id.append(name, sub);
+
+    const score = el("span", "bl-score");
+    score.append(el("span", "bl-v" + (vs == null ? " na" : ""), vs ?? "—"));
+    const ci = cellCi(r, pm);
+    if (ci) score.append(ci);
+    if (vs != null) score.append(gaugeEl(pm, v, ranges[pm.key]));
+    main.append(id, score);
+    main.onclick = () => toggleBoardItem(li, r, cols, pm);
+    li.append(main);
+    if (STATE.boardOpen === r.model) {
+      main.setAttribute("aria-expanded", "true");
+      li.append(boardItemDetail(r, cols, pm));
+    }
+    list.append(li);
+  });
+}
+
+// one row open at a time; toggled in place, not by re-rendering (which would replay
+// every row's reveal animation)
+function toggleBoardItem(li, r, cols, pm) {
+  const open = STATE.boardOpen !== r.model;
+  $$("#board-list .bl-detail").forEach((n) => n.remove());
+  $$("#board-list .bl-main").forEach((b) => b.setAttribute("aria-expanded", "false"));
+  STATE.boardOpen = open ? r.model : null;
+  if (!open) return;
+  li.querySelector(".bl-main").setAttribute("aria-expanded", "true");
+  li.append(boardItemDetail(r, cols, pm));
+}
+
+function boardItemDetail(r, cols, pm) {
+  const d = el("div", "bl-detail");
+  const grid = el("div", "bl-metrics");
+  cols.forEach((m) => {
+    const c = el("div", m === pm ? "on" : "");
+    const k = el("span", "k", m.label);
+    const vs = m.fmt(m.get(r));
+    c.append(k, el("b", vs == null ? "na" : "", vs ?? "—"));
+    const ci = cellCi(r, m);
+    if (ci) c.append(ci);
+    grid.append(c);
+  });
+  // the drawer: an ALL row drills into the languages it averages, a language row
+  // into its utterances
+  const go = el("button", "bl-drill",
+    STATE.lang === ALL_SET ? "Per-language breakdown →" : "Utterances →");
+  go.type = "button";
+  go.onclick = () => openDrawer(r.model, STATE.task, STATE.lang);
+  d.append(grid, go);
+  return d;
+}
+
 function setSort(key) {
+  const m = METRIC[key];
   if (STATE.sortKey === key) {
-    STATE.sortDir = STATE.sortDir === "asc" ? "desc" : "asc";
+    // flip the direction applied, which is the metric's default until the first flip
+    const cur = STATE.sortDir || (m && m.low ? "asc" : "desc");
+    STATE.sortDir = cur === "asc" ? "desc" : "asc";
   } else {
     STATE.sortKey = key;
-    const m = METRIC[key];
     STATE.sortDir = key === "model" ? "asc" : (m && m.low ? "asc" : "desc");
   }
   renderBoard();

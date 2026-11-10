@@ -117,6 +117,7 @@ function renderRelDatasets() {
     };
     box.append(c);
   });
+  revealChip(box);
 }
 
 // Per-language picker — only for model datasets carrying a breakdown. "All
@@ -139,6 +140,7 @@ function renderRelLangs(ds) {
   };
   chip("all", "All languages");
   langs.forEach((l) => chip(l, l));
+  revealChip(box);
 }
 
 let _relSegBound = false;
@@ -211,9 +213,9 @@ function drawP99(ds) {
   $("#rel-legend").innerHTML = "";
   const rows = ds.series.slice().sort((a, b) => a.p99 - b.p99);
 
-  const W = Math.max(360, chart.clientWidth);
-  const ml = Math.min(190, Math.max(56, labelWidth(chart, "series-lab", rows.map((r) => r.name)) + 16));
+  const ml = Math.max(56, labelWidth(chart, "series-lab", rows.map((r) => r.name)) + 16);
   const mr = 66, mt = 14, mb = 44, rowH = 22;
+  const W = chartWidth(chart, 360, ml + mr);
   const plotW = W - ml - mr;
   const H = mt + rows.length * rowH + mb;
 
@@ -233,9 +235,8 @@ function drawP99(ds) {
     svg.append(svgEl("line", { class: t === 0 ? "zero-line" : "gridline", x1: x(t), y1: y0, x2: x(t), y2: y1 }));
     svg.append(stext("axis-txt", x(t), y1 + 15, String(t), { "text-anchor": "middle" }));
   });
-  svg.append(stext("axis-lab", ml + plotW / 2, H - 6,
-    "p99 edit distance — 99% of utterances are within this many edits (fewer = more reliable)",
-    { "text-anchor": "middle" }));
+  svg.append(axisTitle(chart, ml + plotW / 2, H - 6,
+    "p99 edit distance — 99% of utterances are within this many edits (fewer = more reliable)", W));
 
   rows.forEach((r, idx) => {
     const yi = mt + idx * rowH + rowH / 2;
@@ -268,8 +269,8 @@ function drawSurvival(ds) {
   const visible = ds.series.filter((r) => !REL.hidden.has(r.name));
   const emph = autoHighlight(visible);
 
-  const W = Math.max(360, chart.clientWidth);
   const H = 470, ml = 56, mr = 130, mt = 16, mb = 48;
+  const W = chartWidth(chart, 360, ml + mr);
   const plotW = W - ml - mr, plotH = H - mt - mb;
   const svg = newSvg(W, H);
 
@@ -444,13 +445,13 @@ function drawSlope(ds) {
   const orderCol = Math.min(1, KS.length - 1);
   const models = pool.slice().sort((a, b) => a.slope[orderCol] - b.slope[orderCol]);
 
-  const W = Math.max(360, chart.clientWidth);
   const H = Math.max(460, models.length * 24 + 130);
   const fmt = (v) => (v >= 1 ? v.toFixed(1) : v.toFixed(2));
   // values sit centred on the end columns, so names go outside their half-width
   const vh = labelWidth(chart, "axis-txt", models.flatMap((r) => r.slope.map(fmt))) / 2;
   const lw = labelWidth(chart, "series-lab", models.map((r) => r.name)) + vh + 16;   // names both ends
   const ml = Math.max(80, lw), mr = Math.max(80, lw), mt = 60, mb = 24;
+  const W = chartWidth(chart, 360, ml + mr);
   const plotW = W - ml - mr, plotH = H - mt - mb;
   const svg = newSvg(W, H);
 

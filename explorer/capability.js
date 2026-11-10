@@ -172,9 +172,9 @@ function drawIndex(d) {
   const rows = d.systems;
   const tag = (s) => `${s.index.toFixed(1)}${s.anchor ? "  anchor" : ""}`;
 
-  const W = Math.max(420, chart.clientWidth);
   const ml = Math.min(260, Math.max(80, labelWidth(chart, "series-lab", rows.map(ciName)) + 16));
   const mr = Math.max(60, labelWidth(chart, "axis-txt", rows.map(tag)) + 16);
+  const W = chartWidth(chart, 420, ml + mr);
   const mt = 30, mb = 46, rowH = 24;
   const plotW = W - ml - mr;
   const H = mt + rows.length * rowH + mb;
@@ -283,11 +283,15 @@ function drawIndexScatter(d, ax) {
     if (!frontier.length || s.index > frontier[frontier.length - 1].index) frontier.push(s);
   });
 
-  const W = Math.max(520, chart.clientWidth);
   const ml = 48, mt = 24, mb = 46, H = 460;
   const mr = Math.max(60, labelWidth(chart, "series-lab", frontier.map(ciName)) + 18);
+  const W = chartWidth(chart, 520, ml + mr);
   const plotW = W - ml - mr, plotH = H - mt - mb;
   const { x, ticks } = ax.scale(pts.map(ax.x), ml, ml + plotW);
+  // label every k-th tick when neighbouring labels would collide (narrow screens);
+  // gridlines stay on every tick
+  const tickPx = Math.min(...ticks.slice(1).map(([t], i) => x(t) - x(ticks[i][0])));
+  const every = tickStride(tickPx, labelWidth(chart, "axis-txt", ticks.map(([, lab]) => lab)));
   const step = 25;
   const v0 = Math.floor(Math.min(0, ...pts.map((s) => s.index)) / step) * step;
   const v1 = Math.ceil(Math.max(100, ...pts.map((s) => s.index)) / step) * step;
@@ -300,9 +304,9 @@ function drawIndexScatter(d, ax) {
     svg.append(svgEl("line", { class: v === 0 ? "zero-line" : "gridline", x1: ml, y1: y(v), x2: ml + plotW, y2: y(v) }));
     svg.append(stext("axis-txt", ml - 8, y(v), String(v), { "text-anchor": "end", "dominant-baseline": "middle" }));
   }
-  ticks.forEach(([t, lab]) => {
+  ticks.forEach(([t, lab], i) => {
     svg.append(svgEl("line", { class: "gridline", x1: x(t), y1: mt, x2: x(t), y2: mt + plotH }));
-    svg.append(stext("axis-txt", x(t), mt + plotH + 15, lab, { "text-anchor": "middle" }));
+    if (i % every === 0) svg.append(stext("axis-txt", x(t), mt + plotH + 15, lab, { "text-anchor": "middle" }));
   });
   svg.append(stext("axis-lab", ml + plotW / 2, H - 6, ax.label, { "text-anchor": "middle" }));
   if (real) {   // no date or size: the anchor is a level, not a point

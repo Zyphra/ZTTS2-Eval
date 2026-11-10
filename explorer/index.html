@@ -49,6 +49,8 @@
     <span>metric</span>
     <select id="sel-metric"></select>
   </label>
+  <!-- phones: the filter field collapses behind this button (app.css) -->
+  <button type="button" class="ctl-search" id="filter-toggle" aria-label="filter models" aria-expanded="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6L17 17"/></svg></button>
   <label class="ctl grow">
     <span>filter</span>
     <input id="inp-filter" type="text" placeholder="model name…" autocomplete="off" />
@@ -60,6 +62,10 @@
   <div id="panel-note" class="panel-note hidden"></div>
 
   <section id="board-view" class="view">
+    <!-- phones: the board is a ranked list (app.css hides the table while the list
+         has rows; loading / empty messages stay in the table) -->
+    <div class="rank-by"><span class="k">rank by</span><div class="rank-pills" id="rank-pills"></div></div>
+    <ol class="board-list" id="board-list"></ol>
     <div class="board-wrap">
       <table class="board" id="board">
         <thead id="board-head"></thead>
@@ -180,7 +186,7 @@
     </div>
     <div class="dd-tools">
       <input id="dd-filter" type="text" placeholder="filter uid / text…" autocomplete="off" />
-      <button id="dd-close" aria-label="close">esc ✕</button>
+      <button id="dd-close" aria-label="close"><span class="kbd-hint">esc </span>✕</button>
     </div>
   </div>
   <div class="dd-stats" id="dd-stats"></div>

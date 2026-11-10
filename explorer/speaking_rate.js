@@ -184,6 +184,7 @@ function renderSrSets() {
     };
     box.append(c);
   });
+  revealChip(box);
 }
 
 // Language picker for the active test set — chip is the bare language code, since
@@ -199,6 +200,7 @@ function renderSrPanels() {
     c.onclick = () => pickSrPanel(p.key);
     box.append(c);
   });
+  revealChip(box);
 }
 
 let _srSegBound = false;
@@ -275,10 +277,10 @@ function drawSrDref(p) {
   $("#sr-legend").innerHTML = "";
   const rows = p.series.slice().sort((a, b) => a.d_ref - b.d_ref);
 
-  const W = Math.max(360, chart.clientWidth);
   const tagOf = (r) => (r.x_ceiling != null ? `${r.d_ref.toFixed(2)}  ${r.x_ceiling}×` : r.d_ref.toFixed(2));
   const ml = Math.min(260, Math.max(64, labelWidth(chart, "series-lab", rows.map(srLabel)) + 16));
   const mr = Math.max(60, labelWidth(chart, "axis-txt", rows.map(tagOf)) + 16), mt = 16, mb = 46, rowH = 24;
+  const W = chartWidth(chart, 360, ml + mr);
   const plotW = W - ml - mr;
   const H = mt + rows.length * rowH + mb;
 
@@ -305,9 +307,8 @@ function drawSrDref(p) {
   svg.append(svgEl("line", { x1: xc, y1: y0 - 4, x2: xc, y2: y1, stroke: SR_GREEN, "stroke-width": 1.4, "stroke-dasharray": "4 3" }));
   svg.append(stext("axis-txt", xc, y0 - 7, "ceiling", { "text-anchor": "middle", fill: SR_GREEN }));
 
-  svg.append(stext("axis-lab", ml + plotW / 2, H - 6,
-    "d ref — 2-Wasserstein distance in char/s from the reference pace (fewer = closer to natural)",
-    { "text-anchor": "middle" }));
+  svg.append(axisTitle(chart, ml + plotW / 2, H - 6,
+    "d ref — 2-Wasserstein distance in char/s from the reference pace (fewer = closer to natural)", W));
 
   rows.forEach((r, idx) => {
     const yi = mt + idx * rowH + rowH / 2;
@@ -399,11 +400,11 @@ function drawSrDist(p) {
     ? (a, b) => a.d_ref - b.d_ref
     : (a, b) => b.median - a.median);
 
-  const W = Math.max(520, chart.clientWidth);
   const ml = Math.min(230, Math.max(120,
     labelWidth(chart, "series-lab", [...rows.map(srLabel), "natural speech (reference)"]) + 20));
   const cols = [["median", "char/s", 56], ["vs natural", "", 74], ["d", "×ceil", 58]];
   const mr = cols.reduce((s, c) => s + c[2], 0) + 12;
+  const W = chartWidth(chart, 520, ml + mr);
   const rowH = 30, mt = 58, mb = 46;
   const plotW = W - ml - mr;
   const nRows = rows.length + 1;                       // +1: the reference itself, on top
@@ -438,8 +439,8 @@ function drawSrDist(p) {
   });
   svg.append(svgEl("line", { x1: X(ref.median), y1: y0 - 2, x2: X(ref.median), y2: y1, stroke: SR_GREEN, "stroke-width": 1.4, "stroke-dasharray": "4 3" }));
   svg.append(stext("axis-txt", X(ref.median), y0 - 24, `natural median ${ref.median}`, { "text-anchor": "middle", fill: SR_GREEN }));
-  svg.append(stext("axis-lab", ml + plotW / 2, H - 6,
-    "speaking rate (characters per second of the VAD speech span) — left = slower, right = faster", { "text-anchor": "middle" }));
+  svg.append(axisTitle(chart, ml + plotW / 2, H - 6,
+    "speaking rate (characters per second of the VAD speech span) — left = slower, right = faster", W));
 
   // right-hand column headers
   let cx = ml + plotW + 12;

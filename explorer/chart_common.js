@@ -44,6 +44,53 @@ function newSvg(W, H) {
   return svg;
 }
 
+// drawing width: the container's, but never below `floor`, nor so narrow that the plot
+// area left between the label margins (`margins` = ml + mr) squeezes the axis into
+// overlapping ticks. On narrow screens the chart then scrolls sideways (app.css).
+const MIN_PLOT_W = 200;
+function chartWidth(chart, floor, margins) {
+  return Math.max(floor, chart.clientWidth, margins + MIN_PLOT_W);
+}
+
+// Evenly spaced tick labels `px` apart and up to `labelW` wide: label every k-th one so
+// neighbours keep an 8px gap (k = 1 when they already fit). Narrow screens draw charts
+// at their minimum width, where every label would collide.
+function tickStride(px, labelW) {
+  return Math.max(1, Math.ceil((labelW + 8) / Math.max(px, 1)));
+}
+
+// x-axis title under the plot: centred on `cx`, kept inside the drawing [0, W]. A title
+// wider than the drawing (charts at their narrow-screen minimum width) breaks at the
+// space nearest its middle onto two lines, the first one line (13px) higher; callers
+// leave mb ≥ 44 so it clears the tick labels.
+function axisTitle(chart, cx, y, str, W) {
+  const width = (s) => labelWidth(chart, "axis-lab", [s]);
+  let lines = [str];
+  if (width(str) + 8 > W) {
+    let cut = -1;
+    for (let i = str.indexOf(" "); i >= 0; i = str.indexOf(" ", i + 1))
+      if (cut < 0 || Math.abs(i - str.length / 2) < Math.abs(cut - str.length / 2)) cut = i;
+    if (cut > 0) lines = [str.slice(0, cut).trim(), str.slice(cut + 1).trim()];
+  }
+  const g = svgEl("g", {});
+  lines.forEach((s, i) => {
+    const w = width(s);
+    const x = Math.min(Math.max(cx, w / 2 + 4), W - w / 2 - 4);
+    g.append(stext("axis-lab", x, y - (lines.length - 1 - i) * 13, s, { "text-anchor": "middle" }));
+  });
+  return g;
+}
+
+// A chip or pill row that scrolls sideways (app.css, narrow screens) is rebuilt on every
+// pick, which resets it to the start: bring the active (.on) child back into view. No-op
+// when the row fits (desktop) or is hidden.
+function revealChip(box) {
+  const on = box.querySelector(":scope > .on");
+  if (!on || box.scrollWidth <= box.clientWidth) return;
+  box.scrollLeft += on.getBoundingClientRect().left - box.getBoundingClientRect().left
+    - (box.clientWidth - on.offsetWidth) / 2;
+}
+
 function mark(elm, name, emph) {
   elm.setAttribute("data-s", name);
   if (emph) elm.setAttribute("data-emph", "");
@@ -58,16 +105,18 @@ function mark(elm, name, emph) {
 
 // tooltip at the mouse, inside chartSel's coordinate frame. It is centred above the
 // pointer (CSS translate(-50%, -120%)) and the chart clips overflow, so keep it inside:
-// clamp it sideways, and flip it below the pointer when there is no room above.
+// clamp it sideways, and flip it below the pointer when there is no room above. On
+// narrow screens the chart scrolls sideways (app.css), so the tip's absolute left is
+// in scrolled-content coordinates: offset by scrollLeft and clamp to the visible part.
 function makeTip(chartSel, tipSel) {
   return {
     show(html, ev) {
-      const tip = $(tipSel), r = $(chartSel).getBoundingClientRect();
+      const chart = $(chartSel), tip = $(tipSel), r = chart.getBoundingClientRect();
       tip.innerHTML = html;
       tip.hidden = false;
       const w = tip.offsetWidth, h = tip.offsetHeight;
       const x = ev.clientX - r.left, y = ev.clientY - r.top - 8;
-      tip.style.left = Math.min(Math.max(x, w / 2 + 4), r.width - w / 2 - 4) + "px";
+      tip.style.left = chart.scrollLeft + Math.min(Math.max(x, w / 2 + 4), r.width - w / 2 - 4) + "px";
       tip.style.top = (y - 1.2 * h < 0 ? y + 1.2 * h + 24 : y) + "px";
     },
     hide() { $(tipSel).hidden = true; },

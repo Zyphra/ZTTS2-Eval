@@ -88,7 +88,7 @@ function drawMpm(d) {
 
   const rh = 40, mt = 34, mb = 40, mr = 46;
   const ml = Math.max(80, labelWidth(chart, "series-lab", rows.map((r) => r.name)) + 24);
-  const W = Math.max(440, chart.clientWidth);
+  const W = chartWidth(chart, 440, ml + mr);
   const plotW = W - ml - mr;
   const H = mt + rows.length * rh + mb;
   const xmax = Math.max(1.05, d.xmax);
@@ -108,16 +108,28 @@ function drawMpm(d) {
   // x grid + anchor lines (0 = GT, 1 = scrambled)
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   if (xmax > 1.25) ticks.push(Math.round(xmax * 10) / 10);
+  // narrow screens draw this chart at its minimum width, where the quarter ticks sit
+  // ~10px apart: label every 2nd quarter, or only the 0 / 1 anchors (the stride rounded
+  // up to a divisor of 4); the far tick past 1 is always labelled
+  const k = tickStride(x(0.25) - x(0), labelWidth(chart, "axis-txt", ["0.75"]));
+  const quarter = k === 1 ? 1 : k === 2 ? 2 : 4;
   ticks.forEach((t) => {
     const anchor = t === 0 || t === 1;
     svg.append(svgEl("line", { x1: x(t), y1: yTop, x2: x(t), y2: yBot, stroke: anchor ? (t === 0 ? M_GT : M_SCR) : M_RULE, "stroke-width": anchor ? 1.4 : 1, "stroke-dasharray": anchor ? "" : "2 3" }));
-    svg.append(stext("axis-txt", x(t), yBot + 15, String(t), { "text-anchor": "middle", fill: anchor ? (t === 0 ? M_GT : M_SCR) : M_MUT }));
+    if (t > 1 || Math.round(t * 4) % quarter === 0)
+      svg.append(stext("axis-txt", x(t), yBot + 15, String(t), { "text-anchor": "middle", fill: anchor ? (t === 0 ? M_GT : M_SCR) : M_MUT }));
   });
-  svg.append(stext("axis-txt", x(0), mt - 10, "= ground truth", { "text-anchor": "middle", fill: M_GT }));
-  svg.append(stext("axis-txt", x(1), mt - 10, "= scrambled", { "text-anchor": "middle", fill: M_SCR }));
+  // "= ground truth" / "= scrambled" sit over their lines; when the lines are too close
+  // for both centred labels (narrow screens) they part outward from their lines
+  const apart = x(1) - x(0) < (labelWidth(chart, "axis-txt", ["= ground truth"]) + labelWidth(chart, "axis-txt", ["= scrambled"])) / 2 + 8;
+  svg.append(stext("axis-txt", apart ? x(0) + 4 : x(0), mt - 10, "= ground truth", { "text-anchor": apart ? "end" : "middle", fill: M_GT }));
+  svg.append(stext("axis-txt", apart ? x(1) - 4 : x(1), mt - 10, "= scrambled", { "text-anchor": apart ? "start" : "middle", fill: M_SCR }));
   svg.append(stext("axis-lab", ml + plotW / 2, H - 6, "MPM span — distance from real speech  (← more real)", { "text-anchor": "middle" }));
 
   const dotTip = (row, p) => `<b>${row.name}</b> · ${p.lang}<br>span <b>${p.span.toFixed(2)}</b>${p.span > 1 ? " · past scrambled" : ""}`;
+  // mean value labels sit right of each row's range; one that would straddle the
+  // scrambled line (narrow screens, where 0 → 1 is ~40px) moves just past it
+  const valW = labelWidth(chart, "axis-txt", rows.map((r) => r.mean.toFixed(2)));
   rows.forEach((row, i) => {
     const yc = mt + i * rh + rh / 2;
     if (i % 2 === 1) svg.append(svgEl("rect", { x: ml, y: mt + i * rh, width: plotW, height: rh, fill: M_FAINT }));
@@ -159,7 +171,9 @@ function drawMpm(d) {
     const dia = svgEl("path", { d: `M${mx} ${yc - 6} L${mx + 6} ${yc} L${mx} ${yc + 6} L${mx - 6} ${yc} Z`, fill: past ? M_SCR : M_GT, stroke: "#fafaf9", "stroke-width": 1 });
     dia.style.pointerEvents = "none";
     g.append(dia);
-    g.append(stext("axis-txt", x(hi) + 10, yc, row.mean.toFixed(2), { "text-anchor": "start", "dominant-baseline": "middle", fill: past ? M_SCR : M_MUT }));
+    let vx = x(hi) + 10;
+    if (vx < x(1) + 4 && vx + valW > x(1) - 4) vx = x(1) + 6;
+    g.append(stext("axis-txt", vx, yc, row.mean.toFixed(2), { "text-anchor": "start", "dominant-baseline": "middle", fill: past ? M_SCR : M_MUT }));
 
     // system name (rank = row position)
     g.append(stext("series-lab", ml - 12, yc, row.name, { "text-anchor": "end", "dominant-baseline": "middle", fill: M_INK }));

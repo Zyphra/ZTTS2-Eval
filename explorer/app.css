@@ -145,6 +145,7 @@ input::placeholder { color: var(--mut); }
   border: 0; border-radius: var(--r-pill);
   font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0;
   padding: 6px 15px; cursor: pointer; transition: color .14s, background .14s;
+  white-space: nowrap;
 }
 .seg button:not(.on):not(:disabled):hover { color: var(--ink); }
 .seg button:disabled { opacity: .4; cursor: not-allowed; }
@@ -262,6 +263,9 @@ table.board { width: 100%; border-collapse: collapse; min-width: 760px; }
 }
 .gauge > i.warn { background: var(--amber); }
 .gauge > i.bad  { background: var(--orange); }
+/* phone-only: the board's ranked list, its "rank by" pills and the console's search
+   button (narrow-screen block at the end) */
+.rank-by, .board-list, .ctl-search { display: none; }
 
 /* heatmap grid ----------------------------------------------------------- */
 /* No top border: the heading row is the top edge. A border there sat between the
@@ -454,7 +458,7 @@ table.heat { border-collapse: separate; border-spacing: 0; font-size: 13px; }
 
 .drawer {
   position: fixed; top: 0; right: 0; z-index: 71;
-  width: min(840px, 94vw); height: 100vh;
+  width: min(840px, 94vw); height: 100vh; height: 100dvh;
   background: var(--surface);
   border-left: 1px solid var(--rule);
   box-shadow: -24px 0 48px rgba(var(--ink-rgb), .12);
@@ -570,3 +574,199 @@ table.heat { border-collapse: separate; border-spacing: 0; font-size: 13px; }
 .hidden { display: none; }
 /* the `hidden` attribute must win over component display rules (.seg, .bins-langs …) */
 [hidden] { display: none !important; }
+
+/* narrow screens (phones) -------------------------------------------------- */
+/* Short viewports (a phone held sideways) get the same unlocked board/grid layout:
+   the masthead and console alone would leave the locked table box no height. */
+@media (max-width: 720px), (max-height: 560px) {
+  body.app-layout { height: auto; overflow: visible; display: block; }
+  /* the table box is at most one screen tall, so its sticky headings stay usable
+     once it is scrolled into view; a short (filtered) table just shrinks */
+  body.app-layout .board-wrap, body.app-layout .grid-scroll {
+    max-height: calc(100vh - 16px); max-height: calc(100svh - 16px);
+  }
+  /* not sticky: on a phone the wrapped console would hold a third of the screen */
+  .console { position: static; }
+
+  /* board: the model column stays put while the metric columns scroll under it */
+  .board th.lead, .board td.lead { position: sticky; left: 0; }
+  .board thead th.lead { z-index: 3; }
+  .board td.lead {
+    z-index: 1; background: var(--bg); box-shadow: inset -1px 0 0 var(--faint);
+    white-space: normal; max-width: 150px;
+  }
+  .board tbody tr:hover td.lead { background: var(--panel-2); }
+  .board tbody tr.gt td.lead { background: linear-gradient(rgba(var(--blue-rgb), .05), rgba(var(--blue-rgb), .05)) var(--bg); }
+  .board tbody tr.gt:hover td.lead { background: linear-gradient(rgba(var(--blue-rgb), .09), rgba(var(--blue-rgb), .09)) var(--bg); }
+  .board thead th, .board td { padding: 8px 10px; }
+  .model-name { flex-direction: column; align-items: flex-start; gap: 3px; }
+  /* wrap at the hyphens; break inside a word only when one segment can't fit */
+  .model-name .nm { font-size: 14px; overflow-wrap: break-word; }
+
+  /* iOS Safari zooms into any focused field set under 16px */
+  select, input[type=text], input[type=number], .grid-tools input[type=number] { font-size: 16px; }
+  /* no Esc key on a phone: the drawer's close button is just ✕ */
+  .kbd-hint { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* masthead: the title, then the readout as one mono line "39 models · 38 rows ·
+     clean / ALL" (the channel's key dropped: its value says what it is) */
+  .masthead-inner { padding: 18px 16px 12px; gap: 6px; }
+  .brand .sub { display: none; }
+  .readout { gap: 0; flex-wrap: wrap; align-items: baseline; }
+  .readout > div { flex-direction: row; align-items: baseline; gap: .5em; border: 0; padding: 0; }
+  .readout > div + div::before { content: "·"; order: -2; margin-left: .5em; color: var(--mut); }
+  .readout b { order: -1; font: 400 13px/1.5 var(--mono); color: var(--mut); letter-spacing: 0; }
+  .readout .k { font-size: 13px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .readout > div:last-child .k { display: none; }
+
+  /* console: the view pills on their own row, then each picker as one box with its
+     label inside ("TASK clean ▾") and a search button that opens the filter field */
+  .console { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 8px; padding: 10px 16px 12px; }
+  .ctl.view-ctl { flex: 1 1 100%; min-width: 0; }
+  .ctl.view-ctl > span { display: none; }
+  /* the pickers share their row equally (a select is as wide as its longest option,
+     and the panel tasks' names would push the language box onto a row of its own) */
+  .ctl:not(.view-ctl) {
+    flex: 1 1 0; min-width: 0; height: 42px; padding-left: 10px;
+    flex-direction: row; align-items: center; gap: 0;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+  }
+  .ctl:not(.view-ctl):focus-within { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(var(--orange-rgb), .16); }
+  .ctl:not(.view-ctl) > select, .ctl:not(.view-ctl) > input {
+    flex: 1 1 auto; min-width: 0; width: auto; height: 100%;
+    border: 0; box-shadow: none; background-color: transparent;
+  }
+  .ctl:not(.view-ctl) > select {
+    -webkit-appearance: none; appearance: none; font-weight: 500; padding: 0 26px 0 6px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23111' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 10px 6px;
+  }
+  .ctl.grow { flex: 1 1 100%; }
+  .ctl.grow > input { padding: 0 12px 0 6px; }
+  /* the filter field shows while searching, or while it holds text */
+  .console:not(.searching) .ctl.grow:has(> input:placeholder-shown) { display: none; }
+  .ctl-search {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 42px; height: 42px; margin-left: auto; padding: 0; cursor: pointer;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+  }
+  .ctl-search svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .ctl-search[aria-expanded="true"] { color: var(--bg); background: var(--primary); border-color: var(--primary); }
+  /* pill rows scroll sideways instead of widening the page */
+  .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg button { flex: none; padding: 8px 12px; }
+  /* the view pills drop the track and fade out at the right edge, where they scroll;
+     the end padding lets the last pill scroll clear of the fade */
+  #view-seg { background: none; padding: 0 40px 0 0; gap: 2px; }
+  #view-seg button { font-size: 15px; padding: 8px 15px; }
+  #view-seg, .rank-pills {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  }
+  /* chip rows (test sets, languages) scroll sideways on one line like the pill rows
+     instead of stacking a screen of chips above the chart; revealChip
+     (chart_common.js) scrolls the active chip into view after each rebuild */
+  .bins-langs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .bins-langs::-webkit-scrollbar { display: none; }
+  .lang-chip { flex: none; padding: 6px 14px; }
+  .leg-item { padding: 5px 9px; }
+
+  main { padding: 16px 16px 32px; }
+
+  /* board: a ranked list (app.js renderBoardList) in place of the table; the table
+     stays for the loading / empty messages, which leave the list empty */
+  .rank-by { display: block; margin-bottom: 12px; }
+  .rank-by > .k { display: block; margin-bottom: 8px; color: var(--mut); }
+  .rank-pills { display: flex; gap: 8px; padding-right: 40px; overflow-x: auto; scrollbar-width: none; }
+  .rank-pills::-webkit-scrollbar { display: none; }
+  .rank-pills button {
+    flex: none; padding: 7px 14px; cursor: pointer; white-space: nowrap;
+    font: 500 13px var(--mono); text-transform: uppercase; letter-spacing: .04em;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-pill);
+  }
+  .rank-pills button.on { color: var(--bg); background: var(--primary); border-color: var(--primary); }
+  .board-list:not(:empty) { display: block; margin: 0; padding: 0; list-style: none; }
+  .board-list:not(:empty) + .board-wrap { display: none; }
+  .bl-row {
+    border-top: 1px solid var(--rule);
+    opacity: 0; transform: translateY(3px); animation: reveal .38s ease forwards;
+  }
+  .bl-row.gt { background: rgba(var(--blue-rgb), .05); }
+  .bl-main {
+    display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; column-gap: 10px;
+    width: 100%; margin: 0; padding: 14px 0; cursor: pointer; text-align: left;
+    font: inherit; color: inherit; background: none; border: 0;
+  }
+  .bl-rank { font: 400 13px var(--mono); color: var(--mut); }
+  .bl-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  /* the family tag runs inline before the name, so a long name wraps under both */
+  .bl-name .nm { font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+  .bl-name .tag { display: inline-block; vertical-align: 2px; margin-right: 7px; font-size: 10.5px; line-height: 1.3; padding: 1px 6px; }
+  .bl-name .nm + .tag, .bl-name .tag + .tag:not(:first-child) { margin: 0 0 0 7px; }
+  .bl-sub { display: flex; flex-wrap: wrap; min-width: 0; font: 400 12px var(--mono); color: var(--mut); }
+  .bl-sub > span { white-space: nowrap; }
+  .bl-sub > span:not(:last-child)::after { content: "·"; margin: 0 .5em; }
+  .bl-score { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .bl-v { font: 500 24px/1 var(--mono); letter-spacing: -.02em; color: var(--ink); }
+  .bl-v.na { color: var(--mut); }
+  .bl-score .gauge { width: 72px; }
+  .bl-score .ci, .bl-metrics .ci { font: 400 10.5px var(--mono); color: var(--mut); white-space: nowrap; }
+  .bl-detail { padding: 0 0 16px 40px; }
+  .bl-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px 10px; }
+  .bl-metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .bl-metrics .k { color: var(--mut); line-height: 1.35; }
+  .bl-metrics .on .k { color: var(--orange); }
+  .bl-metrics b { font: 500 16px var(--mono); color: var(--ink); }
+  .bl-metrics b.na { color: var(--mut); }
+  .bl-drill {
+    margin-top: 14px; padding: 6px 0; cursor: pointer;
+    font: 500 14.5px var(--sans); color: var(--orange); background: none; border: 0;
+  }
+
+  .heat tbody th { padding: 7px 8px; }
+  .legend-bar { width: 140px; }
+
+  /* charts keep their minimum drawing width and scroll sideways; !important beats
+     the inline overflow mpm.js sets on its chart */
+  .scope-chart { overflow-x: auto !important; }
+  /* small multiples two-up while a plate is still legible (≥ 160px), else one-up */
+  .rel-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px 10px; }
+  .bins-head h2 { font-size: 21px; }
+  .bins-note { font-size: 13.5px; }
+  .bins-tip { white-space: normal; max-width: min(300px, 80vw); }
+  .ci-breakdown { padding: 12px 10px; overflow-x: auto; }
+  .ci-breakdown td.wt { width: auto; }
+  .ci-breakdown .wbar { display: none; }
+  .ci-breakdown th, .ci-breakdown td { padding: 4px 5px; }
+  .ci-breakdown th { letter-spacing: .02em; }
+  .ci-breakdown tr.sub td:first-child { padding-left: 10px; }
+  .ci-breakdown .bd-close { padding: 4px 10px; }
+
+  /* drawer: full screen, tools under the title, chips wrap under the utterance */
+  .drawer { width: 100vw; border-left: 0; }
+  .drawer-head { flex-wrap: wrap; gap: 10px; padding: 14px 16px 12px; }
+  .drawer-head > div:first-child { flex: 1 1 100%; min-width: 0; }
+  .drawer-head h2 { font-size: 20px; overflow-wrap: anywhere; }
+  .dd-tools { flex: 1 1 100%; }
+  #dd-filter { flex: 1; width: auto; }
+  .dd-stats { gap: 10px 18px; padding: 12px 16px; }
+  .utt-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
+  .utt-row .utt-id { flex: 1 1 100%; min-width: 0; }
+  .utt-id .txt { max-width: 100%; }
+  .utt-row .caret { margin-left: auto; }
+  .utt-detail { padding: 4px 16px 16px; }
+}
+
+/* small phones (≤ 360px): the pickers drop their inline labels (the values name
+   themselves: "clean", "ALL langs") and the list tightens its columns, so names and
+   the peek line keep to a line where they can */
+@media (max-width: 360px) {
+  .ctl:not(.view-ctl):not(.grow) > span { display: none; }
+  .ctl:not(.view-ctl) > select { padding: 0 22px 0 4px; background-position: right 8px center; }
+  .bl-main { grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 8px; }
+  .bl-v { font-size: 20px; }
+  .bl-score .gauge { width: 56px; }
+  .bl-detail { padding-left: 30px; }
+}
