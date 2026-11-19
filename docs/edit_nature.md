@@ -16,7 +16,8 @@ python scripts/analysis/classify_edits.py results/gt_in-the-wild   # in-the-wild
 
 Every utterance is re-tokenized with `run_wer.py`'s own `prepare()` (words, or
 CER characters for zh/ja/ko/th), aligned with jiwer, and each substitution /
-insertion / deletion is bucketed.
+insertion / deletion is bucketed. Imputed rows (`<UNSCOREABLE:…>`,
+[unscoreable_2026-09.md](unscoreable_2026-09.md)) are skipped.
 
 ## Overall breakdown
 
@@ -63,17 +64,16 @@ is where the tail languages diverge:
 ## Takeaway for interpreting GT as a ceiling
 
 - The **abjad scripts (ar, he)** — and to a lesser extent Persian's ZWNJ — carry
-  a WER tail that is *largely orthographic convention*, not audio quality. Their
-  GT numbers should be read with that discount, and a script-level normalization
-  pass (unify hamza seats / ta-marbuta, strip ZWNJ, fold matres lectionis) would
-  bring them down substantially without touching pronunciation.
+  a WER tail that is *largely orthographic convention*, not audio quality. The
+  script-level fold below (hamza seats, ta-marbuta, ZWNJ) now removes most of it
+  without touching pronunciation.
 - **Thai** is the opposite: its tail is real CER content divergence; no cheap
   normalization removes it. The per-character unit simply is not comparable to
   the word unit used elsewhere — compare `th` only against `th`.
 - Everywhere else the tail is dominated by **genuine content mishearings** plus
   **inflectional near-misses**, i.e. the honest limit of the reference ASR on
-  real speech. Digits-as-words and diacritics are a small, easily-normalized
-  slice (~8% clean).
+  real speech. Digits-as-words (now expanded to words on both sides with `num2words`)
+  and diacritics are a small slice (~8% clean).
 
 ## Applied — orthographic normalization for abjad scripts
 
@@ -98,5 +98,7 @@ exactly, so the deltas are pure normalization):
 
 Arabic drops by a third (its tail was ~72% orthographic); Persian gains from ZWNJ +
 yeh/kaf unification; Hebrew is unchanged, as predicted — its tail is not safely
-normalizable. These four committed `.wer` files (+ their CI footers) were refreshed;
-MSR-UTMOS / spk are untouched (ASR-independent).
+normalizable. The folds are part of the standard text prep, so every system and GT leaf
+is scored with them. The table is the offline measurement at adoption; later scoring
+changes (digit expansion, the enforced-routing rescore) moved the absolute values, and
+current GT WER is in `RESULTS_CURRENT.md`.

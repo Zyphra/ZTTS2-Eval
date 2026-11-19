@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate ZONOS3 Mini audio through the release minisgl HTTP server
+# Generate ZONOS3-Mini audio through the release minisgl HTTP server
 # (python -m zonos2, POST /tts/generate), one conditioning mode per call.
 #
 # By default this launches its own server (scripts/gen/serve_zonos3.sh) on one GPU,

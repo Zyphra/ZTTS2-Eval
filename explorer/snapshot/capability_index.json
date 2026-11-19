@@ -204,7 +204,7 @@
    "params": {
     "total": 0.886,
     "active": 0.155,
-    "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+    "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
    },
    "breakdown": {
     "dimensions": [
@@ -344,7 +344,7 @@
    "params": {
     "total": 0.886,
     "active": 0.155,
-    "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+    "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
    },
    "breakdown": {
     "dimensions": [
@@ -2021,7 +2021,7 @@
    "params": {
     "total": 0.886,
     "active": 0.155,
-    "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+    "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
    },
    "breakdown": {
     "dimensions": [
@@ -8198,7 +8198,7 @@
     "params": {
      "total": 0.886,
      "active": 0.155,
-     "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+     "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
     },
     "breakdown": {
      "dimensions": [
@@ -8331,7 +8331,7 @@
     "params": {
      "total": 0.886,
      "active": 0.155,
-     "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+     "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
     },
     "breakdown": {
      "dimensions": [
@@ -8863,7 +8863,7 @@
     "params": {
      "total": 0.886,
      "active": 0.155,
-     "source": "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)"
+     "source": "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)"
     },
     "breakdown": {
      "dimensions": [

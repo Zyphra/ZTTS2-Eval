@@ -4,7 +4,9 @@
 [![Python 3.10–3.12](https://img.shields.io/badge/python-3.10--3.12-blue.svg)](pyproject.toml)
 
 ZTTS2-Eval is a multilingual, in-the-wild benchmark for zero-shot (voice-cloning)
-speech synthesis, introduced alongside ZONOS3 Mini, Zyphra's compact zero-shot
+speech synthesis, introduced alongside
+[ZONOS3-Mini](https://github.com/Zyphra/ZONOS3-Mini)
+([technical report](https://arxiv.org/abs/2611.16525)), Zyphra's compact zero-shot
 voice-cloning TTS model. It is the second release of the benchmark and supersedes
 [ZTTS1-Eval](https://github.com/Zyphra/ZTTS1-Eval), which was introduced alongside
 [ZONOS2](https://github.com/Zyphra/ZONOS2).
@@ -72,8 +74,8 @@ listener-validated exception. ZTTS2-Eval targets four gaps:
    ([controls_2026-08.md](docs/controls_2026-08.md)).
 4. **MOS predictors and LLM judges are not ground truth.** They are unreliable on
    clean pairs and on linguistically structured errors
-   ([RefFreeLimits](https://arxiv.org/abs/2609.13150),
-   [BeyondNaturalness](https://arxiv.org/abs/2608.09930)). ZTTS2 keeps MSR-UTMOS
+   ([Asonitis et al., 2026](https://arxiv.org/abs/2609.13150),
+   [Bamgbose et al., 2026](https://arxiv.org/abs/2608.09930)). ZTTS2 keeps MSR-UTMOS
    as a channel readout and measures prosody as distances to real speech with
    split-half floors.
 
@@ -95,7 +97,7 @@ the June 2026 benchmark introduced alongside ZONOS2.
 |Area|ZTTS1-Eval|ZTTS2-Eval|Details|
 |---|---|---|---|
 |Clean set|9 languages × 500 prompts (4,500) + `hard_en`/`hard_zh` text sets (124)|35 languages, each sampled to the maximum its disjoint FLEURS-R train+test pool allows: 1,196–2,089 per language, 57,366 total after dropping 22 prompt/target near-duplicates; hard sets not carried over|[Data](#data)|
-|In-the-wild set|17 languages, 84–120 prompts each (1,618), 10 UTMOS bins|20 languages (+ nl, uk, vi), up to 1,500 prompts sampled per language (17,155 after dropping 164 prompt/target near-duplicates), 5 round-robin MSR-UTMOS bins, plus a held-out real recording of the same speaker for every item|[Data](#data), [rebuild recipe](docs/voxblink2_rebuild.md)|
+|In-The-Wild set|17 languages, 84–120 prompts each (1,618), 10 UTMOS bins|20 languages (+ nl, uk, vi), up to 1,500 prompts sampled per language (17,155 after dropping 164 prompt/target near-duplicates), 5 round-robin MSR-UTMOS bins, plus a held-out real recording of the same speaker for every item|[Data](#data), [rebuild recipe](docs/voxblink2_rebuild.md)|
 |ASR|Qwen3-ASR for every language; language hint for 9, auto-detect elsewhere|Qwen3-ASR for zh ko th vi hi fa; Whisper-large-v3 with the language forced for all others, English included; routing enforced, model revisions pinned|[ASR comparison](docs/asr_whisper_vs_qwen.md), [tail modes](docs/wer_tail_error_modes.md)|
 |Text prep|traditional→simplified fold on zh hypotheses only|identical on reference and hypothesis: case, punctuation, apostrophes, digits → words (num2words); CER for zh ja ko th; orthographic fold for ar fa he|[edit nature](docs/edit_nature.md)|
 |Failed transcriptions|skipped, so the mean covers survivors only|scored as maximum error (WER_CLIP 100); `.wer` footers report `N_TRANSCRIBED`/`N_IMPUTED`|[unscoreable](docs/unscoreable_2026-09.md)|
@@ -168,7 +170,16 @@ target_wav.scp  # In-The-Wild only: "<uttid> <path_to_real_target.wav>"
 target_wav/     # In-The-Wild only: <uttid>.wav (held-out real recording of the same speaker)
 ```
 
-The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not in git: it is the Hugging Face dataset [`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval). Fetch it into place with `python scripts/prep/download_data.py` (both sets), or a subset with `--tasks in-the-wild --langs en zh`; for the In-The-Wild set the script also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and `target_wav.scp` resolves. The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts, exclusions) are in git. The coreset panel directories symlink into these trees.
+The audio (`waveform/`, 24 GB, plus the In-The-Wild `target_wav/` recordings) is not
+in git: it is the Hugging Face dataset
+[`Zyphra/ZTTS2-Eval`](https://huggingface.co/datasets/Zyphra/ZTTS2-Eval).
+Fetch it into place with `python scripts/prep/download_data.py` (both sets), or a
+subset with `--tasks in-the-wild --langs en zh`; for the In-The-Wild set the script
+also fetches `target_wav/` and verifies that every wav listed in `prompt_wav.scp` and
+`target_wav.scp` resolves.
+The `target_wav.scp` index and `target_provenance.json` (pairing rule, counts,
+exclusions) are in git.
+The coreset panel directories symlink into these trees.
 
 **What is in git.** The `data/` metadata is tracked: `text`, `prompt_text`,
 `prompt_wav.scp`, the In-The-Wild `target_wav.scp` / `target_provenance.json`,
@@ -213,8 +224,9 @@ defined once in [`utils/benchmark.py`](utils/benchmark.py).
   A generation the reference ASR cannot transcribe at all counts as **maximum
   error** (WER_CLIP 100), not as a missing utterance — otherwise a leaf mean is a
   survivor mean and the most degenerate output is the output that disappears from
-  its own score. Each `.wer` footer reports `N_TRANSCRIBED:`/`N_IMPUTED:` so the
-  imputed share is always visible. See `docs/unscoreable_2026-09.md`.
+  its own score. Each `.wer` footer reports `N_TRANSCRIBED:`/`N_IMPUTED:` (beside
+  `N_SCORED:`/`N_EXPECTED:`) so the imputed share is always visible. See
+  `docs/unscoreable_2026-09.md`.
   The footer also reports `WER_TAIL50` — the **tail rate**, the percentage of
   utterances with WER above 50%. Confidence intervals on WER are bootstrapped over
   reference *sentences*: utterances that share a target sentence (FLEURS repeats
@@ -298,7 +310,7 @@ Facts to keep next to the numbers when reading results:
   train+test splits, and the ASR scorers (Whisper-large-v3, Qwen3-ASR)
   plausibly trained on FLEURS train. The effect is unbounded; a train-vs-test
   GT-floor comparison is an open control.
-* **In-the-wild reference transcripts are ASR output.** VoxBlink2 target texts
+* **In-The-Wild reference transcripts are ASR output.** VoxBlink2 target texts
   are Voxtral-Mini-3B transcriptions of segments pre-filtered for cross-ASR
   agreement ≥ 0.85. The GT WER floor is inter-ASR disagreement on ASR-legible
   speech, not human intelligibility — read "beats the GT floor" as an
@@ -357,14 +369,14 @@ source .venv/bin/activate     # or prefix the commands below with `uv run`
 configured in `pyproject.toml`. CUDA 12.9 builds run on a 12.8 driver via CUDA
 minor-version compatibility. To target a different CUDA, change the
 `pytorch-cu129` index URL and the vLLM wheel URL in `pyproject.toml` before
-running `uv sync`. The benchmark needs a CUDA GPU — vLLM, speaker similarity, and
-MOS scoring all run on GPU — and `torchcodec` requires FFmpeg shared libraries on
-the system.
+running `uv sync`. `torchcodec` requires FFmpeg shared libraries on the system; the
+GPU requirement is in [Quick start](#quick-start).
 
-The repo supports Python 3.10–3.12 in `.venv`. `transformers` is pinned below 5.9
-for vLLM-Omni compatibility. Shell entry points select their interpreter with
-`repo_py` (`utils/lib_common.sh`): `$PYTHON` if set, else `.venv/bin/python` if it
-exists, else `python3`. Jobs submitted with `sbatch` always use `.venv/bin/python`.
+The repo supports Python 3.10–3.12 in `.venv` (`--extra omni` needs ≥ 3.11).
+`transformers` is pinned below 5.9 for vLLM-Omni compatibility. Shell entry points
+select their interpreter with `repo_py` (`utils/lib_common.sh`): `$PYTHON` if set,
+else `.venv/bin/python` if it exists, else `python3`. Jobs submitted with `sbatch`
+always use `.venv/bin/python`.
 Shell scripts parse Kaldi-style `--name value` options (`utils/parse_options.sh`),
 and every long flag, in shell and in Python, is spelled with dashes (`--test-set`,
 `--out-root`, `--decode-dir`). Run every command from the repo root. Optional model
@@ -484,10 +496,14 @@ interface (`scripts/gen/lib_gen.sh`):
   an unseeded run is used, and `gen_meta.json` records it).
 * At the end each driver prints the `scripts/score/run_score.sh` command for its output.
 
-Models with their own venv (`cosyvoice`, `kokoro`, `ming3`, `moss_tts`, `neutts`,
-`phonon`, `pocket_tts`, `vibevoice`, `vibevoice15`, `audio8`) are installed with
-`bash scripts/setup/setup_<model>_env.sh` (`--force` rebuilds); the venv path is
-`<MODEL>_VENV`, and the upstream checkouts are pinned by `<MODEL>_COMMIT`.
+Models with their own venv are installed with `bash scripts/setup/setup_<model>_env.sh`
+(`audio8`, `cosyvoice`, `kokoro`, `ming3`, `moss_tts`, `neutts`, `vibevoice`,
+`vibevoice15`, and `ttsds` for the MPM span; `--force` rebuilds). The venv path is
+`<MODEL>_VENV` (`ming3` also has `MING3_TINY_VENV`), and upstream checkouts are pinned
+by `<MODEL>_COMMIT`. `phonon` and `pocket_tts` have no setup script: create
+`PHONON_VENV` (`pip install ptts==0.6.0 soundfile numpy`) and `POCKET_TTS_VENV`
+(`pocket-tts` with the CPU torch wheel) by hand; their drivers stop with that hint
+when the venv is missing.
 
 **Servers.** Server-backed drivers launch a **fresh** server per run and stop it on
 exit; a server already listening on the port is never adopted. Startup tries the
@@ -514,7 +530,7 @@ to `logs/slurm/servers/<tag>/`).
   (`--accurate-mode false`, → `results/zonos2_expressive`). Under SLURM,
   `slurm/submit_eval.sh --engine zonos2 --accurate-mode {true|false}` runs each mode
   as its own job.
-* **`scripts/gen/run_zonos3.sh`** generates ZONOS3 Mini through the release minisgl server
+* **`scripts/gen/run_zonos3.sh`** generates ZONOS3-Mini through the release minisgl server
   (`scripts/gen/serve_zonos3.sh` → `python -m zonos2` from the `ZONOS3_HOME` checkout,
   optional site env `ZONOS3_ENV`; client `scripts/gen/generate_zonos3.py` → `POST
   /tts/generate`), one conditioning mode per call: `--speaker-mode reference` (raw
@@ -526,6 +542,21 @@ to `logs/slurm/servers/<tag>/`).
   over whole 8-GPU nodes (one server per GPU).
 * **`scripts/gen/run_audio8.sh`** does the same for the Audio8 SGLang-Omni server
   (`scripts/gen/serve_audio8.sh`).
+
+The other drivers run in-process (no server) from their own venv:
+
+| Driver | Model (`--model`) | Languages | Venv | Default out root |
+|---|---|---|---|---|
+| `run_cosyvoice.sh` | CosyVoice3 (upstream FunAudioLLM code) | task basket | `COSYVOICE_VENV` | `results/cosyvoice3` |
+| `run_kokoro.sh` | Kokoro-82M, preset voices | en zh es fr it ja pt hi | `KOKORO_VENV` | `results/kokoro` |
+| `run_ming3.sh` | `ming-3.0-tts-{0.5b,tiny}[-trim]` | zh en de es fr ja ko | `MING3_VENV` / `MING3_TINY_VENV` | `results/<model>` |
+| `run_moss_tts.sh` | `moss-tts`, `moss-tts-v1.5`, `moss-tts-local`, `moss-tts-local-v1.5` | task basket | `MOSS_TTS_VENV` | `results/<model>` |
+| `run_neutts.sh` | NeuTTS-2E, preset voices | en | `NEUTTS_VENV` | `results/neutts-2e` |
+| `run_phonon.sh` | `phonon-40m-multilingual` (CPU), preset voices | en fr de es pt | `PHONON_VENV` | `results/<model>` |
+| `run_pocket_tts.sh` | `pocket-tts` (Kyutai, CPU) | en fr de pt it es | `POCKET_TTS_VENV` | `results/<model>` |
+| `run_vibevoice.sh` | VibeVoice-Realtime-0.5B, preset voices | en de es fr it ja ko nl pl pt | `VIBEVOICE_VENV` | `results/vibevoice-rt-0.5b` |
+| `run_vibevoice15.sh` | `1.5b` (en zh) or `7b` (task basket); vendored inference code, see `third_party/VibeVoice-1.5B/PROVENANCE.md` | per model | `VIBEVOICE15_VENV` | `results/vibevoice-<model>` |
+| `run_zonos3_reftext.sh` | ZONOS3-Mini with the prompt transcript (continuation) | task basket | `ZONOS3_HOME` checkout (`ZONOS3_ENV`, `ZONOS3_PY`) | `results/<model>` (default `zonos3-mini-reftext_embedding`) |
 
 ### Hosted providers
 
@@ -688,11 +719,13 @@ renormalized per language; no Clean panel item was affected). On the In-The-Wild
 a panel estimates the prompt similarity, not the held-out one.
 
 On **held-out model families**, the Mini panels estimate the full benchmark to within
-**0.29 / 0.20 WER_CLIP** (Clean / In-The-Wild), **0.20 / 0.13** speaker similarity, and
-**0.007** MSR-UTMOS. The In-The-Wild panel picks the better of two systems 100% of the
-time when they differ by ≥0.5 WER points. Quoting a panel's bootstrap CI, the full-set
-value falls inside it 93–97% of the time against a nominal 95%. These validation
-figures predate the near-duplicate filter and the enforced-routing rescore.
+**0.29 / 0.33 WER_CLIP** (Clean / In-The-Wild, mean absolute error), **0.14 / 0.22**
+speaker similarity, and **0.007 / 0.008** MSR-UTMOS. The In-The-Wild panel picks the
+better of two systems 99.3% of the time when they differ by ≥ 0.5 WER points (the 0.5–2
+point bins rest on fewer than 20 distinct system pairs). Quoting a panel's bootstrap CI,
+the full-set value falls inside it 91–93% of the time against a nominal 95%. Validation
+runs on the committed system × item matrix, built before the near-duplicate filter and
+the final rescore; see [docs/coreset.md](docs/coreset.md).
 
 They are ordinary task directories, so nothing in the pipeline changes:
 
@@ -735,7 +768,7 @@ Current numbers are in [RESULTS_CURRENT.md](RESULTS_CURRENT.md).
 
 ## Citation
 
-ZTTS2-Eval was introduced alongside ZONOS3 Mini and builds on
+ZTTS2-Eval was introduced alongside ZONOS3-Mini and builds on
 [ZTTS1-Eval](https://github.com/Zyphra/ZTTS1-Eval) (introduced with ZONOS2), the
 CV3-Eval / CosyVoice 3 subset design, and FLEURS-R / VoxBlink2 data. If this
 benchmark is useful, please cite:
@@ -749,15 +782,23 @@ benchmark is useful, please cite:
 }
 
 @misc{zyphra2026zonos3mini,
-  title     = {ZONOS3 Mini Technical Report},
-  author    = {Gabriel Clark and Sofian Mejjoute and Mohamed Osman and George Close and Beren Millidge},
-  year      = {2026},
+  title         = {{ZONOS3-Mini Technical Report}},
+  author        = {Gabriel Clark and Sofian Mejjoute and George Close and Beren Millidge},
+  year          = {2026},
+  eprint        = {2611.16525},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SD},
+  url           = {https://arxiv.org/abs/2611.16525},
 }
 
-@misc{zyphra2025zonos,
-  title     = {Zonos V2 Technical Report},
-  author    = {Gabriel Clark and Sofian Mejjoute and Mohamed Osman and George Close and Beren Millidge},
-  year      = {2026},
+@misc{zyphra2026zonos2,
+  title         = {{ZONOS2 Technical Report}},
+  author        = {Gabriel Clark and Sofian Mejjoute and Mohamed Osman and George Close and Beren Millidge},
+  year          = {2026},
+  eprint        = {2606.24320},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SD},
+  url           = {https://arxiv.org/abs/2606.24320},
 }
 
 @article{du2025cosyvoice,
@@ -776,9 +817,10 @@ benchmark is useful, please cite:
 
 @inproceedings{lin2024voxblink2,
   title={{VoxBlink2}: A 100K+ Speaker Recognition Corpus and the Open-Set Speaker-Identification Benchmark},
-  author={Lin, Yuke and others},
+  author={Lin, Yuke and Cheng, Ming and Zhang, Fulin and Gao, Yingying and Zhang, Shilei and Li, Ming},
   booktitle={Interspeech},
-  year={2024}
+  year={2024},
+  doi={10.21437/Interspeech.2024-1490}
 }
 ```
 

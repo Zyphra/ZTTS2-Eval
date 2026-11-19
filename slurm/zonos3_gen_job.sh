@@ -8,7 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --requeue
 #SBATCH --output=logs/slurm/%x-%A_%a.out
-# Generate ZONOS3 Mini for both conditioning modes (results/<Z3_SYSTEM>_<mode>/<task>/<lang>)
+# Generate ZONOS3-Mini for both conditioning modes (results/<Z3_SYSTEM>_<mode>/<task>/<lang>)
 # on one 8-GPU node: one release minisgl server per GPU serving both modes and every
 # language it is handed. Always submit as an ARRAY job (the %A_%a output name and the
 # ${array_job}_${node} file tags assume one), from the repo root:

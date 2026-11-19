@@ -12,7 +12,8 @@ MPM span is computed for `clean` (FLEURS-R) and **not** for `in-the-wild`
 This page records the measurements behind it, because "we didn't run it" and "it does
 not work there" are very different claims and the code alone cannot tell them apart.
 
-Everything below is `en`, and reproducible with the four scripts named at the end.
+Everything below is `en`. The probe scripts behind these measurements are not part of this
+release; the metric itself is `scripts/prosody/score_mpm_shuffle_floor.py`.
 
 ## The metric depends entirely on two anchors
 
@@ -102,7 +103,7 @@ Three results worth keeping in mind:
 
 | intervention | ITW compression | outcome |
 |---|--:|---|
-| shipped (DIO + absolute energy) | **2.45×** | baseline |
+| DIO + absolute energy (as shipped then) | **2.45×** | baseline |
 | SwiftF0 F0 backend | 2.07× | −16% of the gap, but −7.2% clean range and a reordered board |
 | per-utterance energy norm, linear (`p95`) | 2.66× | no ITW effect |
 | per-utterance energy norm, log (`db60`) | 2.10× | −18% clean ceiling |
@@ -150,10 +151,10 @@ engineering — at in-the-wild scale the channel *is* the signal. Keep the exclu
 Reviving it would need a channel-invariant prosody representation, not a better pitch
 tracker or a cleverer normalizer.
 
-## Known open issue on FLEURS-R: a loudness confound
+## FLEURS-R loudness confound (fixed)
 
-Independent of the above, and live on the current board. Because the energy window is
-absolute, span inflation tracks how *quietly* a system renders:
+Independent of the above: with the original absolute energy window, span inflation tracked
+how *quietly* a system renders (measured before the fix):
 
 | system | dB vs reference | span (shipped `abs`) | span (`p95`) | inflation |
 |---|--:|--:|--:|--:|
@@ -164,13 +165,13 @@ absolute, span inflation tracks how *quietly* a system renders:
 | omni_qwen3-tts-1.7b | −0.2 | 0.522 | 0.493 | +0.030 |
 | omni_voxcpm2 | +0.7 | 0.405 | 0.414 | −0.008 |
 
-**Pearson r = −0.979**, slope −0.095 span/dB. `kokoro` reads 1.62 — above the
-"fully contour-scrambled" ceiling — largely for being 7.4 dB quieter than the
-reference. That is a normalization bug, not a prosody reading.
+**Pearson r = −0.979**, slope −0.095 span/dB. `kokoro` read 1.62 (above the
+"fully contour-scrambled" ceiling), largely for being 7.4 dB quieter than the
+reference: a normalization bug, not a prosody reading.
 
 Per-utterance `p95` normalization (`e / p95(e)`, clipped to `[0,1]`; p95 rather than
 max so one plosive cannot rescale the contour) is exactly level-invariant — 100% of
-energy tokens survive any gain change, versus 21% today — and pulls every tested
+energy tokens survive any gain change, versus 21% with the absolute window — and pulls every tested
 system back inside `[0,1]` while preserving the ranking at Kendall τ +0.867.
 
 **APPLIED 2026-08-29** (`score_mpm_shuffle_floor._tokens`, formerly `_tokens_for_wav`; anchor cache tag
@@ -184,13 +185,13 @@ The full 35-language rebuild confirmed the projection: rank preservation came ou
 fell 0.569 → 0.495. kokoro returned under the scramble ceiling on `es` and `pt` but
 stays above it on `fr`/`hi`/`it`/`ja`/`zh` — the languages it has no voice for — so the
 residual anomaly is a real prosody failure the gain artifact had been sitting on top of.
-Pre-fix TSVs are archived at `results/_mpm_shuffle_floor/pre_p95_20260829/`; see
-`docs/controls_2026-08.md`. Published MPM numbers are not comparable across this change.
-Since 2026-10-31 leading/trailing silence is also trimmed before featurization (cache tag
-`v5`; [controls C6](controls_2026-08.md)), which changes every span again.
+Published MPM numbers are not comparable across this change.
+Since then each file is also cut to its speech span before featurization (35 dB energy
+trim, tag `v5`, 2026-10-31; then the Silero VAD speech span, tag `v6`;
+[controls C6](controls_2026-08.md)), which changed every span again.
 
 Anchor cache tag history:
 
 - v3→v4: per-utterance `p95` energy normalization (above).
 - v4→v5: 35 dB energy trim of leading/trailing silence ([controls C6](controls_2026-08.md)).
-- v5→v6: Silero VAD span trim
+- v5→v6: Silero VAD speech-span trim (`utils/vad.py`; [controls C6](controls_2026-08.md)).

@@ -1,4 +1,4 @@
-# Methodology controls — 2026-08-29
+# Methodology controls (2026-08-29 – 2026-11-02)
 
 A four-pillar methodological review (data construction, metric construct validity,
 statistics, experimental fairness) raised several confounds that the benchmark could
@@ -6,8 +6,12 @@ not rule out from existing artifacts. This document records the controls run in
 response, their measured outcomes, and what was adopted. Each control writes to
 alternate filenames first, so published scores are never overwritten by a probe.
 
-Scripts: `scripts/analysis/control_scorer_swap.sh`, `scripts/analysis/control_spk_embedder.sh`,
-`scripts/analysis/control_seed_study.sh`.
+Scripts: `scripts/analysis/control_scorer_swap.sh` (C1),
+`scripts/analysis/control_spk_embedder.sh` (C2), `scripts/analysis/control_seed_study.sh` (C3),
+`scripts/analysis/validate_rhythm_metric.py` (C9); the metrics themselves are
+`scripts/prosody/{speaking_rate_dist,rhythm_dist,pitch_range_dist,paired_itw,score_mpm_shuffle_floor}.py`
+over `utils/vad.py` and `utils/pitch_range.py`. Paths under `results/` cited below (seed runs,
+pre-change archives) are not tracked in git and are not part of the release.
 
 ---
 
@@ -35,7 +39,7 @@ Both qwen3 systems score relatively *worse* once a non-family scorer is used. Th
 effect (0.5–0.7 WER_CLIP points) is the size of several adjacent rank gaps in the
 published base-9 table, where qwen3-tts-1.7b ranked first.
 
-**Adoption.** `en` was removed from `QWEN_LANGS` (`scripts/score/run_wer.py`): English now
+**Adoption.** `en` was removed from `QWEN_LANGS` (`utils/benchmark.py`, read by `scripts/score/run_wer.py`): English now
 routes to Whisper-large-v3 with the language forced, exactly as the non-QWEN_LANGS
 tail always has. `zh` stays on Qwen3-ASR — its DiD is null, and Qwen is the better
 Chinese scorer on clean read speech (`docs/asr_whisper_vs_qwen.md`). All 55 English
@@ -47,13 +51,12 @@ common-mode shift that cancels in system-vs-system and Δ-vs-GT comparisons, whe
 the family bias is differential and does not. A benchmark that ranks systems should
 prefer the unbiased comparison over the lower floor.
 
-**Comparability.** English WER and every aggregate containing it (base-9 `avg`,
-VoxBlink 20-lang means, Δ-vs-GT) changed at this boundary. The 26-language clean tail
-does not include English and is unaffected.
+**Comparability.** English WER, every macro that includes English, and every English
+Δ-vs-GT changed at this boundary.
 
 ---
 
-## C2 — Seen-speaker speaker-similarity embedder · *running*
+## C2 — Seen-speaker speaker-similarity embedder · **NOT ADOPTED (disclosure only)**
 
 **Question.** The shipped embedder (ReDimNet2-B6 `vb2+vox2_v0`) is trained on
 VoxBlink2 — the in-the-wild evaluation corpus itself — so every ITW speaker score is
@@ -157,21 +160,14 @@ verdict in the published ranking tables.
 vary between identical-config runs. The published one-generation policy is therefore
 not made riskier by zonos2's fixed seed; the exposure is in the unseeded servers.
 
-*(An earlier revision of this document quoted ±0.17 and "~20 % widening" from the `tr`
-column alone, before the English runs were rescored onto the post-C1 routing. The
-figures above supersede it: `tr` is the noisier of the two languages.)*
-
-**Adoption.** No re-sorting (the ranking-semantics decision for this campaign is
-annotate-only). The published tie rule now accounts for generation noise: adjacent
-systems are treated as unresolved when their paired ΔCI spans 0, and near-threshold
-gaps should be read against a CI inflated by ~20 % for unmeasured generation variance.
-`en` results from the seed runs were rescored onto the post-C1 routing before use
-(a run scored at 11:54 predates the routing change at 11:57 — mixing them would have
-compared a Qwen-scored generation against a Whisper-scored one).
+**Adoption.** No re-sorting (rankings are annotate-only). Adjacent systems are treated as
+unresolved when their paired ΔCI spans 0, and a near-threshold gap should be read against
+a CI widened by the 3–7 % that generation variance adds (±0.10 on a paired macro
+difference). The `en` seed runs are scored on the post-C1 routing.
 
 ---
 
-## C4 — MPM loudness confound · *running (adoption unconditional)*
+## C4 — MPM loudness confound · **ADOPTED (MPM re-scored)**
 
 **Question.** `docs/mpm_itw_limits.md` measured that MPM span tracks system output
 loudness at r = −0.979 on FLEURS-R, because the energy channel is bucketed against an
@@ -184,7 +180,8 @@ tokenization; the upstream ttsds package is untouched, preserving bit-identity f
 anyone calling it directly). The anchor cache key does *not* hash the featurization
 code, so the version tag was bumped `v3` → `v4` — without that, every anchor would
 have been silently reused and the new spans would be meaningless. The full FLEURS-R
-MPM array (35 languages × all systems) is being recomputed.
+MPM array (35 languages × all systems) was recomputed (the tag has since moved to `v6`;
+see C6).
 
 **Result.** All 35 FLEURS-R languages rebuilt (35/35 array tasks succeeded).
 
@@ -204,12 +201,11 @@ MPM array (35 languages × all systems) is being recomputed.
 - **Largest reordering is `th`** (τ +0.545, 12 systems), then `el` (+0.692) and `id`
   (+0.744) — worth knowing before quoting a single Thai MPM cell across the boundary.
 
-Published MPM spans are **not comparable across this change**. The old TSVs are kept at
-`results/_mpm_shuffle_floor/pre_p95_20260829/` so any before/after claim can be re-derived.
+Published MPM spans are **not comparable across this change**.
 
 ---
 
-## C5 — Asymmetric with-transcript rows · *running*
+## C5 — Asymmetric with-transcript rows · **ADOPTED (with-transcript rows added)**
 
 **Question.** Conditioning is harness policy, not a model property, and it moves WER
 enormously (omnivoice: 34.2 without the reference transcript vs 3.2 with it, same
@@ -259,25 +255,21 @@ badly on Hindi**: same model, same prompts, only conditioning differs —
 Those files pile up at the model's 164 s generation cap, and the ASR loops on them:
 at a 60 s request timeout ~15 % of Hindi utterances failed to score, and **raising the
 timeout to 300 s barely helped** (coverage 0.973 → 0.971) because the transcriber, not
-the file length, is what runs away. Five leaves (`hi` for both qwen3-reftext systems on
-both sets, plus `vi` for 1.7b) are therefore published as **explicitly partial**, with
-their true coverage in the `N_SCORED:`/`N_EXPECTED:` footers (e.g. 1220/1256, 1277/1500)
-and Δ-vs-GT restricted to covered languages as usual. They were *not* silently dropped:
-averaging only the utterances that survived would flatter precisely the most broken
-configuration — the survivor bias `scripts/score/run_wer.py` already guards against elsewhere.
+the file length, is what runs away. Five leaves (`hi` for both qwen3-reftext systems
+on both sets, plus `vi` for 1.7b) could not be fully transcribed. Their unscoreable
+utterances now count as maximum error (WER_CLIP 100;
+[unscoreable_2026-09.md](unscoreable_2026-09.md)), so the leaves are complete and the
+`.wer` footer's `N_IMPUTED:` shows how much of each is imputed. Averaging only the
+utterances that survived would have flattered precisely the most broken configuration.
 
 `ASR_TIMEOUT` is now an env knob on `scripts/score/run_wer.py` (default unchanged at 60 s) so a
 future leaf with legitimately long audio can be scored without editing the scorer.
 
-**Open recommendation — taken on 2026-09-01, see `docs/unscoreable_2026-09.md`.** The
-most defensible treatment of an unscoreable degenerate generation is to score it as
-maximum error (WER_CLIP 100) rather than excluding it. That is a change to a core
-metric's semantics and has to be applied symmetrically to *every* system's timeouts
-to be fair, which is why it was left as a maintainer decision rather than a late
-unilateral change.
+**Unscoreable generations — adopted 2026-09-01** ([unscoreable_2026-09.md](unscoreable_2026-09.md)).
+An unscoreable degenerate generation is scored as maximum error (WER_CLIP 100) rather
+than excluded, symmetrically for every system.
 
-Two things about it turned out differently from the assumption recorded here. It did
-**not** need a full benchmark rescore: only 4197 utterances in 135 of 1557 leaves were
+It did **not** need a full benchmark rescore: only 4197 utterances in 135 of 1557 leaves were
 ever unscored, each one identifiable per leaf, so re-measuring just those residuals
 under one policy buys the same uniformity for 0.3 % of the compute. And re-measuring
 was not a formality — **43 % of them transcribed on the retry**, meaning those leaves
@@ -312,19 +304,22 @@ positive in **35/35** languages (+0.78 across systems): tightly trimmed systems 
 scored as far from real speech for their missing silence.
 
 **Causal probe** (`en de es fr it ja ru zh`, 8 systems spanning the padding range):
-trimming leading/trailing silence from reference *and* system audio with the char/s
-metric's own `librosa.effects.trim(top_db=35)` and re-scoring with the unchanged scorer
-dropped the span–padding correlation from **+0.80 to +0.27** (median over languages) and
+trimming leading/trailing silence from reference *and* system audio with the 35 dB
+energy trim char/s used at the time (`librosa.effects.trim(top_db=35)`) and re-scoring
+with the unchanged scorer dropped the span–padding correlation from **+0.80 to +0.27**
+(median over languages) and
 reordered the systems (Spearman before vs after +0.54). Tightly trimmed systems moved
 to real-speech-like spans — moss-tts 0.63 → 0.04, higgs-audio-v3 0.37 → 0.06,
 fish-s2-pro 0.85 → 0.20, ZONOS2 accurate 0.48 → 0.17 — while voxtral, which speaks in
 preset voices rather than the prompt's, stayed near the scrambled floor (1.01 → 0.97).
 
-**Design/adoption.** `scripts/prosody/score_mpm_shuffle_floor.py` trims leading/trailing silence
-(`TRIM_TOP_DB = 35`) in `_load_wav`, the single loader for reference, systems and the
-ground-truth split, and the anchor cache tag moves `v4` → `v5` (the content hash cannot
-see featurization changes). The full FLEURS-R MPM array (35 languages × all systems) and
-the 35 ground-truth split-half floors were recomputed.
+**Design/adoption.** `_load_wav` in `scripts/prosody/score_mpm_shuffle_floor.py` is the
+single loader for reference, systems and the ground-truth split. It cuts every file to its
+Silero VAD speech span (found on a 16 kHz copy, `utils/vad.py`, 30 ms edge pad, mapped
+onto the 22.05 kHz MPM input) and drops a file with no detected speech; the anchor cache
+tag is `v6`. The fix first shipped as a 35 dB energy trim (`TRIM_TOP_DB = 35`, tag `v5`),
+and the results below were measured with that version. The full FLEURS-R MPM array
+(35 languages × all systems) and the 35 ground-truth split-half floors were recomputed.
 
 **Result.** 35/35 languages re-scored, system rows and ground-truth floors alike. The 64
 probe cells reproduce (Spearman +0.994, median |Δ| 0.002).
@@ -365,12 +360,6 @@ Published MPM spans are **not comparable across this change**. The previous TSVs
 at `results/_mpm_shuffle_floor/pre_trim_20261031/` and
 `results/_mpm_ground_truth/pre_trim_20261031/`.
 
-**Update (Silero VAD span trim).** The energy trim (`TRIM_TOP_DB = 35`) is replaced by
-the Silero VAD speech span used by every other prosody metric: `_load_wav` finds the
-span on a 16 kHz copy (`utils/vad.py`, 30 ms edge pad), maps it onto the 22.05 kHz MPM
-input, and drops a file with no detected speech. The anchor cache tag moves `v5` →
-`v6`.
-
 ---
 
 ## C7 — Content errors scored as pace · **ADOPTED (char/s and paired duration re-scored)**
@@ -408,7 +397,7 @@ reference speech is not filtered.
   Clean and 71% of ITW leaves move by ≤ 0.3×.
 - **The large moves are content failures leaving the pace score.** omnivoice hr
   35.5× → 20.0× (10% of its utterances heard), zonos2_expressive hr 14.1× → 2.3×,
-  qwen3-tts-1.7b-reftext hi 18.8× → 6.6×. On In-The-Wild, an earlier ZONOS3 Mini checkpoint
+  qwen3-tts-1.7b-reftext hi 18.8× → 6.6×. On In-The-Wild, an earlier ZONOS3-Mini checkpoint
   (reference mode) zh 17.0× → 2.4× and ja 10.1× → 1.2×: its char/s distance there was almost all the
   18% of utterances it got wrong.
 - **Systems that fail a language outright now have no pace score in it** instead of an
@@ -437,7 +426,7 @@ the Silero VAD speech span at 16 kHz (`utils/vad.trim_speech`) instead of the
 
 ## C8 — Silence detection under background noise · **ADOPTED for paired pauses**
 
-**Question.** Char/s, rhythm, pitch range and the paired ITW metrics find silence with
+**Question.** Char/s, rhythm, pitch range and the paired ITW metrics found silence with
 `librosa.effects.trim` / `.split(top_db=35)`, relative to each file's loudest frame.
 Does that fail the way MPM's padding did (C6)?
 
@@ -465,8 +454,8 @@ negative in every language).
 score, now comes from Silero VAD (`utils.benchmark.SILERO_VAD`, v6.2.3 pinned by commit)
 at its default thresholds, on the peak-normalized file: a pause is a gap ≥ 0.2 s between
 two speech segments, on the generation and the real recording alike
-(`scripts/prosody/paired_itw.py`). Char/s, rhythm and pitch range keep the energy rule; their
-In-The-Wild figures, and voxtral's everywhere, carry this caveat.
+(`scripts/prosody/paired_itw.py`). Char/s (C7 extension), rhythm (C9) and pitch range
+(C10) were later moved to the same Silero speech span.
 
 **Validation** (same 120 FLEURS-R `en` utterances; pauses/utt):
 
@@ -572,7 +561,8 @@ disagreements inspected on spectrograms, pYIN was right in 14, PENN in 7, both i
 neither in 4 (music-dominated recordings, a voice below 60 Hz). pYIN's remaining errors
 are pins at its 60 Hz floor on hum and missed steep phrase-final falls.
 
-**Design/adoption.** pYIN stays, and two steps remove non-voice frames before the
+**Design/adoption.** pYIN stays. Each file is first cut to its Silero VAD speech span
+(`utils/vad.trim_speech`), and two steps remove non-voice frames before the
 semitone deviations (`utils/pitch_range.py`): voiced frames more than 50 dB below the
 loudest frame are dropped, then every run of consecutive voiced frames whose median lies
 9 st or more from the utterance's voiced median. An excursion inside a voiced run

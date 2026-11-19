@@ -24,6 +24,7 @@ results/{rhythm_*,pitch_range_*,paired_itw_*}.csv  results/_mpm_*/*.tsv
         ▼
 build_results.py   ──►  _cache/results_snapshot.json     (one record per leaf, plus one ALL row per
                                 system and panel / full set: the macro over its language basket)
+build_speaking_rate.py     ──►  _cache/speaking_rate.json   (char/s d_ref + ECDF per system)
 build_capability_index.py ──►  _cache/capability_index.json  (ECI-style composites: capability and
                                 prosody indices, one IRT index per system + 90% bootstrap CI, over
                                 metric × set × language items; prosody also reads speaking_rate.json)
@@ -32,12 +33,12 @@ plot_capability_time.py   ──►  assets/plots/capability_index_time.png  (in
 
 plot_tradeoff.py           ──►  assets/plots/tradeoff_{clean,in-the-wild}.png  (WER vs rhythm / pitch range)
 
-gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json + emo_score.txt files)
+gen_md.py                  ──►  RESULTS_CURRENT.md  (consumes results_snapshot.json + capability_index.json +
+                                data/near_duplicates_removed.json)
 
 scripts/plots/run_reliability.sh ──►  assets/plots/reliability_*.png + assets/reliability_gallery.html
                                 (tufte plates for the GT baselines, via scripts/plots/build_reliability_gallery.py)
 build_reliability.py       ──►  _cache/reliability.json     (interactive reliability payload for the explorer)
-build_speaking_rate.py     ──►  _cache/speaking_rate.json   (char/s d_ref + ECDF per system)
 build_mpm_dist.py          ──►  _cache/mpm_dist.json        (MPM GT-vs-system span per language)
 publish_snapshot.py        ──►  explorer/snapshot/          (allowlisted aggregate JSONs — COMMITTED;
                                 the shipped explorer payload on a fresh clone)
@@ -91,4 +92,4 @@ per-file copies.
   size of each system's main generative model (LM / backbone), with its source, plus the
   active count for mixture-of-experts models. It is the size a model is known by, not every
   weight it loads: Hugging Face repo totals mix in tokenizers and codecs inconsistently
-  (VibeVoice-1.5B's repo holds 2.7B). ZONOS3 Mini's count comes from its release checkpoint.
+  (VibeVoice-1.5B's repo holds 2.7B). ZONOS3-Mini's count comes from its release checkpoint.

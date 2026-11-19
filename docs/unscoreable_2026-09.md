@@ -6,6 +6,9 @@ unscoreable degenerate generation is to score it as maximum error rather than
 excluding it, but that changes a core metric's semantics and has to be applied
 symmetrically, so it is the maintainer's call.* The call was made; this is the record.
 
+Figures below are as measured on 2026-09-01; later scoring changes moved absolute values
+(e.g. `gt_clean/fa` now reads 28.44), and current numbers are in `RESULTS_CURRENT.md`.
+
 ## The defect
 
 `scripts/score/run_wer.py` wrote one `.raw` row per utterance it managed to transcribe.

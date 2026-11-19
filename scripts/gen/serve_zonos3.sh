@@ -1,4 +1,4 @@
-# scripts/gen/serve_zonos3.sh -- ZONOS3 Mini (release minisgl server) lifecycle.
+# scripts/gen/serve_zonos3.sh -- ZONOS3-Mini (release minisgl server) lifecycle.
 #
 # SOURCE this file from the repo root (`. scripts/gen/serve_zonos3.sh`); do not execute
 # it, so the caller owns ZONOS3_PID and its `trap` can clean up. The launch/retry/stop

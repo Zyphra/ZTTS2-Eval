@@ -50,8 +50,9 @@ plus the per-lang `wav_res_ref_text.wer`, `spk_simi_scores.txt`, `msr_utmos_mean
   `metrics_finalize.sh` — the distributional metrics, system and ground truth.
 - `submit_release_run.sh` — the whole release DAG.
 
-`scripts/score/rescore_all.sh` and the control scripts under `scripts/analysis/` are
-sbatch scripts too and use the same `lib_slurm.sh` plumbing.
+`scripts/score/rescore_all.sh` and the control jobs under `scripts/analysis/`
+(`control_scorer_swap.sh`, `control_seed_study.sh`, `probe_vibevoice_langs.sh`) are
+submitted with `sbatch` too and use the same `lib_slurm.sh` plumbing.
 
 ## Generation and eval jobs
 
@@ -90,7 +91,7 @@ sbatch scripts too and use the same `lib_slurm.sh` plumbing.
   GEN_DRIVER=scripts/gen/run_omni.sh GEN_MODEL=omnivoice GEN_SERVER=1 sbatch --chdir="$(pwd -P)" \
       --export=ALL --array=0-1 slurm/gen_job.sh
   ```
-- **`zonos3_gen_job.sh`** — ZONOS3 Mini generation on 8-GPU nodes (array job; always
+- **`zonos3_gen_job.sh`** — ZONOS3-Mini generation on 8-GPU nodes (array job; always
   submit with `--array`): one `scripts/gen/serve_zonos3.sh` server per GPU serving every
   mode and language it claims. The pending (mode × task × lang) leaves are listed once
   per array job in `logs/slurm/ztts-zonos3-gen-<array job>-leaves.txt`, largest first;
@@ -133,7 +134,8 @@ These score existing result leaves instead of generating.
   The gates are version-aware, so a requeued or rerun job resumes. Leaf failures are
   listed in `logs/slurm/rescore-all-<array job>-failed.txt` and do not fail the job (a
   slot whose server cannot start does). `RESCORE_SYSTEMS="a b"` restricts the leaves
-  to those `results/` dirs.
+  to those `results/` dirs. `RESCORE_WORKERS_PER_GPU` (default 2) sets the concurrent
+  scoring workers sharing each GPU's ASR servers.
 - **`submit_metrics.sh`** — one submitter for every distributional metric, system and
   ground truth. Kinds: `speaking` (char/s), `mpm` (Clean only), `rhythm` (GPU) and
   `pitch_range` (CPU; on the In-The-Wild set the same job also runs
@@ -179,7 +181,9 @@ These score existing result leaves instead of generating.
 
 ## `lib_slurm.sh`
 
-Every sbatch job body sources `slurm/lib_slurm.sh` from the repo root.
+The GPU job bodies (`eval_job.sh`, `gen_job.sh`, `zonos3_gen_job.sh`, `score_job.sh`,
+`metrics_node_job.sh`, `scripts/score/rescore_all.sh`) source `slurm/lib_slurm.sh` from
+the repo root; `metrics_job.sh` and `metrics_finalize.sh` do not.
 
 **Ports.** SLURM packs several jobs onto one node, and they share the node's
 `127.0.0.1`. Each job therefore owns a 40-port window keyed on its job id, and each
@@ -230,7 +234,7 @@ no extra plumbing. The job body sets `ASR_GPU=0`/`SCORE_GPU=0` only to skip thei
 
 ## Partition, account, and time
 
-`--partition` and `--account` are unset by default, so jobs go to the cluster's defaults; pass them (or `METRICS_PARTITION` / `METRICS_ACCOUNT` / `METRICS_QOS` for `submit_metrics.sh`, `RELEASE_PARTITION` / `RELEASE_ACCOUNT` / `RELEASE_QOS` for `submit_release_run.sh`) to target a queue. With `--time` empty, jobs get 24 h; set `--time` to change it. Override resources with `--cpus`, `--mem`, `--gpus`.
+`--partition` and `--account` are unset by default, so jobs go to the cluster's defaults; pass them (or `METRICS_PARTITION` / `METRICS_ACCOUNT` / `METRICS_QOS` for `submit_metrics.sh`, `RELEASE_PARTITION` / `RELEASE_ACCOUNT` / `RELEASE_QOS` for `submit_release_run.sh`) to target a queue. `submit_eval.sh` passes `--time` (empty = 24 h) and takes `--cpus`, `--mem` and `--gpus`; the other job bodies carry their own `#SBATCH --time`: `eval_job.sh` (for direct runs), `score_job.sh` and `metrics_node_job.sh` 10 h, `gen_job.sh` 12 h, `zonos3_gen_job.sh` 24 h, `scripts/score/rescore_all.sh` 48 h. Pass `--time` to `sbatch` to override.
 
 ## zonos2 server
 

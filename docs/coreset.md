@@ -18,20 +18,18 @@ were selected, how accurate they actually are, and — importantly — what they
 > `data/near_duplicates_removed.json`) dropped 22 items from ITW Mini and 2 from ITW
 > Delta, so they now carry **1,919 / 192** items; the per-language weights were
 > renormalized to sum to 1 and `k_actual` decremented. No Clean panel item was
-> affected. The panels were **not** re-selected: the system matrix they were validated
-> on is not part of the release. The validation tables below (and in
-> `RESULTS_CORESET.md`) therefore predate both the near-duplicate filter and the
-> enforced-routing rescore, and describe the panels as selected.
+> affected. The panels were **not** re-selected. Validation runs on the committed system ×
+> item matrix (`assets/coreset/matrix_<set>.npz`, 57,388 Clean / 17,319 In-The-Wild
+> items), built before the near-duplicate filter and the final `BENCHMARK_VERSION` 1
+> rescore, so its full-set values differ slightly from `RESULTS_CURRENT.md`; it describes
+> the panels as selected.
 >
 > **Speaker similarity.** On the In-The-Wild set a panel estimates the *prompt*
 > similarity (`spk_simi_scores.txt`), not the held-out-recording similarity that is the
 > primary ITW score of the full benchmark.
 
-> All four panels are selected from **routing-corrected** scores. Building the matrix
-> surfaced that the 2026-07-30 ASR-routing fix had covered only 6 of the 28 FLEURS-R
-> languages that need Whisper routing; the remaining 22 were re-scored before the Clean
-> panels were selected. See [the note below](#the-asr-routing-gap) — it changed the
-> benchmark's own published results, not just the panels.
+> All four panels were selected from routing-corrected scores; see
+> [ASR routing](#asr-routing-resolved).
 
 ## Using a panel
 
@@ -155,30 +153,25 @@ to exploit that a simple stratification does not already capture.
 
 What *did* separate, in WER_CLIP MAE at the shipped sizes:
 
-- **`highvar` is catastrophic** — 4.44 (ITW) and 6.42 (Clean) against ~0.2–0.3 for the
-  shipped selector, a factor of 20. Selecting the most discriminative items preserves
+- **`highvar` is catastrophic** — 4.257 (ITW) and 7.054 (Clean) against 0.325 / 0.287 for
+  the shipped selector, a factor of 13–25. Selecting the most discriminative items preserves
   ordering but badly biases the level, exactly as expected: a panel of pathological items
   is not a panel of representative ones. This is the single clearest result here.
-- **Denoising is worth 1.3–2.5× for medoid selection** — `medoid_response` 0.21 vs
-  `medoid_raw` 0.52 on In-The-Wild, 0.43 vs 0.55 on Clean. The low-rank shrinkage removes
+- **Denoising is worth 1.8–2.2× for medoid selection** — `medoid_response` 0.326 vs
+  `medoid_raw` 0.719 on In-The-Wild, 0.329 vs 0.602 on Clean. The low-rank shrinkage removes
   real noise; there is just not much structure left underneath it.
-- **Ignoring the language axis costs ~1.6× on In-The-Wild** — `random_global` 0.371 vs
-  `random_perlang` 0.232 — but **not on Clean**, where the two are indistinguishable
-  (0.243 vs 0.250 at k=3,500). With 35 languages and a large budget, a global random
-  sample already lands enough items in every language. The In-The-Wild set has languages
-  as small as 109 items, where a global sample can miss or barely touch them. So this is a
-  property of the *set*, not a universal law — worth stating because it is easy to
-  over-generalize from one benchmark.
+- **Ignoring the language axis costs little at these sizes** — `random_global` 0.427 vs
+  `random_perlang` 0.359 on In-The-Wild, 0.232 vs 0.321 on Clean.
 
 Medoid selection is biased by construction (a medoid is not its cluster's mean) and was
 kept in the comparison to measure that rather than assume it away. It converges to the
 unbiased selectors only at large k.
 
-Among the unbiased language-aware selectors, `strat_quantile` and `strat_response` edge
-out `strat_meta` on Clean at k=3,500 (0.221 and 0.238 vs 0.290) while `strat_meta` is
-level or better on In-The-Wild at every size. Pooled, the gap is about 2 SE and the sign
-is inconsistent across sets, so it is not evidence of a real ordering — `strat_meta`
-ships, and the full table is in
+Among the unbiased language-aware selectors, `strat_quantile` edges out `strat_meta` on
+Clean at k=3,500 (0.262 vs 0.287) and `strat_response` trails it (0.319); on In-The-Wild
+at k=2,000 the three read 0.314 / 0.325 / 0.345. The differences are within about 2 SE
+(standard errors in `RESULTS_CORESET.md`), so they are not evidence of a real ordering —
+`strat_meta` ships, and the full table is in
 [`RESULTS_CORESET.md`](../RESULTS_CORESET.md) for anyone who wants to judge for
 themselves.
 
@@ -192,40 +185,41 @@ demonstrate one way or the other.
 Full tables in [`RESULTS_CORESET.md`](../RESULTS_CORESET.md). Mean absolute error of the
 Mini panels against the full benchmark, on **held-out model families**:
 
-| metric | Clean (k=3,500) | In-The-Wild (k=2,000 requested) | full-set spread, for scale |
+| metric | Clean (k=3,500) | In-The-Wild (k=2,000 requested) | full-set spread (11 full-coverage systems, both sets) |
 |---|--:|--:|---|
-| WER_CLIP | **0.290** (SE 0.035) | **0.201** (SE 0.019) | systems span 4.6 – 72 |
-| speaker similarity ×100 | **0.202** (SE 0.019) | **0.131** (SE 0.016) | systems span 13 – 88 |
-| MSR-UTMOS | **0.007** (SE 0.001) | **0.007** (SE 0.001) | systems span 2.30 – 3.53 |
+| WER_CLIP | **0.287** (SE 0.022) | **0.325** (SE 0.023) | systems span 4.7 – 56.7 |
+| speaker similarity ×100 | **0.138** (SE 0.011) | **0.222** (SE 0.017) | systems span 13.8 – 87.7 |
+| MSR-UTMOS | **0.007** (SE < 0.001) | **0.008** (SE < 0.001) | systems span 2.31 – 3.55 |
 
-Pairwise, pooled over folds, the In-The-Wild panel picks the better of two systems
-**100%** of the time when they differ by ≥0.5 points of WER_CLIP, and 87% at 0.25–0.5.
-The Clean panel is ≥94% everywhere and 100% in every band except 1–2 points.
+Pairwise, pooled over folds and seeds, the panel picks the better of two systems 99.3%
+(In-The-Wild) / 95.3% (Clean) of the time when they differ by ≥ 0.5 WER_CLIP points, and
+71.1% / 100.0% at 0.25–0.5. Each of these four figures comes from a bin with fewer than 20
+distinct system pairs.
 
 Two checks that matter more than the headline:
 
-- **No selection overfitting.** Clean MAE is 0.284 on systems inside the selection pool
-  and 0.290 on genuinely held-out families; In-The-Wild is 0.211 vs 0.201. The panels are
+- **No selection overfitting.** Clean MAE is 0.289 on systems inside the selection pool
+  and 0.287 on genuinely held-out families; In-The-Wild is 0.300 vs 0.325. The panels are
   not tuned to the systems that built them.
 - **The confidence intervals are honest.** Quoting the shipped panel's bootstrap CI, the
-  full-set value falls inside it 93% of the time on Clean (43/46 system × metric
-  estimates) and 97% on In-The-Wild (31/32), against a nominal 95%.
+  full-set value falls inside it 91% of the time on Clean (52/57 system × metric
+  estimates) and 93% on In-The-Wild (53/57), against a nominal 95%.
 
-For the Delta panel (k=200), the minimum detectable difference at 80% power is **2.13**
-points of WER_CLIP, against 3.38 for a random panel of the same size — roughly half the
-items for the same power.
+For the Delta panel (k=200), the minimum detectable difference at 80% power is **5.85**
+WER_CLIP points on Clean and **5.67** on In-The-Wild, against 7.23 / 6.55 for a
+`random_perlang` panel of the same size.
 
-An end-to-end run confirms the plumbing as well as the statistics: scoring
-`zonos2_accurate` and `kokoro` on an exported panel through the unmodified pipeline put
-5 of 6 estimates inside their bootstrap CIs, the sixth being the WER of the set affected
-by the routing gap below.
+`scripts/coreset/verify_e2e.sh` checks the plumbing end to end: it re-scores a system's
+existing full-set wavs restricted to an exported panel through the unmodified pipeline,
+and `compare_e2e.py` reports whether each full-set value falls inside the panel's
+bootstrap CI.
 
-**A published panel is one realization, and that shows.** Measured across the 11 systems
-in the selection pool, the shipped panels carry a common-mode offset — `+0.184` WER_CLIP
-on Clean, `−0.161` on In-The-Wild — on top of each system's own error. It is tempting to
-assume this cancels when comparing two systems on the same panel; it does not. Measured,
-the mean error on a *difference* is 0.180 (Clean) and 0.313 (ITW), i.e. no better than the
-error on a level. Treat a panel difference with the same caution as a panel level.
+**A published panel is one realization, and that shows.** Across the 20 systems in the
+coverage tables, the shipped Mini panels' mean signed error is small (+0.005 WER_CLIP on
+Clean, −0.043 on In-The-Wild), but the mean absolute error is 0.288 / 0.324 on a level
+and 0.428 / 0.500 on a *difference* between two systems: panel errors do not cancel when
+two systems share a panel. Treat a panel difference with at least the caution of a panel
+level.
 
 The panels use seed 0. No seed search was done: picking the seed with the lowest error on
 the selection systems would be fitting the published artifact to the systems it was built
@@ -235,10 +229,10 @@ from, and the leave-family-out numbers above would no longer describe it.
 
 Read these before quoting a panel number.
 
-- **Mini panels resolve tiers, not the frontier.** The In-The-Wild top three
-  (zonos2-accurate −4.6, omnivoice-rt −4.2, voxcpm2 −4.0) sit within 0.6 points. No panel
-  will order them — and neither really does the full set, whose own paired standard error
-  is ≈0.11.
+- **Mini panels resolve tiers, not the frontier.** Behind the In-The-Wild WER leader
+  (drama-3, 3.20), the next five cloning systems sit within about 0.6 WER_CLIP points of
+  each other (4.68–5.25, `RESULTS_CURRENT.md` §0). No panel will order them — and neither
+  really does the full set, whose own paired standard error is ≈0.11.
 - **Nine families is a thin basis.** Leave-family-out folds hold out one of ~9 independent
   model families. Per-fold rank correlations over so few systems are underpowered; the
   pooled pairwise sign-accuracy curve is the readout with real sample size.
@@ -276,11 +270,14 @@ Everything is offline and CPU-only; it reads the per-utterance scores already in
 | `scripts/coreset/validate_delta.py` | matched-pair power analysis for Delta panels |
 | `scripts/coreset/export_panel.py` | writes a panel as a runnable `data/<task>/` directory |
 | `scripts/coreset/score_panel.py` | weighted estimate + bootstrap CI from a panel run |
+| `scripts/coreset/common.py` | shared loaders (matrix, fingerprints, validation rows) and the estimator |
+| `scripts/coreset/gen_results_md.py` | writes `RESULTS_CORESET.md` from the validation CSVs, matrix and shipped panels |
+| `scripts/coreset/verify_e2e.sh` + `compare_e2e.py` | end-to-end panel check through the unmodified scoring pipeline |
 
-## The ASR routing gap
+## ASR routing (resolved)
 
-This one was found by the coreset work but is independent of it, and it matters more than
-the panels do.
+Building the coreset matrix exposed a gap in the 2026-07-30 routing fix. It is closed; it
+is recorded here because it changed the benchmark's own published results at the time.
 
 `scripts/score/run_wer.py` sends a language to Whisper-large-v3 with the language forced when it
 is **not** in `QWEN_LANGS` (today `zh ko th vi hi fa`; at the time of this analysis `en`

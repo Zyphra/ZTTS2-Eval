@@ -63,7 +63,9 @@ Contour is covered by [pitch_range.md](pitch_range.md).
 Per the metric-validation post-mortems (FPD), rankings-vs-listeners across ~12
 systems have no power; the metric is instead validated on perturbations with a
 known answer. Cells = W2 d_ref as a multiple of the untouched-half null
-(`results/rhythm_validation_clean_en_k100.csv`):
+(`results/rhythm_validation_clean_en_k100.csv`, the default output of
+`python scripts/analysis/validate_rhythm_metric.py`, i.e. clean/en, k=100, n=600;
+`results/` is not tracked in git):
 
 | probe | rate | burstiness | npvi | long_frac | verdict |
 |---|--:|--:|--:|--:|---|
@@ -102,15 +104,23 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
 
 ## The one-picture summary
 
-![flattening vs stalling](../assets/plots/rhythm_flatten_vs_stall_in-the-wild_en.png)
+![rhythm spread vs pause incidence, clean and in-the-wild](../assets/plots/rhythm_flatten_vs_stall_clean_vs_in-the-wild_en.png)
 
-`scripts/plots/plot_rhythm_scatter.py` — burstiness std_ratio (log x, 1.0 = same
-spread as real speech) against pause incidence. GT anchors the middle; the
-ASR-optimized cluster is lower-left (kokoro at the extreme, 0.38× / 1.8 %),
-erratic systems upper-right (glm-tts 2.16× / 67.5 %). Good = near GT, not at
-either extreme. Each label carries that system's en WER_CLIP as printed data
-(Tufte: the number, not a bubble size or color ramp) — the flattened shelf
-visibly holds the small WERs (1.6–2.8), the erratic corner the blow-ups.
+`scripts/plots/plot_rhythm_scatter.py` — one dot per system: burstiness std_ratio (log x,
+1.0 = same spread as real speech) against pause incidence (% of utterances with a ≥ 200 ms
+run), FLEURS-R clean (left) and VoxBlink2 in-the-wild (right) on shared axes; each label
+carries the system's en WER_CLIP. The blue anchor is real speech: the GT target
+recordings in the wild (0.95× / 31.7 %), and on clean, whose GT wavs are the prompts, the
+reference split-half row (1.0× / 7.7 %).
+
+Both sets show the same two failure modes: flattened, pause-poor systems lower-left
+(kokoro at the extreme, 0.63× / 1.0 % clean and 0.39× / 1.5 % in the wild) and erratic,
+stall-heavy ones upper-right (zonos2-expressive 2.30× / 26.8 % clean, glm-tts 1.84× /
+65.7 % in the wild). In-the-wild spreads them further apart because real VoxBlink2 speech
+pauses about four times as often as FLEURS-R read speech. Good = near the anchor, not at
+either extreme. Rhythm spread is at most a weak correlate of WER: over the 37 systems of
+each set, Spearman(std_ratio, en WER_CLIP) is +0.31 on clean and +0.16 in the wild, and
+pause incidence vs WER is ≈ 0.
 
 ## The intuition views: held-time spectrum + barcode
 
@@ -193,9 +203,9 @@ matrix above is for):
   8.7 % with spread 0.73–0.79×, voxcpm2 pauses in 1.9 %, kokoro compresses
   rate spread to 0.54×; fish-s2-pro is the mildest member (x_ceiling
   1.0–1.6×, std 0.78–0.95, pauses 5.2 %). Erratic/stall-prone (std_ratio > 1,
-  long_pct 20–28 %): omnivoice, zonos2-expressive, glm-tts, voxtral. The
-  zero-shot WER leaders all sit in the first cluster — consistent with
-  rhythm-flattening being part of how they win WER.
+  long_pct 20–28 %): omnivoice, zonos2-expressive, glm-tts, voxtral. In this
+  22-system snapshot the zero-shot WER leaders all sat in the first cluster; over
+  the 37 systems of the current CSVs the link is weak (see the summary above).
 - **The fish-s2-pro case study (over-regularization is real but subtle).**
   fish's prosody is RL-tuned for WER, and the first (full-vs-full) scoring read
   it at/below ceiling — implausible, and it prompted the geometry fix. At
@@ -219,9 +229,9 @@ matrix above is for):
   noise floor, below every synthetic system (best TTS: 2.7× burstiness). Real
   speech passes; all 24 TTS systems are separable from it.
 - **In-the-wild refs expose over-regularization far harder than FLEURS.**
-  Real VoxBlink speech pauses in 31 % of utterances; fish 12 %, qwen3-1.7b
-  10 %, voxcpm2 9 %, kokoro 2 %. FLEURS-R is professionally read (GT long_pct
-  8.7 %), so read-speech references partially mask the rhythm-flattening —
+  Real VoxBlink speech pauses in 32 % of utterances; fish 10 %, qwen3-1.7b
+  9 %, voxcpm2 8 %, kokoro 1.5 %. FLEURS-R is professionally read (reference pause
+  incidence 7.7 %), so read-speech references partially mask the rhythm-flattening —
   fish's near-ceiling clean showing was set-flattery as much as geometry
   flattery.
 

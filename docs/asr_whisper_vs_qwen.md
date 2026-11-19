@@ -74,43 +74,36 @@ the mean is dragged by one catastrophic Whisper failure (`yo`).
   English; forcing `language=yo` triggers Whisper's repetition-hallucination (output
   floods with a repeated Bengali glyph), WER 103.7 (WER_CLIP still 58.7). Qwen handled
   them at 5.7. Forcing a wrong language label can *cause* a Whisper meltdown.
-  *(Update 2026-08-29: this observation was the tell — the set was not partially
-  code-switched but wholesale Nigerian English mislabeled by Whisper LID, and `yo`
-  has been removed from the benchmark entirely. The rows
-  below are kept as the historical record of the comparison.)*
+  `yo` was removed from the benchmark on 2026-08-29: the set was wholesale Nigerian
+  English mislabeled by Whisper LID, not code-switched speech. Its row above is kept
+  as the record of the comparison.
 
-## Recommendation
+## Recommendation (adopted)
 
-Route ASR **per language** by whichever gives the lower GT WER, then score TTS models
-with the same per-lang ASR. Best-of-both macro-WER: clean **24.9 → 10.0**, VoxBlink
-**14.6 → 9.0**. Concretely:
+Route ASR **per language** by whichever gives the lower GT WER, and score TTS models with the same
+per-language ASR. Best-of-both macro-WER at the time of this comparison: clean **24.9 → 10.0**, VoxBlink
+**14.6 → 9.0**. The routing in force (`QWEN_LANGS` in `utils/benchmark.py`):
 
-- **Whisper large-v3 (forced lang)** for: bg ca cs da el es fi fil he hr hu it ja ms
-  nb nl pl pt ro ru sk sv tr uk (+ most of VoxBlink incl. the CJK there).
-- **Keep Qwen3-ASR** for: zh ko hi th vi yo, and the easy Western langs where it ties
-  (en de fr, ar/fa where both are hard).
+- **Qwen3-ASR** for `zh ko th vi hi fa`.
+- **Whisper large-v3, language forced,** for every other language, English included (`en` moved after
+  the scorer-swap control, [controls C1](controls_2026-08.md)).
 
-Both run as drop-in vLLM servers on the same endpoint, so routing is a per-lang
-base-URL switch — now wired into `run_wer.py`.
+Both run as vLLM servers on the same OpenAI endpoint; `scripts/score/run_wer.py` picks the base URL
+per language.
 
-## Applied to the committed GT baselines
+## Applied to the GT baselines
 
-The committed `results/gt_{clean,in-the-wild}/<lang>/wav_res_ref_text.wer` now use
-this routing: the 42 non-`QWEN_LANGS` sets (28 clean + 14 VoxBlink) carry the
-Whisper-forced-lang score, the 8 `QWEN_LANGS` (`en zh ko th vi hi fa yo`) stay on
-Qwen. Macro-WER dropped **clean 24.9 → 10.1, VoxBlink 14.6 → 9.5** (a touch above the
-per-lang-argmin 10.0/9.0 because the single global `QWEN_LANGS` keeps zh/ko/th/vi on
-Qwen where Whisper is marginally better on VoxBlink, and keeps 4 clean langs — de/fr/ar/id
-— on Whisper where Qwen is marginally better by <1 pt; the global policy is the price of
-one routing shared by GT and models). MSR-UTMOS and speaker-sim are ASR-independent and
-unchanged.
+The first routed GT rescore kept 8 languages on Qwen (`en zh ko th vi hi fa yo`) and moved the 42 other
+sets (28 clean + 14 VoxBlink) to Whisper. Macro GT WER fell **clean 24.9 → 10.1, VoxBlink 14.6 → 9.5**,
+a touch above the per-language argmin 10.0 / 9.0. One global routing is shared by GT and models, so
+zh/ko/th/vi stay on Qwen where Whisper is marginally better on VoxBlink, and de/fr/ar/id go to Whisper
+where Qwen is marginally better by < 1 pt. Since then `en` has moved to Whisper and `yo` has left the
+benchmark; current GT values are in `RESULTS_CURRENT.md`. MSR-UTMOS and speaker similarity are
+ASR-independent.
 
-**Caveat for the leaderboard:** when this comparison was made the model results in
-`RESULTS_CURRENT.md` had been scored all-Qwen, so comparing them to the routed GT
-numbers was apples-to-oranges on the tail langs. The versioned release closes this:
-`scripts/score/rescore_all.sh` rescores every model leaf and the GT baselines with the same
-enforced routing, and `build_results.py` refuses a leaf whose `ASR:` footer stamp does
-not match the language's routed backend.
+**Leaderboard consistency.** Every model leaf and both GT baselines are scored with the same enforced
+routing (`scripts/score/rescore_all.sh`), and `build_results.py` refuses a leaf whose `ASR:` footer stamp
+does not match the language's routed backend.
 
 ### Using it
 
@@ -127,7 +120,8 @@ bash scripts/score/run_score.sh --decode-dir results/<system>/clean --test-set e
 export WHISPER_BASE_URL=http://127.0.0.1:8001/v1
 ```
 
-Knobs: `WHISPER_GPU`, `WHISPER_BASE_URL`, `WHISPER_MODEL`, `ASR_REVISION` /
+Knobs: `WHISPER_GPU`, `WHISPER_BASE_URL`, `WHISPER_ASR_MODEL` (served model; `serve_asr.sh` passes it to the
+client as `WHISPER_MODEL`), `ASR_REVISION` /
 `WHISPER_REVISION` (default: the revisions pinned in `utils/benchmark.py`), and
 `QWEN_LANGS` (space-separated override of the keep-on-Qwen set; default
 `zh ko th vi hi fa` — `en` moved to Whisper on 2026-08-29 after the scorer-swap
@@ -135,7 +129,7 @@ control in [controls_2026-08.md](controls_2026-08.md); `yo` was removed from the
 benchmark the same day). Whisper codes are forced automatically (`nb`→`no`,
 `fil`→`tl`) with an auto-detect fallback if a code is rejected.
 
-Caveat: guard Whisper against its repetition/hallucination failure mode (a
-max-new-tokens cap and a repeat-ngram check) before adopting it at scale, and never
-force a language the audio may not actually be in — `yo` was kept on Qwen for
-exactly this reason until the set was removed (its clips were Nigerian English).
+Whisper's repetition/hallucination failure mode is guarded in `scripts/score/run_wer.py`: a transcript
+whose gzip compression ratio exceeds `ASR_LOOP_COMPRESSION_RATIO` (2.4) is retried with
+`ASR_REPETITION_PENALTY` 1.2 and `ASR_MAX_COMPLETION_TOKENS` 256 (`ASR_GUARD=0` disables the retry).
+Never force a language the audio may not actually be in; the `yo` meltdown above is what that does.

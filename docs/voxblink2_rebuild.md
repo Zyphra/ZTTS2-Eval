@@ -75,3 +75,9 @@ duration (looser than Stage A's gates) so only the surviving segments' small
 transcript JSONs are read. The build takes ~15 minutes and depends on filesystem
 layout outside this repo; the released `data/in-the-wild/` directories are
 the prepared output of this pipeline.
+
+Optional flags of `build_voxblink2_enriched.py`: `--xtx-cache` (a pre-extracted grep of
+the `voxblink2/` xtx lines; skips the scan of the big JSON), `--min-xtx 0.80` /
+`--min-dur 2.0` / `--max-dur 20.0` (the build-time pre-filter, looser than Stage A's
+xtx ≥ 0.85, 3–15 s gates so Stage A still selects the same set), and `--workers`
+(default min(32, CPU count)).

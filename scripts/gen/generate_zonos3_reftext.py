@@ -1,4 +1,4 @@
-"""Generate ZONOS3 Mini audio in-process (zonos2.tts.llm.TTSLLM) WITH the prompt transcript, by continuation.
+"""Generate ZONOS3-Mini audio in-process (zonos2.tts.llm.TTSLLM) WITH the prompt transcript, by continuation.
 
 The checkpoint has no transcript input (the server's /tts/generate has no ref-text field), so the prompt transcript
 is given by continuation:
@@ -83,7 +83,7 @@ def trim_edges(wav, top_db=TRIM_TOP_DB, frame_length=2048, hop_length=512):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate ZONOS3 Mini audio in-process, continuing from the prompt "
+    ap = argparse.ArgumentParser(description="Generate ZONOS3-Mini audio in-process, continuing from the prompt "
                                              "(transcript + codec frames) with the speaker embedding.")
     ap.add_argument("--data-dir", required=True,
                     help="test-set dir with 'text', 'prompt_wav.scp', 'prompt_text'; its basename is the language")

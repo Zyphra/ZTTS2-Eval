@@ -1,15 +1,21 @@
 # WER-tail error modes (ground-truth diagnosis)
 
 The GT baselines score **real human speech** (FLEURS-R prompt clips; VoxBlink2
-target clips) through the same Qwen3-ASR → WER path as the TTS systems. A chunk of
-languages come back with alarming GT WER (up to ~85%). That number is **not** a data
+target clips) through the same ASR → WER path as the TTS systems (Qwen3-ASR for every
+language when this diagnosis was made). A chunk of languages come back with alarming
+GT WER (up to ~85%). That number is **not** a data
 defect or a speech-quality problem — it is the ASR being scored, and the audio is
 genuine. This note classifies *why* the tail is high, because the mechanism decides
 whether a TTS model's WER in that language is interpretable at all.
 
+**Status.** Remedy (b) below is in force: per-language routing sends every language
+except `zh ko th vi hi fa` to Whisper large-v3 with the language forced
+([asr_whisper_vs_qwen.md](asr_whisper_vs_qwen.md)), so Modes A and B describe the old
+all-Qwen scoring, not the published scores.
+
 Source: `results/gt_clean/<lang>/wav_res_ref_text.wer` (and the in-the-wild twin).
-Per-utterance ref/hyp live in the un-committed `.wer.raw` (regenerable via
-`scripts/score/run_gt.sh` / `extract_voxblink_gt.py`).
+Per-utterance ref/hyp live in the un-committed `.wer.raw` (regenerable with
+`scripts/score/run_gt.sh` once the audio is fetched with `scripts/prep/download_data.py`).
 
 ## The signal that separates the modes
 
@@ -81,24 +87,19 @@ ms vi hi` (clean) and most of the in-the-wild set. Read WER directly.
 
 ## Practical guidance for the leaderboard
 
-1. **Never read absolute WER against 0** outside Mode-OK langs. Subtract the
-   committed GT floor.
-2. **Exclude Mode-A langs (`he`, `hr`, `uk`) from WER entirely** — the metric is
-   bimodal by ASR routing luck. Speaker similarity and the prosody metrics remain
-   valid there; MSR-UTMOS is **not** a naturalness fallback (on the in-the-wild
-   set it ranks real speech below every TTS system — it is a channel/TTS-ness
-   proxy). So Mode-A langs have speaker + prosody readouts and no naturalness
-   readout at all — say so rather than substituting one.
-3. WER macro-averages should either drop Mode-A/B langs or report model−GT deltas;
-   raw cross-lang WER means are dominated by ASR-artifact floors, not TTS quality.
-4. This is an **ASR-choice** limitation (Qwen3-ASR language routing), not a set
-   defect.
+1. **Read WER against the GT floor**, not against 0: subtract the committed GT floor
+   (`results/gt_{clean,in-the-wild}/`), above all in the Mode-C languages, where routing
+   does not remove the floor.
+2. **MSR-UTMOS is not a naturalness fallback**: on the In-The-Wild set it ranks real
+   speech below every TTS system (a channel/TTS-ness proxy).
+3. Raw cross-language WER means mix very different GT floors; compare systems within a
+   language or on model − GT deltas.
 
 ## Can the ASR be told the language? (tested — no)
 
 The scoring endpoint (vLLM `/v1/audio/transcriptions`, OpenAI-compatible) *does*
 accept a `language` param — validated against the 58-language Whisper set — and the
-client (`scripts/score/run_wer.py`) already sends it, but only for 9 langs (`LANG_HINT`: en
+client (`scripts/score/run_wer.py`) already sends it, but only for 9 langs (`QWEN_LANG_HINT`: en
 zh de es fr it ja ko ru); every newly added lang sends nothing.
 
 Extending the hint does **not** fix the tail. A/B on ~40 clips/lang, correct ISO
@@ -117,14 +118,13 @@ The param reaches the model (output text shifts slightly) but is a **soft hint**
 model overrides with its own audio-based language ID — the script/language routing is
 unchanged. The `prompt` context-bias param is likewise inert here (hr/uk/he outputs
 byte-identical with and without it). So forced-language decoding is **not** available
-with this ASR; do not extend `LANG_HINT` expecting a fix (it risks marginal
+with this ASR; do not extend `QWEN_LANG_HINT` expecting a fix (it risks marginal
 regressions like uk with no upside). ISO caveats: `nb`→`no`, `fil`→`tl`, Hebrew is
-`he` not `iw`, and Yoruba (`yo`) is unsupported entirely.
+`he` not `iw`.
 
-Real remedies, in order of effort: (a) **transliteration-normalize** ref+hyp before
-WER (romanize both — collapses Mode-A script mismatches like hr-Latin vs hr-Cyrillic,
-which are phonetically correct); (b) a different, script/language-locked ASR; or
-(c) exclude Mode-A langs from WER. Until then, treat the tail per the guidance above.
+Remedies considered, in order of effort: (a) **transliteration-normalize** ref+hyp before
+WER (romanize both); (b) a script/language-locked ASR (adopted, below); (c) exclude
+Mode-A langs from WER.
 
 ## Can a script-locked ASR fix it? (tested — yes)
 
@@ -157,14 +157,10 @@ bg/nb→exact match). Exceptions: `fa` is unchanged (it was never mis-routed —
 difficulty/normalization, Mode C), and `he` improves greatly but stays ~29% (Hebrew
 is hard for Whisper too, just no longer routed to Arabic/romanized).
 
-Whisper runs as a **drop-in vLLM server** on the same OpenAI endpoint the scorer
-already uses — `ASR_MODEL=openai/whisper-large-v3 bash scripts/score/serve_asr.sh` (vLLM
-0.21 auto-detects it and exposes `/v1/audio/transcriptions`, no extra flags). The
-server-path numbers above match the in-process run exactly, so `run_wer.py` needs
-only a base-URL switch to use it.
+Whisper runs as a vLLM server on the same OpenAI endpoint the scorer uses;
+`scripts/score/serve_asr.sh` starts it next to Qwen3-ASR, and `run_wer.py` switches base
+URL per language.
 
-**Actionable:** score the tail langs (or all non-Mode-OK langs) with Whisper
-large-v3 forced-language instead of Qwen3-ASR — a per-lang ASR routing (Qwen3 where
-it is strong, Whisper for the rest, each its own server) would make WER comparable
-across the set. Caveat: 40-clip greedy probe; Whisper has its own failure modes
-(silence hallucination, repetition) to guard against at full scale.
+**Adopted.** Per-language routing (Qwen3-ASR for `zh ko th vi hi fa`, Whisper large-v3
+forced-language for the rest) is the scoring default, and Whisper's repetition failure
+mode is guarded in `run_wer.py` ([asr_whisper_vs_qwen.md](asr_whisper_vs_qwen.md)).

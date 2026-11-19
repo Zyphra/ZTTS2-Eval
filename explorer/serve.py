@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ZTTS2 · SIGNAL — a zero-dependency explorer for the ZTTS2-Eval TTS benchmark.
+"""ZTTS2 · Eval — a zero-dependency explorer for the ZTTS2-Eval TTS benchmark.
 
 Serves a single-page UI plus a small JSON API over the on-disk eval results.
 Stdlib only (http.server / json / os / urllib). No metrics are recomputed --
@@ -435,7 +435,7 @@ def _leaf_join(model, task, lang, panel, rabs, rdir):
 # HTTP handler
 # ---------------------------------------------------------------------------
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ZTTS2Signal/1.0"
+    server_version = "ZTTS2Eval/1.0"
     protocol_version = "HTTP/1.1"  # clean Content-Length framing through reverse proxies
 
     def log_message(self, fmt, *args):  # quieter logs
@@ -625,7 +625,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     global ROOT
-    ap = argparse.ArgumentParser(description="ZTTS2 · SIGNAL eval explorer server")
+    ap = argparse.ArgumentParser(description="ZTTS2 · Eval explorer server")
     ap.add_argument("--port", type=int, default=8000)
     # loopback by default -- this serves the whole results/ + data/ tree, so
     # exposing it beyond the local machine should be an explicit choice.
@@ -640,7 +640,7 @@ def main():
     ALLOWED_ROOTS.extend(os.path.realpath(d) for d in args.allow_root)
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"ZTTS2 · SIGNAL  →  http://localhost:{args.port}")
+    print(f"ZTTS2 · Eval  →  http://localhost:{args.port}")
     print(f"   root: {ROOT}")
     for d in ALLOWED_ROOTS:
         print(f"   also serving files resolving under: {d}")

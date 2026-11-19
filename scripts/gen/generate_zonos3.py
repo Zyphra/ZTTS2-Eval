@@ -1,4 +1,4 @@
-"""Generate TTS audio from a ZONOS3 Mini release server for a ZTTS2-Eval test set.
+"""Generate TTS audio from a ZONOS3-Mini release server for a ZTTS2-Eval test set.
 
 For each utterance in <data-dir>/text, sends the target text plus the prompt wav
 (audio-only zero-shot cloning, /tts/generate's speaker_audio_base64) and writes the
@@ -51,7 +51,7 @@ POLICY = dict(temperature=0.75, topk=80, top_p=0.69, min_p=0.0,
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate TTS audio from a ZONOS3 Mini server.")
+    ap = argparse.ArgumentParser(description="Generate TTS audio from a ZONOS3-Mini server.")
     ap.add_argument("--server", default="http://127.0.0.1:1920")
     ap.add_argument("--data-dir", required=True,
                     help="test-set dir containing 'text' and 'prompt_wav.scp'; its "

@@ -202,8 +202,8 @@ def delta_table(set_name, out):
         out.append(f"| {bold}{selector}{bold} | {k} | {mdd:.3f} | {sign * 100:.0f}% | "
                    f"{err:.3f} | {n} |")
     out.append(f"\nNear-pairs used: " + ", ".join(f"`{a}` vs `{b}`" for a, b in pairs) + ".")
-    out.append("\nThe `delta` selector buys real power — it reaches a given MDD with roughly "
-               "half the\nitems of a random panel — but its **magnitude error is worse by "
+    out.append("\nThe `delta` selector buys real power — at a given k its MDD is lower than a "
+               "random panel's\n(compare the k=200 rows) — but its **magnitude error is worse by "
                "design**: over-sampling\ndiscriminative items inflates the measured "
                "difference. Use a Delta panel to decide\n*direction*, and a Mini panel to "
                "*quantify*. Also note these near-pairs are further apart\nthan two "
@@ -276,9 +276,9 @@ def main():
     out.append("- **Differences smaller than ~2 SE are noise.** At the shipped sizes every "
                "language-stratified\n  unbiased selector ties; the ones that separate are "
                "`highvar` (catastrophic — it preserves\n  ordering while badly biasing the "
-               "level), `random_global` (~2x worse, and it can miss small\n  languages "
-               "entirely), and `medoid_raw` vs `medoid_response` (which is what the low-rank\n"
-               "  denoising is worth).")
+               "level), `random_global` (clearly worse only at small\n  k, where it can miss "
+               "small languages entirely), and `medoid_raw` vs `medoid_response`\n  (which is "
+               "what the low-rank denoising is worth).")
     out.append("- **`strat_meta` ships** not because it wins but because it ties while being "
                "unbiased and\n  defining its strata from *published metadata only* — so the "
                "design is auditable without\n  access to this repo's historical results.")

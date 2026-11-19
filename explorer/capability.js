@@ -146,7 +146,7 @@ window.renderIndex = async function () {
     params: `Each system sits at its published model size (the LM / backbone the developer names; ` +
       `codecs excluded; source in the tooltip), log scale. The line is the size frontier: the best ` +
       `system scored on every language at or below that size. Mixture-of-experts models (ZONOS2, ` +
-      `ZONOS3 Mini) sit at their total parameters; the active count is in the tooltip. ` +
+      `ZONOS3-Mini) sit at their total parameters; the active count is in the tooltip. ` +
       `Vertical line = 90% bootstrap interval.`,
     rank: `Line = 90% bootstrap interval (an arrowhead = it runs past the axis; hover for the full range); ` +
       `grey = not scored on every language.`,

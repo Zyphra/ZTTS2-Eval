@@ -14,6 +14,13 @@ Kaldi — utils/parse_options.sh
   License: Apache-2.0
   https://github.com/kaldi-asr/kaldi
 
+VibeVoice inference code — third_party/VibeVoice-1.5B/ (scripts/gen/run_vibevoice15.sh)
+  From the PyPI vibevoice==0.0.1 snapshot of microsoft/VibeVoice; provenance and review in
+  third_party/VibeVoice-1.5B/PROVENANCE.md
+  License: MIT (Copyright (c) 2025 Microsoft); vibevoice/schedule/dpm_solver.py is Apache-2.0
+  (Copyright 2024 TSAIL Team and The HuggingFace Team)
+  https://github.com/microsoft/VibeVoice
+
 ------------------------------------------------------------------------------
 Scoring models & libraries (fetched at runtime, not redistributed here)
 ------------------------------------------------------------------------------
@@ -42,6 +49,15 @@ mHuBERT-147 (utter-project/mHuBERT-147) — multilingual speech encoder for the 
 num2words — digit-to-word expansion in the WER text prep (utils/text_norm.py)
   License: LGPL
   https://github.com/savoirfairelinux/num2words
+
+Silero VAD (snakers4/silero-vad) — speech-span trim and pause detection for the prosody metrics
+  (utils/vad.py); loaded via torch.hub at a pinned commit
+  License: MIT
+  https://github.com/snakers4/silero-vad
+
+librosa — audio loading/resampling and pYIN pitch tracking (utils/pitch_range.py)
+  License: ISC
+  https://github.com/librosa/librosa
 
 TTSDS2 (ttsds 2.1.1) — Masked Prosody Model for the MPM span (scripts/prosody/score_mpm_shuffle_floor.py);
   installed by scripts/setup/setup_ttsds_env.sh

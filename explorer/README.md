@@ -132,7 +132,7 @@ resolving symlinks) unless it resolves under an `--allow-root` dir; the
 `model`/`task`/`lang`/`panel` query parameters are each constrained to a single
 plain path component.
 
-Any API route also answers as JSONP (`?cb=<name>`) for content-inspection proxies
+Every JSON API route (all but `/api/audio`) also answers as JSONP (`?cb=<name>`) for content-inspection proxies
 that mangle large `application/json` bodies — gated on a per-process random token
 (`?t=`) minted into `index.html` at serve time, so a foreign origin can't read the
 data via `<script src>`.
@@ -257,4 +257,6 @@ Files: `serve.py` (server) · `index.html` · `app.css` (Zyphra theme) ·
 `app.js` (board/grid/drawer) · `chart_common.js` (shared chart kit:
 tooltip/focus/hit/loader/resize + SVG helpers) · `reliability.js` (reliability
 views) · `speaking_rate.js` (speaking-rate views) · `mpm.js` (prosody-overlap
-view) · `capability.js` (capability-index views).
+view) · `capability.js` (capability-index views) · `build_static.py` (static
+GitHub Pages build) · `r2_media.py` (R2 drill-down: export / publish / stage) ·
+`snapshot/` (committed aggregate payload, see [Sharing](#sharing)).

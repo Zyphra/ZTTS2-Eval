@@ -86,7 +86,7 @@ CONDITIONS = {
                         "audio-only clone; accurate_mode=true; seed 0, temp 1.15 vendor sampling"),
     "zonos2_expressive": ("no-transcript",
                           "audio-only clone; accurate_mode=false; seed 0, temp 1.15 vendor sampling"),
-    # ZONOS3 Mini via a minisgl server (scripts/gen/generate_zonos3.py -> /tts/generate): audio-only clone.
+    # ZONOS3-Mini via a minisgl server (scripts/gen/generate_zonos3.py -> /tts/generate): audio-only clone.
     "zonos3-mini_reference": ("no-transcript",
                               "minisgl server, raw reference prefix (speaker_mode=reference), no transcript; seed 0, "
                               "T 0.75 top-k 80 top-p 0.69, rep 96×2.4, CFG 1, 0.2 s silence prefill, "
@@ -292,7 +292,7 @@ RELEASES = {
 # repo holds 2.7B with its tokenizers). For mixture-of-experts models `active` is the
 # per-token count; the chart plots `total`. Variants of one checkpoint share an entry.
 # Hosted API systems publish no size and have no entry.
-_Z3M = (0.886, 0.155, "ZONOS3 Mini model.pth tensor count (64 experts, top-2 routed)")
+_Z3M = (0.886, 0.155, "ZONOS3-Mini model.pth tensor count (64 experts, top-2 routed)")
 PARAMS = {
     "kokoro": (0.082, None, "model name (Kokoro-82M)"),
     "phonon-40m-multilingual": (0.04, None, "gradium/phonon-40m-multilingual card: 40M excluding the audio tokenizer"),

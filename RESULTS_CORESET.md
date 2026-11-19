@@ -16,67 +16,106 @@ Shipped Mini panel: **strat_meta, k=3500** (16.4x smaller than the full set).
 
 **WER_CLIP (%)** — mean absolute error on held-out families (standard error in parentheses)
 
-| selector | k=200 | k=500 | k=1000 | k=2000 |
-|---|--:|--:|--:|--:|
-| greedy | 0.842 (0.103) | 0.836 (0.101) | 0.686 (0.083) | — |
-| highvar | 10.859 (0.632) | 10.854 (0.624) | 9.850 (0.592) | 8.447 (0.578) |
-| medoid_raw | 0.844 (0.095) | 0.775 (0.094) | 1.011 (0.107) | 0.712 (0.108) |
-| medoid_response | 0.763 (0.095) | 0.630 (0.071) | 0.599 (0.081) | 0.308 (0.036) |
-| random_global | 1.172 (0.106) | 1.055 (0.100) | 0.704 (0.059) | 0.407 (0.031) |
-| random_perlang | 0.590 (0.065) | 0.711 (0.057) | 0.608 (0.054) | 0.413 (0.043) |
-| **strat_meta** | 0.656 (0.055) | 0.708 (0.073) | 0.626 (0.050) | 0.351 (0.032) |
-| strat_response | 0.712 (0.065) | 0.690 (0.070) | 0.470 (0.050) | 0.374 (0.032) |
+| selector | k=200 | k=500 | k=1000 | k=2000 | k=3500 |
+|---|--:|--:|--:|--:|--:|
+| highvar | 10.791 (0.643) | 10.779 (0.632) | 9.678 (0.595) | 8.402 (0.580) | 7.054 (0.513) |
+| median_quantile | 0.734 (0.119) | 0.666 (0.076) | 0.435 (0.077) | 0.437 (0.046) | 0.232 (0.038) |
+| medoid_raw | 0.849 (0.100) | 0.769 (0.099) | 1.055 (0.119) | 0.715 (0.132) | 0.602 (0.072) |
+| medoid_response | 0.750 (0.093) | 0.608 (0.067) | 0.607 (0.084) | 0.338 (0.042) | 0.329 (0.040) |
+| random_global | 1.150 (0.078) | 0.957 (0.074) | 0.556 (0.042) | 0.357 (0.021) | 0.232 (0.019) |
+| random_perlang | 0.701 (0.053) | 0.774 (0.044) | 0.605 (0.041) | 0.408 (0.030) | 0.321 (0.027) |
+| **strat_meta** | 0.767 (0.048) | 0.695 (0.047) | 0.564 (0.040) | 0.352 (0.029) | 0.287 (0.022) |
+| strat_quantile | 0.868 (0.059) | 0.721 (0.060) | 0.470 (0.036) | 0.382 (0.027) | 0.262 (0.023) |
+| strat_response | 0.803 (0.054) | 0.741 (0.057) | 0.549 (0.046) | 0.390 (0.030) | 0.319 (0.027) |
 
 **speaker sim (x100)** — mean absolute error on held-out families (standard error in parentheses)
 
-| selector | k=200 | k=500 | k=1000 | k=2000 |
-|---|--:|--:|--:|--:|
-| greedy | 0.590 (0.091) | 0.605 (0.104) | 0.462 (0.070) | — |
-| highvar | 1.963 (0.256) | 1.822 (0.219) | 1.648 (0.159) | 1.569 (0.153) |
-| medoid_raw | 0.741 (0.144) | 0.712 (0.150) | 0.393 (0.071) | 0.281 (0.044) |
-| medoid_response | 0.506 (0.071) | 0.503 (0.101) | 0.310 (0.061) | 0.214 (0.045) |
-| random_global | 0.603 (0.045) | 0.472 (0.056) | 0.268 (0.033) | 0.260 (0.024) |
-| random_perlang | 0.507 (0.056) | 0.391 (0.043) | 0.266 (0.028) | 0.232 (0.023) |
-| **strat_meta** | 0.480 (0.046) | 0.302 (0.036) | 0.264 (0.033) | 0.167 (0.017) |
-| strat_response | 0.565 (0.059) | 0.337 (0.034) | 0.263 (0.030) | 0.164 (0.019) |
+| selector | k=200 | k=500 | k=1000 | k=2000 | k=3500 |
+|---|--:|--:|--:|--:|--:|
+| highvar | 1.967 (0.253) | 1.837 (0.213) | 1.634 (0.162) | 1.569 (0.150) | 1.367 (0.135) |
+| median_quantile | 0.330 (0.029) | 0.287 (0.038) | 0.208 (0.028) | 0.238 (0.036) | 0.179 (0.030) |
+| medoid_raw | 0.722 (0.150) | 0.673 (0.151) | 0.428 (0.074) | 0.273 (0.036) | 0.197 (0.037) |
+| medoid_response | 0.506 (0.071) | 0.500 (0.097) | 0.322 (0.061) | 0.220 (0.051) | 0.098 (0.016) |
+| random_global | 0.619 (0.038) | 0.431 (0.038) | 0.245 (0.021) | 0.230 (0.016) | 0.145 (0.012) |
+| random_perlang | 0.446 (0.038) | 0.355 (0.027) | 0.275 (0.025) | 0.229 (0.022) | 0.151 (0.014) |
+| **strat_meta** | 0.426 (0.032) | 0.322 (0.024) | 0.260 (0.024) | 0.168 (0.017) | 0.138 (0.011) |
+| strat_quantile | 0.409 (0.040) | 0.378 (0.031) | 0.305 (0.023) | 0.180 (0.016) | 0.139 (0.012) |
+| strat_response | 0.534 (0.045) | 0.393 (0.034) | 0.303 (0.026) | 0.188 (0.015) | 0.155 (0.015) |
 
 **MSR-UTMOS** — mean absolute error on held-out families (standard error in parentheses)
 
-| selector | k=200 | k=500 | k=1000 | k=2000 |
-|---|--:|--:|--:|--:|
-| greedy | 0.015 (0.002) | 0.015 (0.002) | 0.012 (0.002) | — |
-| highvar | 0.025 (0.003) | 0.025 (0.003) | 0.025 (0.002) | 0.020 (0.002) |
-| medoid_raw | 0.017 (0.002) | 0.018 (0.003) | 0.014 (0.002) | 0.010 (0.001) |
-| medoid_response | 0.012 (0.002) | 0.013 (0.002) | 0.012 (0.001) | 0.008 (0.001) |
-| random_global | 0.026 (0.002) | 0.017 (0.002) | 0.012 (0.001) | 0.011 (0.001) |
-| random_perlang | 0.016 (0.001) | 0.014 (0.001) | 0.014 (0.001) | 0.009 (0.001) |
-| **strat_meta** | 0.019 (0.002) | 0.016 (0.001) | 0.013 (0.001) | 0.008 (0.001) |
-| strat_response | 0.023 (0.002) | 0.015 (0.001) | 0.013 (0.001) | 0.009 (0.001) |
+| selector | k=200 | k=500 | k=1000 | k=2000 | k=3500 |
+|---|--:|--:|--:|--:|--:|
+| highvar | 0.024 (0.003) | 0.024 (0.004) | 0.024 (0.002) | 0.021 (0.002) | 0.011 (0.001) |
+| median_quantile | 0.018 (0.002) | 0.023 (0.002) | 0.012 (0.002) | 0.008 (0.001) | 0.006 (0.001) |
+| medoid_raw | 0.019 (0.002) | 0.020 (0.003) | 0.013 (0.002) | 0.010 (0.001) | 0.008 (0.001) |
+| medoid_response | 0.012 (0.002) | 0.012 (0.002) | 0.013 (0.001) | 0.009 (0.001) | 0.004 (0.001) |
+| random_global | 0.027 (0.001) | 0.016 (0.001) | 0.012 (0.001) | 0.010 (0.001) | 0.008 (0.000) |
+| random_perlang | 0.017 (0.001) | 0.015 (0.001) | 0.014 (0.001) | 0.008 (0.000) | 0.006 (0.000) |
+| **strat_meta** | 0.016 (0.001) | 0.020 (0.001) | 0.012 (0.001) | 0.009 (0.001) | 0.007 (0.000) |
+| strat_quantile | 0.017 (0.001) | 0.017 (0.001) | 0.011 (0.001) | 0.009 (0.001) | 0.006 (0.000) |
+| strat_response | 0.021 (0.001) | 0.017 (0.001) | 0.015 (0.001) | 0.010 (0.001) | 0.007 (0.000) |
+
+**Pairwise sign accuracy** — strat_meta, k=3500, on WER_CLIP (%) (3730 pairs pooled across folds and seeds; every pair has at least one held-out system). Pooled pairs are dependent — the same two systems recur across folds/seeds — so the distinct-pairs column is the real sample size per bin.
+
+| true gap on the full benchmark | pairs | distinct system pairs | picks the better system |
+|---|--:|--:|--:|
+| 0.25 – 0.5 | 10 | 1\* | 100.0% |
+| 0.5 – 1 | 150 | 5\* | 95.3% |
+| 1 – 2 | 105 | 8\* | 100.0% |
+| 2 – 5 | 455 | 21 | 100.0% |
+| 5 – 10 | 480 | 33 | 100.0% |
+| ≥ 10 | 2530 | 122 | 100.0% |
+
+\* fewer than 20 distinct system pairs behind this bin — too few independent
+comparisons to read the percentage as more than anecdote.
+
+**Worst single-language error** — strat_meta, k=3500, held-out families
+
+| metric | median | p90 | max |
+|---|--:|--:|--:|
+| WER_CLIP (%) | 3.066 | 5.298 | 10.942 |
+| speaker sim (x100) | 2.060 | 3.542 | 6.251 |
+| MSR-UTMOS | 0.073 | 0.119 | 0.159 |
+
+A panel's per-language numbers are much noisier than its macro-average — the
+language budgets are small by construction. Quote the macro-average; treat a
+single language's panel score as indicative only.
+
+**Selection overfitting check** — WER_CLIP MAE, k=3500
+
+| systems | n | MAE |
+|---|--:|--:|
+| in the selection pool | 680 | 0.289 |
+| held-out family (novel) | 220 | 0.287 |
+
+These should be close. A large gap would mean the selector had tuned itself to the
+systems it could see.
 
 **CI95 coverage of the shipped panel** — 52/57 = **91%** of estimates contained the full-set value (nominal 95%), across every system × metric.
 
 | system | panel | CI95 | full set | covered |
 |---|--:|--:|--:|:-:|
-| zonos2_accurate | 7.45 | [7.10, 7.84] | 7.19 | yes |
-| zonos2_expressive | 17.50 | [16.58, 18.44] | 16.66 | yes |
-| qwen3-tts-1.7b | 24.78 | [24.28, 25.29] | 24.63 | yes |
-| qwen3-tts-0.6b | 30.81 | [30.25, 31.32] | 30.50 | yes |
-| voxcpm2 | 13.46 | [13.06, 13.86] | 13.96 | **no** |
-| fish-s2-pro | 11.05 | [10.71, 11.38] | 11.08 | yes |
-| higgs-audio-v3 | 10.09 | [9.69, 10.52] | 9.66 | **no** |
+| zonos2_accurate | 7.45 | [7.09, 7.79] | 7.19 | yes |
+| zonos2_expressive | 17.50 | [16.54, 18.44] | 16.66 | yes |
+| qwen3-tts-1.7b | 24.78 | [24.28, 25.25] | 24.63 | yes |
+| qwen3-tts-0.6b | 30.81 | [30.28, 31.34] | 30.50 | yes |
+| voxcpm2 | 13.46 | [13.07, 13.86] | 13.96 | **no** |
+| fish-s2-pro | 11.05 | [10.69, 11.38] | 11.08 | yes |
+| higgs-audio-v3 | 10.09 | [9.69, 10.50] | 9.66 | **no** |
 | omnivoice-reftext | 7.60 | [7.26, 7.95] | 7.62 | yes |
 | moss-tts | 15.07 | [14.67, 15.47] | 14.79 | yes |
-| cosyvoice3 | 55.08 | [54.60, 55.58] | 55.06 | yes |
-| voxtral-tts | 56.54 | [55.98, 57.09] | 56.67 | yes |
-| qwen3-tts-1.7b-reftext | 23.17 | [22.70, 23.67] | 22.93 | yes |
-| qwen3-tts-0.6b-reftext | 29.81 | [29.23, 30.41] | 29.67 | yes |
-| voxcpm2-reftext | 12.88 | [12.46, 13.31] | 12.95 | yes |
-| omnivoice | 33.76 | [31.69, 35.80] | 34.27 | yes |
-| moss-tts-v1.5 | 4.54 | [3.93, 5.17] | 4.48 | yes |
-| moss-tts-local-v1.5 | 39.39 | [36.71, 42.02] | 39.75 | yes |
-| glm-tts | 84.39 | [83.91, 84.89] | 84.19 | yes |
-| kokoro | 3.43 | [3.04, 3.85] | 3.87 | **no** |
-| vibevoice-rt-0.5b | 11.29 | [10.12, 12.53] | 12.05 | yes |
+| cosyvoice3 | 55.08 | [54.59, 55.56] | 55.06 | yes |
+| voxtral-tts | 56.54 | [56.01, 57.08] | 56.67 | yes |
+| qwen3-tts-1.7b-reftext | 23.17 | [22.65, 23.68] | 22.93 | yes |
+| qwen3-tts-0.6b-reftext | 29.81 | [29.24, 30.38] | 29.67 | yes |
+| voxcpm2-reftext | 12.88 | [12.47, 13.28] | 12.95 | yes |
+| omnivoice | 33.76 | [31.76, 35.72] | 34.27 | yes |
+| moss-tts-v1.5 | 4.54 | [3.97, 5.19] | 4.48 | yes |
+| moss-tts-local-v1.5 | 39.39 | [36.73, 41.95] | 39.75 | yes |
+| glm-tts | 84.39 | [83.90, 84.87] | 84.19 | yes |
+| kokoro | 3.43 | [3.03, 3.83] | 3.87 | **no** |
+| vibevoice-rt-0.5b | 11.29 | [10.18, 12.49] | 12.05 | yes |
 
 WER_CLIP shown; speaker similarity and MSR-UTMOS are folded into the headline count.
 Note these rows are *not* independent — they share one panel draw, so a panel that
@@ -89,20 +128,20 @@ matched-pair bootstrap SE. Lower is better.
 
 | selector | k | MDD | sign correct | magnitude err | pairs |
 |---|--:|--:|--:|--:|--:|
-| delta | 100 | 6.104 | 100% | 6.296 | 5 |
-| **delta** | 200 | 5.752 | 100% | 4.969 | 5 |
-| delta | 400 | 4.208 | 100% | 4.909 | 5 |
-| random_perlang | 100 | 8.300 | 100% | 2.813 | 15 |
-| random_perlang | 200 | 7.182 | 87% | 2.083 | 15 |
-| random_perlang | 400 | 5.164 | 93% | 1.688 | 15 |
-| strat_meta | 100 | 8.300 | 100% | 2.813 | 15 |
-| strat_meta | 200 | 7.162 | 93% | 1.696 | 15 |
-| strat_meta | 400 | 5.244 | 87% | 1.639 | 15 |
+| delta | 100 | 6.073 | 100% | 6.296 | 5 |
+| **delta** | 200 | 5.850 | 100% | 4.969 | 5 |
+| delta | 400 | 4.254 | 100% | 4.909 | 5 |
+| random_perlang | 100 | 8.346 | 100% | 2.813 | 15 |
+| random_perlang | 200 | 7.233 | 87% | 2.083 | 15 |
+| random_perlang | 400 | 5.129 | 93% | 1.688 | 15 |
+| strat_meta | 100 | 8.346 | 100% | 2.813 | 15 |
+| strat_meta | 200 | 7.207 | 93% | 1.696 | 15 |
+| strat_meta | 400 | 5.220 | 87% | 1.639 | 15 |
 
 Near-pairs used: `zonos2_accurate` vs `zonos2_expressive`, `qwen3-tts-1.7b` vs `qwen3-tts-0.6b`, `omnivoice-reftext` vs `omnivoice`, `moss-tts` vs `moss-tts-v1.5`, `moss-tts-v1.5` vs `moss-tts-local-v1.5`.
 
-The `delta` selector buys real power — it reaches a given MDD with roughly half the
-items of a random panel — but its **magnitude error is worse by design**: over-sampling
+The `delta` selector buys real power — at a given k its MDD is lower than a random panel's
+(compare the k=200 rows) — but its **magnitude error is worse by design**: over-sampling
 discriminative items inflates the measured difference. Use a Delta panel to decide
 *direction*, and a Mini panel to *quantify*. Also note these near-pairs are further apart
 than two consecutive checkpoints, so the sign column is optimistic while MDD is
@@ -117,52 +156,58 @@ Shipped Mini panel: **strat_meta, k=2000** (8.6x smaller than the full set).
 
 | selector | k=200 | k=500 | k=1000 | k=2000 |
 |---|--:|--:|--:|--:|
-| greedy | 0.929 (0.148) | 0.719 (0.134) | 0.508 (0.106) | — |
-| highvar | 9.775 (0.659) | 7.968 (0.515) | 6.364 (0.347) | 4.254 (0.248) |
-| medoid_raw | 1.544 (0.194) | 1.211 (0.178) | 0.928 (0.114) | 0.709 (0.082) |
-| medoid_response | 1.100 (0.165) | 0.666 (0.071) | 0.577 (0.126) | 0.322 (0.061) |
-| random_global | 1.401 (0.106) | 0.706 (0.056) | 0.603 (0.044) | 0.425 (0.036) |
-| random_perlang | 0.783 (0.072) | 0.649 (0.054) | 0.548 (0.063) | 0.341 (0.030) |
-| **strat_meta** | 0.750 (0.064) | 0.719 (0.057) | 0.467 (0.039) | 0.319 (0.031) |
-| strat_response | 1.461 (0.130) | 0.786 (0.078) | 0.592 (0.060) | 0.379 (0.031) |
+| greedy | 0.831 (0.148) | 0.664 (0.133) | 0.443 (0.094) | — |
+| highvar | 9.691 (0.662) | 7.922 (0.522) | 6.337 (0.349) | 4.257 (0.250) |
+| median_quantile | 1.036 (0.204) | 0.644 (0.079) | 0.610 (0.076) | 0.411 (0.053) |
+| medoid_raw | 1.515 (0.187) | 1.195 (0.182) | 0.990 (0.112) | 0.719 (0.083) |
+| medoid_response | 1.121 (0.163) | 0.694 (0.071) | 0.531 (0.126) | 0.326 (0.057) |
+| random_global | 1.253 (0.080) | 0.831 (0.050) | 0.674 (0.034) | 0.427 (0.025) |
+| random_perlang | 0.732 (0.052) | 0.734 (0.047) | 0.557 (0.045) | 0.359 (0.028) |
+| **strat_meta** | 0.761 (0.045) | 0.722 (0.048) | 0.490 (0.031) | 0.325 (0.023) |
+| strat_quantile | 0.967 (0.059) | 0.662 (0.044) | 0.497 (0.034) | 0.314 (0.021) |
+| strat_response | 1.294 (0.090) | 0.699 (0.057) | 0.504 (0.034) | 0.345 (0.022) |
 
 **speaker sim (x100)** — mean absolute error on held-out families (standard error in parentheses)
 
 | selector | k=200 | k=500 | k=1000 | k=2000 |
 |---|--:|--:|--:|--:|
-| greedy | 0.587 (0.086) | 0.410 (0.076) | 0.258 (0.041) | — |
-| highvar | 6.956 (0.322) | 6.309 (0.245) | 6.008 (0.201) | 4.944 (0.191) |
-| medoid_raw | 1.026 (0.137) | 0.792 (0.144) | 0.723 (0.100) | 0.492 (0.047) |
-| medoid_response | 0.771 (0.103) | 0.617 (0.099) | 0.392 (0.064) | 0.273 (0.048) |
-| random_global | 0.640 (0.061) | 0.646 (0.076) | 0.318 (0.027) | 0.339 (0.035) |
-| random_perlang | 0.951 (0.068) | 0.498 (0.054) | 0.365 (0.033) | 0.229 (0.023) |
-| **strat_meta** | 1.200 (0.113) | 0.595 (0.063) | 0.321 (0.027) | 0.237 (0.030) |
-| strat_response | 0.909 (0.088) | 0.448 (0.049) | 0.406 (0.046) | 0.254 (0.025) |
+| greedy | 0.549 (0.098) | 0.338 (0.079) | 0.232 (0.036) | — |
+| highvar | 6.836 (0.330) | 6.330 (0.242) | 6.014 (0.202) | 4.948 (0.194) |
+| median_quantile | 0.698 (0.077) | 0.508 (0.095) | 0.343 (0.067) | 0.181 (0.030) |
+| medoid_raw | 1.082 (0.135) | 0.878 (0.145) | 0.769 (0.110) | 0.471 (0.044) |
+| medoid_response | 0.771 (0.103) | 0.594 (0.091) | 0.384 (0.065) | 0.263 (0.045) |
+| random_global | 0.630 (0.049) | 0.601 (0.050) | 0.297 (0.021) | 0.265 (0.023) |
+| random_perlang | 0.912 (0.049) | 0.602 (0.046) | 0.371 (0.030) | 0.254 (0.020) |
+| **strat_meta** | 1.000 (0.076) | 0.553 (0.036) | 0.334 (0.027) | 0.222 (0.017) |
+| strat_quantile | 0.559 (0.038) | 0.462 (0.032) | 0.331 (0.024) | 0.208 (0.015) |
+| strat_response | 0.837 (0.060) | 0.516 (0.043) | 0.332 (0.031) | 0.271 (0.021) |
 
 **MSR-UTMOS** — mean absolute error on held-out families (standard error in parentheses)
 
 | selector | k=200 | k=500 | k=1000 | k=2000 |
 |---|--:|--:|--:|--:|
-| greedy | 0.028 (0.003) | 0.024 (0.003) | 0.018 (0.002) | — |
-| highvar | 0.077 (0.009) | 0.062 (0.008) | 0.059 (0.009) | 0.055 (0.007) |
-| medoid_raw | 0.023 (0.004) | 0.022 (0.003) | 0.017 (0.003) | 0.011 (0.001) |
-| medoid_response | 0.032 (0.003) | 0.018 (0.002) | 0.013 (0.002) | 0.016 (0.002) |
-| random_global | 0.034 (0.003) | 0.017 (0.001) | 0.010 (0.001) | 0.008 (0.001) |
-| random_perlang | 0.025 (0.002) | 0.020 (0.002) | 0.012 (0.001) | 0.010 (0.001) |
-| **strat_meta** | 0.029 (0.003) | 0.020 (0.002) | 0.014 (0.001) | 0.008 (0.001) |
-| strat_response | 0.030 (0.002) | 0.020 (0.002) | 0.013 (0.001) | 0.009 (0.001) |
+| greedy | 0.027 (0.003) | 0.024 (0.003) | 0.018 (0.002) | — |
+| highvar | 0.069 (0.008) | 0.061 (0.008) | 0.059 (0.009) | 0.055 (0.007) |
+| median_quantile | 0.023 (0.003) | 0.029 (0.003) | 0.011 (0.001) | 0.007 (0.001) |
+| medoid_raw | 0.023 (0.004) | 0.021 (0.003) | 0.017 (0.003) | 0.012 (0.001) |
+| medoid_response | 0.032 (0.003) | 0.017 (0.002) | 0.013 (0.002) | 0.017 (0.002) |
+| random_global | 0.039 (0.002) | 0.021 (0.001) | 0.012 (0.001) | 0.009 (0.000) |
+| random_perlang | 0.025 (0.001) | 0.020 (0.001) | 0.013 (0.001) | 0.009 (0.001) |
+| **strat_meta** | 0.028 (0.002) | 0.018 (0.001) | 0.014 (0.001) | 0.008 (0.000) |
+| strat_quantile | 0.024 (0.002) | 0.019 (0.001) | 0.012 (0.001) | 0.008 (0.000) |
+| strat_response | 0.029 (0.002) | 0.020 (0.001) | 0.012 (0.001) | 0.010 (0.001) |
 
-**Pairwise sign accuracy** — strat_meta, k=2000, on WER_CLIP (%) (2238 pairs pooled across folds and seeds; every pair has at least one held-out system). Pooled pairs are dependent — the same two systems recur across folds/seeds — so the distinct-pairs column is the real sample size per bin.
+**Pairwise sign accuracy** — strat_meta, k=2000, on WER_CLIP (%) (3730 pairs pooled across folds and seeds; every pair has at least one held-out system). Pooled pairs are dependent — the same two systems recur across folds/seeds — so the distinct-pairs column is the real sample size per bin.
 
 | true gap on the full benchmark | pairs | distinct system pairs | picks the better system |
 |---|--:|--:|--:|
-| 0 – 0.25 | 18 | 4\* | 66.7% |
-| 0.25 – 0.5 | 66 | 4\* | 75.8% |
-| 0.5 – 1 | 39 | 7\* | 100.0% |
-| 1 – 2 | 171 | 11\* | 99.4% |
-| 2 – 5 | 291 | 30 | 100.0% |
-| 5 – 10 | 546 | 46 | 100.0% |
-| ≥ 10 | 1107 | 88 | 100.0% |
+| 0 – 0.25 | 15 | 2\* | 86.7% |
+| 0.25 – 0.5 | 90 | 6\* | 71.1% |
+| 0.5 – 1 | 70 | 7\* | 100.0% |
+| 1 – 2 | 285 | 11\* | 99.3% |
+| 2 – 5 | 445 | 26 | 100.0% |
+| 5 – 10 | 915 | 47 | 100.0% |
+| ≥ 10 | 1910 | 91 | 100.0% |
 
 \* fewer than 20 distinct system pairs behind this bin — too few independent
 comparisons to read the percentage as more than anecdote.
@@ -171,9 +216,9 @@ comparisons to read the percentage as more than anecdote.
 
 | metric | median | p90 | max |
 |---|--:|--:|--:|
-| WER_CLIP (%) | 2.743 | 5.061 | 11.056 |
-| speaker sim (x100) | 2.072 | 3.077 | 4.888 |
-| MSR-UTMOS | 0.074 | 0.114 | 0.151 |
+| WER_CLIP (%) | 2.660 | 4.845 | 11.041 |
+| speaker sim (x100) | 2.062 | 3.077 | 5.305 |
+| MSR-UTMOS | 0.074 | 0.117 | 0.169 |
 
 A panel's per-language numbers are much noisier than its macro-average — the
 language budgets are small by construction. Quote the macro-average; treat a
@@ -183,8 +228,8 @@ single language's panel score as indicative only.
 
 | systems | n | MAE |
 |---|--:|--:|
-| in the selection pool | 408 | 0.290 |
-| held-out family (novel) | 132 | 0.319 |
+| in the selection pool | 680 | 0.300 |
+| held-out family (novel) | 220 | 0.325 |
 
 These should be close. A large gap would mean the selector had tuned itself to the
 systems it could see.
@@ -193,26 +238,26 @@ systems it could see.
 
 | system | panel | CI95 | full set | covered |
 |---|--:|--:|--:|:-:|
-| zonos2_accurate | 4.51 | [4.08, 4.94] | 4.71 | yes |
-| zonos2_expressive | 10.03 | [9.16, 10.99] | 9.62 | yes |
-| qwen3-tts-1.7b | 11.53 | [10.92, 12.22] | 11.75 | yes |
-| qwen3-tts-0.6b | 15.11 | [14.40, 15.91] | 15.16 | yes |
-| voxcpm2 | 5.59 | [5.16, 6.08] | 5.36 | yes |
-| fish-s2-pro | 6.16 | [5.68, 6.67] | 6.06 | yes |
-| higgs-audio-v3 | 12.62 | [11.90, 13.33] | 12.76 | yes |
-| omnivoice-reftext | 4.91 | [4.44, 5.41] | 5.11 | yes |
-| moss-tts | 9.21 | [8.66, 9.79] | 9.33 | yes |
-| cosyvoice3 | 45.19 | [44.50, 45.89] | 44.98 | yes |
-| voxtral-tts | 43.38 | [42.78, 44.01] | 43.29 | yes |
-| qwen3-tts-1.7b-reftext | 14.62 | [13.83, 15.45] | 14.67 | yes |
-| qwen3-tts-0.6b-reftext | 19.39 | [18.45, 20.34] | 18.25 | **no** |
-| voxcpm2-reftext | 5.08 | [4.66, 5.53] | 5.31 | yes |
-| omnivoice | 21.75 | [19.80, 23.76] | 21.14 | yes |
-| moss-tts-v1.5 | 4.33 | [3.60, 5.07] | 4.31 | yes |
-| moss-tts-local-v1.5 | 62.71 | [59.56, 65.98] | 63.50 | yes |
-| glm-tts | 71.58 | [70.46, 72.64] | 71.78 | yes |
-| kokoro | 2.36 | [1.98, 2.73] | 2.73 | **no** |
-| vibevoice-rt-0.5b | 10.20 | [9.07, 11.37] | 11.30 | yes |
+| zonos2_accurate | 4.51 | [4.08, 4.96] | 4.71 | yes |
+| zonos2_expressive | 10.03 | [9.08, 10.97] | 9.62 | yes |
+| qwen3-tts-1.7b | 11.53 | [10.87, 12.17] | 11.75 | yes |
+| qwen3-tts-0.6b | 15.11 | [14.39, 15.83] | 15.16 | yes |
+| voxcpm2 | 5.59 | [5.13, 6.09] | 5.36 | yes |
+| fish-s2-pro | 6.16 | [5.66, 6.70] | 6.06 | yes |
+| higgs-audio-v3 | 12.62 | [11.90, 13.31] | 12.76 | yes |
+| omnivoice-reftext | 4.91 | [4.46, 5.40] | 5.11 | yes |
+| moss-tts | 9.21 | [8.65, 9.83] | 9.33 | yes |
+| cosyvoice3 | 45.19 | [44.52, 45.89] | 44.98 | yes |
+| voxtral-tts | 43.38 | [42.74, 43.96] | 43.29 | yes |
+| qwen3-tts-1.7b-reftext | 14.62 | [13.83, 15.43] | 14.67 | yes |
+| qwen3-tts-0.6b-reftext | 19.39 | [18.51, 20.36] | 18.25 | **no** |
+| voxcpm2-reftext | 5.08 | [4.64, 5.51] | 5.31 | yes |
+| omnivoice | 21.75 | [19.89, 23.63] | 21.14 | yes |
+| moss-tts-v1.5 | 4.33 | [3.60, 5.17] | 4.31 | yes |
+| moss-tts-local-v1.5 | 62.71 | [59.57, 65.89] | 63.50 | yes |
+| glm-tts | 71.58 | [70.49, 72.58] | 71.78 | yes |
+| kokoro | 2.36 | [1.99, 2.73] | 2.73 | **no** |
+| vibevoice-rt-0.5b | 10.20 | [9.02, 11.50] | 11.30 | yes |
 
 WER_CLIP shown; speaker similarity and MSR-UTMOS are folded into the headline count.
 Note these rows are *not* independent — they share one panel draw, so a panel that
@@ -225,20 +270,20 @@ matched-pair bootstrap SE. Lower is better.
 
 | selector | k | MDD | sign correct | magnitude err | pairs |
 |---|--:|--:|--:|--:|--:|
-| delta | 100 | 8.080 | 100% | 3.920 | 5 |
-| **delta** | 200 | 5.674 | 100% | 3.748 | 5 |
-| delta | 400 | 4.051 | 100% | 2.303 | 5 |
-| random_perlang | 100 | 7.815 | 87% | 4.469 | 15 |
-| random_perlang | 200 | 6.478 | 93% | 1.739 | 15 |
-| random_perlang | 400 | 4.685 | 93% | 1.357 | 15 |
-| strat_meta | 100 | 8.208 | 93% | 2.189 | 15 |
-| strat_meta | 200 | 6.196 | 93% | 1.569 | 15 |
-| strat_meta | 400 | 4.640 | 87% | 1.183 | 15 |
+| delta | 100 | 8.144 | 100% | 3.920 | 5 |
+| **delta** | 200 | 5.668 | 100% | 3.748 | 5 |
+| delta | 400 | 4.047 | 100% | 2.303 | 5 |
+| random_perlang | 100 | 7.830 | 87% | 4.469 | 15 |
+| random_perlang | 200 | 6.553 | 93% | 1.739 | 15 |
+| random_perlang | 400 | 4.700 | 93% | 1.357 | 15 |
+| strat_meta | 100 | 8.214 | 93% | 2.189 | 15 |
+| strat_meta | 200 | 6.210 | 93% | 1.569 | 15 |
+| strat_meta | 400 | 4.642 | 87% | 1.183 | 15 |
 
 Near-pairs used: `zonos2_accurate` vs `zonos2_expressive`, `qwen3-tts-1.7b` vs `qwen3-tts-0.6b`, `omnivoice-reftext` vs `omnivoice`, `moss-tts` vs `moss-tts-v1.5`, `moss-tts-v1.5` vs `moss-tts-local-v1.5`.
 
-The `delta` selector buys real power — it reaches a given MDD with roughly half the
-items of a random panel — but its **magnitude error is worse by design**: over-sampling
+The `delta` selector buys real power — at a given k its MDD is lower than a random panel's
+(compare the k=200 rows) — but its **magnitude error is worse by design**: over-sampling
 discriminative items inflates the measured difference. Use a Delta panel to decide
 *direction*, and a Mini panel to *quantify*. Also note these near-pairs are further apart
 than two consecutive checkpoints, so the sign column is optimistic while MDD is
@@ -248,9 +293,9 @@ conservative — quote MDD.
 
 - **Differences smaller than ~2 SE are noise.** At the shipped sizes every language-stratified
   unbiased selector ties; the ones that separate are `highvar` (catastrophic — it preserves
-  ordering while badly biasing the level), `random_global` (~2x worse, and it can miss small
-  languages entirely), and `medoid_raw` vs `medoid_response` (which is what the low-rank
-  denoising is worth).
+  ordering while badly biasing the level), `random_global` (clearly worse only at small
+  k, where it can miss small languages entirely), and `medoid_raw` vs `medoid_response`
+  (which is what the low-rank denoising is worth).
 - **`strat_meta` ships** not because it wins but because it ties while being unbiased and
   defining its strata from *published metadata only* — so the design is auditable without
   access to this repo's historical results.

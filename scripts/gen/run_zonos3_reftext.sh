@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate ZONOS3 Mini audio WITH the prompt transcript (continuation) plus the speaker embedding, in-process
+# Generate ZONOS3-Mini audio WITH the prompt transcript (continuation) plus the speaker embedding, in-process
 # (scripts/gen/generate_zonos3_reftext.py on zonos2.tts.llm.TTSLLM; no server: /tts/generate cannot prefill the prompt's
 # codec frames). Text = prompt transcript + target text; the prompt's frames (edge silence trimmed, top_db 35, last 2
 # frames dropped: they carry the clip's end-of-file edge, which the LM reads as the utterance's end) follow
