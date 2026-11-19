@@ -106,21 +106,23 @@ known answer. Cells = W2 d_ref as a multiple of the untouched-half null
 
 ![rhythm spread vs pause incidence, clean and in-the-wild](../assets/plots/rhythm_flatten_vs_stall_clean_vs_in-the-wild_en.png)
 
-`scripts/plots/plot_rhythm_scatter.py` — one dot per system: burstiness std_ratio (log x,
-1.0 = same spread as real speech) against pause incidence (% of utterances with a ≥ 200 ms
-run), FLEURS-R clean (left) and VoxBlink2 in-the-wild (right) on shared axes; each label
-carries the system's en WER_CLIP. The blue anchor is real speech: the GT target
-recordings in the wild (0.95× / 31.7 %), and on clean, whose GT wavs are the prompts, the
-reference split-half row (1.0× / 7.7 %).
+`scripts/plots/plot_rhythm_scatter.py` — two dots per system on one plot: burstiness
+std_ratio (log x, 1.0 = same spread as real speech) against pause incidence (% of
+utterances with a ≥ 200 ms run), hollow on FLEURS-R clean and filled on VoxBlink2
+in-the-wild, joined by a line. Each label sits on the in-the-wild dot and carries the
+system's en WER_CLIP as clean / in-the-wild. The blue pair is real speech: on clean,
+whose GT wavs are the prompts, the reference split-half row (1.0× / 7.7 %); in the wild,
+the GT target recordings (0.95× / 31.7 %). Each set's real-speech pause incidence is a
+dashed line.
 
 Both sets show the same two failure modes: flattened, pause-poor systems lower-left
 (kokoro at the extreme, 0.63× / 1.0 % clean and 0.39× / 1.5 % in the wild) and erratic,
 stall-heavy ones upper-right (zonos2-expressive 2.30× / 26.8 % clean, glm-tts 1.84× /
 65.7 % in the wild). In-the-wild spreads them further apart because real VoxBlink2 speech
-pauses about four times as often as FLEURS-R read speech. Good = near the anchor, not at
-either extreme. Rhythm spread is at most a weak correlate of WER: over the 37 systems of
-each set, Spearman(std_ratio, en WER_CLIP) is +0.31 on clean and +0.16 in the wild, and
-pause incidence vs WER is ≈ 0.
+pauses about four times as often as FLEURS-R read speech. Good = near the real-speech dot
+of the same set, not at either extreme. Rhythm spread is at most a weak correlate of WER:
+over the 37 systems of each set, Spearman(std_ratio, en WER_CLIP) is +0.31 on clean and
++0.16 in the wild, and pause incidence vs WER is ≈ 0.
 
 ## The intuition views: held-time spectrum + barcode
 
