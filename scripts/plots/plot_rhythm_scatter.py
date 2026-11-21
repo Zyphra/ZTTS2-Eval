@@ -1,14 +1,14 @@
-"""Rhythm flattened-vs-erratic scatter: FLEURS-R clean and VoxBlink2 in-the-wild on one plot.
+"""Rhythm flattened-vs-erratic dot plot: FLEURS-R clean and VoxBlink2 in-the-wild.
 
-One dot per system and set: x = burstiness std_ratio (system spread / real-speech
-spread, log scale — < 1 is rhythm flattened, > 1 erratic), y = long_pct (% of
-utterances containing a >=200 ms pause/stall run). Clean points are hollow,
-in-the-wild points filled, and a line joins each system's two points; the label sits
-on the in-the-wild point and carries the system's WER_CLIP on both sets. The blue
-pair is real speech: the GT target recordings where the set has them (in-the-wild),
-else the reference prompts' split-half row (clean, whose GT wavs are the prompts and
-are not scored). Lower-left = flattened, pause-poor; upper-right = erratic,
-stall-heavy; good = near the real-speech point of the same set.
+One row per system, sorted by in-the-wild rhythm spread (flattened on top, erratic at
+the bottom). Left: burstiness std_ratio (system spread / real-speech spread, log scale —
+< 1 is rhythm flattened, > 1 erratic). Right: long_pct (% of utterances containing a
+>=200 ms pause/stall run). Each row carries a hollow marker for clean and a filled one
+for in-the-wild, and the column on the right prints the system's WER_CLIP on both
+sets. The blue top row is real speech: the GT target recordings where the set has them
+(in-the-wild), else the reference prompts' split-half row (clean, whose GT wavs are the
+prompts and are not scored); its values are also drawn as reference lines. Good = close
+to the real-speech markers of the same set.
 
 Reads results/rhythm_<set>_<lang>.csv (scripts/prosody/rhythm_dist.py output).
 
@@ -29,8 +29,7 @@ import sys
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, REPO)
-from matplotlib.lines import Line2D  # noqa: E402
-from scripts.plots.tufte_common import PAPER, INK, MUT, GREY, MID, BLUE  # noqa: E402
+from scripts.plots.tufte_common import PAPER, INK, MUT, GREY, ENS, MID, BLUE  # noqa: E402
 from scripts.prosody.common import CEILING_ROW  # noqa: E402
 from utils.benchmark import leaf_dir, wer_footer  # noqa: E402
 
@@ -63,57 +62,6 @@ FOREGROUND = {
 }
 
 SET_LABEL = {"clean": "FLEURS-R clean", "in-the-wild": "VoxBlink2 in-the-wild"}
-
-# label offset (points) and horizontal alignment per plot and system, tuned by eye.
-# default is a small right-offset; entries here override collisions. "both" is the
-# merged plot, labelled at the in-the-wild points.
-NUDGE = {
-    "both": {
-        "real speech": (8, 7, "left"),
-        "moss-tts": (5, 8, "left"),
-        "zonos2-accurate": (5, -9, "left"),
-        "qwen3-1.7b": (-5, 0, "right"),
-        "fish-s2-pro": (6, 0, "left"),
-        "voxcpm2": (5, -5, "left"),
-        "omni_qwen3-tts-1.7b-reftext": (-5, 0, "right"),
-        "vibevoice-7b": (-5, 0, "right"),
-        "moss-local": (-5, 0, "right"),
-    },
-    "in-the-wild": {
-        "GT (real speech)": (8, 7, "left"),
-        "moss-1.5": (-5, 0, "right"),
-        "qwen3-0.6b": (5, 4, "left"),
-        "fish-s2-pro": (6, 2, "left"),
-        "qwen3-1.7b": (5, -1, "left"),
-        "voxcpm2": (5, -5, "left"),
-        "zonos2-expressive": (-5, 0, "right"),
-        "vibevoice-7b": (-5, 0, "right"),
-        "cosyvoice3": (-5, 0, "right"),
-        "higgs-v3": (-5, 0, "right"),
-    },
-    "clean": {
-        "real speech (reference prompts)": (6, 9, "left"),
-        "kokoro": (-5, 0, "right"),
-        "qwen3-1.7b": (-5, 0, "right"),
-        "fish-s2-pro": (-5, 0, "right"),
-        "moss-tts": (5, -4, "left"),
-        "zonos2-accurate": (5, 5, "left"),
-        "moss-local": (5, -3, "left"),
-        "moss-1.5": (5, -4, "left"),
-        "omni_breeze-tts-2": (-5, 0, "right"),
-        "omni_drama-3": (-5, 0, "right"),
-        "vibevoice-rt-0.5b": (-5, 0, "right"),
-        "vibevoice-1.5b": (5, -4, "left"),
-        "moss-local-1.5": (-5, 0, "right"),
-        "zonos3-mini_reference": (-5, 0, "right"),
-        "zonos3-mini_embedding": (5, -4, "left"),
-        "zonos3-mini-reftext_embedding": (-5, 0, "right"),
-        "ming-3.0-tts-0.5b": (5, -4, "left"),
-        "ming-3.0-tts-0.5b-trim": (5, -4, "left"),
-        "ming-3.0-tts-tiny": (5, -4, "left"),
-        "ming-3.0-tts-tiny-trim": (5, -4, "left"),
-    },
-}
 
 
 def wer_clip(system, test_set, lang):
@@ -150,102 +98,108 @@ def load(csv_path, test_set, lang):
     return rows, anchor
 
 
-def draw(ax, data, lang):
-    """data = [(test_set, rows, anchor)]. With two sets each system's points are joined
-    (first set hollow, second filled) and labelled once, at the second set's point."""
+def draw(ax_x, ax_y, data, lang):
+    """data = [(test_set, rows, anchor)]. One row per system; with two sets the first is
+    drawn hollow and the second filled on the same row."""
     two = len(data) == 2
     sets = [s for s, _, _ in data]
-    ax.set_facecolor(PAPER)
-    ax.set_xscale("log")
-    ax.set_xlim(0.32, 2.6)
-    ax.set_ylim(-2, 74)
-
-    # reference geometry: spread parity line + each set's real-speech pause incidence
-    ax.axvline(1.0, color=GREY, lw=0.8, zorder=1)
-    ax.text(1.0, 72.5, "same spread as real speech", color=MUT, fontsize=8,
-            ha="center", va="top")
-    for test_set, _, anchor in data:
-        ax.axhline(anchor["y"], color=GREY, lw=0.8, ls=(0, (4, 3)), zorder=1)
-        which = f", {SET_LABEL[test_set]}" if two else ""
-        below = two and test_set == sets[0]    # keeps the space above it for labels
-        ax.text(0.33, anchor["y"] + (-0.8 if below else 1.2),
-                f"real-speech pause incidence{which} ({anchor['y']:.0f}%)",
-                color=MUT, fontsize=8, ha="left", va="top" if below else "bottom")
-
-    # regime annotations
-    ax.text(0.335, 3.0 if two else 3.5, "flattened, pause-poor",
-            color=MUT, fontsize=9, ha="left", va="bottom", style="italic")
-    ax.text(2.52, 72.5, "erratic, stall-heavy", color=MUT, fontsize=9,
-            ha="right", va="top", style="italic")
-
-    # one series per system across the sets; the two real-speech anchors form one series
     series = {}
-    for test_set, rows, anchor in data:
-        for r in rows + [anchor]:
-            name = "real speech" if two and r.get("anchor") else r["system"]
-            series.setdefault(name, []).append((test_set, r))
+    for test_set, rows, _ in data:
+        for r in rows:
+            series.setdefault(r["system"], {})[test_set] = r
+    key = sets[-1]   # sort by the last set's spread: flattened on top, erratic at the bottom
+    order = sorted(series, key=lambda n: (series[n].get(key) or next(iter(series[n].values())))["x"])
+    real = "real speech" if two else data[0][2]["system"]
+    rows = [(real, {s: a for s, _, a in data})] + [(n, series[n]) for n in order]
+    ys = [0] + [i + 1.5 for i in range(len(order))]   # a gap under the real-speech row
 
-    nudge = NUDGE["both"] if two else NUDGE.get(sets[0], {})
-    for name, pts in series.items():
-        is_anchor = pts[0][1].get("anchor", False)
-        fg = is_anchor or name in FOREGROUND
-        color = BLUE if is_anchor else (INK if fg else MUT)
-        if len(pts) == 2:
-            ax.plot([r["x"] for _, r in pts], [r["y"] for _, r in pts],
-                    color=color if fg else GREY, lw=0.9 if fg else 0.6,
-                    alpha=0.6 if fg else 1.0, zorder=1.5)
-        for test_set, r in pts:
-            hollow = two and test_set == sets[0]
-            ax.scatter(r["x"], r["y"], s=46 if is_anchor else (24 if fg else 16),
-                       facecolors=PAPER if hollow else color,
-                       edgecolors=color if hollow else PAPER,
-                       linewidths=1.0 if hollow else 0.8, zorder=3 if fg else 2)
-        # Tufte: WER rides in the label as printed data, not a size/color code
-        wers = [r["wer"] for _, r in pts]
-        label = name
-        if any(w is not None for w in wers):
-            label += "  " + " / ".join("—" if w is None else f"{w:.1f}" for w in wers)
-            label += "  (= ASR floor)" if is_anchor else ""
-        last = pts[-1][1]
-        dx, dy, ha = nudge.get(name, (5, 0, "left"))
-        ax.annotate(label, (last["x"], last["y"]),
-                    xytext=(dx, dy), textcoords="offset points",
-                    fontsize=8 if fg else 7.2, color=color,
-                    fontweight="bold" if is_anchor else "normal",
-                    ha=ha, va="center", zorder=4 if fg else 3)
+    def style(name):
+        if name == real:
+            return BLUE, True
+        return (INK, True) if name in FOREGROUND else (MID, False)
 
-    ax.set_xticks([0.4, 0.5, 0.7, 1.0, 1.4, 2.0])
-    ax.set_xticklabels(["0.4×", "0.5×", "0.7×", "1×", "1.4×", "2×"])
-    ax.minorticks_off()
-    ax.set_yticks([0, 20, 40, 60])
-    ax.set_yticklabels(["0", "20", "40", "60%"])
-    ax.tick_params(colors=MID, labelsize=9, length=3)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(GREY)
+    for ax in (ax_x, ax_y):
+        ax.set_facecolor(PAPER)
+        for i, y in enumerate(ys[1:]):
+            if i % 2 == 0:
+                ax.axhspan(y - 0.5, y + 0.5, color=ENS, alpha=0.35, lw=0, zorder=0)
+        ax.tick_params(colors=MID, labelsize=9, length=3)
+        ax.tick_params(axis="y", length=0)
+        for side in ("top", "right", "left"):
+            ax.spines[side].set_visible(False)
+        ax.spines["bottom"].set_color(GREY)
+    ax_x.set_ylim(ys[-1] + 0.8, -0.8)
 
-    ax.set_xlabel("rhythm spread vs real speech (burstiness std ratio, log scale)",
-                  color=INK, fontsize=10)
-    ax.set_ylabel("utterances containing a ≥200 ms pause/stall", color=INK, fontsize=10)
+    for (name, by_set), y in zip(rows, ys):
+        color, fg = style(name)
+        for k, test_set in enumerate(sets):
+            r = by_set.get(test_set)
+            if r is None:
+                continue
+            hollow = two and k == 0
+            for ax, v in ((ax_x, r["x"]), (ax_y, r["y"])):
+                ax.scatter(v, y, s=(46 if fg else 34) if hollow else (26 if fg else 18),
+                           facecolors=PAPER if hollow else color,
+                           edgecolors=color, linewidths=1.1 if hollow else 0,
+                           zorder=3 if hollow else 4)
+        wers = [by_set[s]["wer"] if s in by_set else None for s in sets]
+        txt = " / ".join("—" if w is None else f"{w:.1f}" for w in wers)
+        if name == real:
+            txt += "  ASR floor"
+        ax_y.annotate(txt, (1.0, y), xycoords=("axes fraction", "data"), xytext=(12, 0),
+                      textcoords="offset points", ha="left", va="center", fontsize=8.5,
+                      color=color, fontweight="bold" if name == real else "normal")
+
+    ax_x.set_yticks(ys)
+    ax_x.set_yticklabels([n for n, _ in rows], fontsize=8.5)
+    for lab, (name, _) in zip(ax_x.get_yticklabels(), rows):
+        lab.set_color(style(name)[0])
+        if name == real:
+            lab.set_fontweight("bold")
+
+    # spread: log axis around parity with real speech
+    ax_x.set_xscale("log")
+    ax_x.set_xlim(0.32, 2.6)
+    ax_x.set_xticks([0.4, 0.5, 0.7, 1.0, 1.4, 2.0])
+    ax_x.set_xticklabels(["0.4×", "0.5×", "0.7×", "1×", "1.4×", "2×"])
+    ax_x.minorticks_off()
+    ax_x.axvline(1.0, color=GREY, lw=0.8, zorder=1)
+    ax_x.set_xlabel("rhythm spread vs real speech (burstiness std ratio, log scale)",
+                    color=INK, fontsize=10)
+
+    # pause incidence: one reference line per set at its real-speech value
+    ax_y.set_xlim(-2, 72)
+    ax_y.set_xticks([0, 20, 40, 60])
+    ax_y.set_xticklabels(["0", "20", "40", "60%"])
+    for test_set, _, anchor in data:
+        ax_y.axvline(anchor["y"], color=GREY, lw=0.8, ls=(0, (4, 3)), zorder=1)
+    ax_y.set_xlabel("utterances containing a ≥200 ms pause/stall", color=INK, fontsize=10)
+
+    # direction words above each column, and the WER column header
+    def head(ax, x, s, ha):
+        ax.annotate(s, (x, 1.0), xycoords=("data", "axes fraction"), xytext=(0, 5),
+                    textcoords="offset points", ha=ha, va="bottom", fontsize=9,
+                    color=MUT, style="italic")
+    head(ax_x, 0.34, "← flattened", "left")
+    head(ax_x, 2.5, "erratic →", "right")
+    head(ax_y, 0, "← pause-poor", "left")
+    head(ax_y, 70, "stall-heavy →", "right")
+    ax_y.annotate("en WER_CLIP %" + ("\nclean / in-the-wild" if two else ""), (1.0, 1.0),
+                  xycoords="axes fraction", xytext=(12, 5), textcoords="offset points",
+                  ha="left", va="bottom", fontsize=8.5, color=MID)
 
     if two:
-        n = len(data[0][1])
-        sub = (f"{lang} · {n} systems · a line joins each system's two points · "
-               f"label = WER_CLIP % ({sets[0]} / {sets[1]})")
-        ax.legend(handles=[
-            Line2D([], [], ls="", marker="o", ms=5.5, mfc=PAPER, mec=INK, mew=1.0,
-                   label=SET_LABEL[sets[0]]),
-            Line2D([], [], ls="", marker="o", ms=5.5, mfc=INK, mec=PAPER,
-                   label=SET_LABEL[sets[1]])],
-            loc="upper left", bbox_to_anchor=(0.0, 0.93), frameon=False, fontsize=9,
-            labelcolor=MID, handletextpad=0.3)
+        sub = (f"{lang} · {len(order)} systems, sorted by in-the-wild rhythm spread · "
+               f"○ {SET_LABEL[sets[0]]}   ● {SET_LABEL[sets[1]]}")
     else:
-        rows = data[0][1]
-        ns = [r["n"] for r in rows]
-        sub = (f"{SET_LABEL[sets[0]]} · {lang} · {len(rows)} systems, "
-               f"{min(ns)}–{max(ns)} heard utterances each · label = WER_CLIP %")
-    ax.text(0, 1.04, sub, transform=ax.transAxes, color=MUT, fontsize=9.5)
+        ns = [r["n"] for r in data[0][1]]
+        sub = (f"{SET_LABEL[sets[0]]} · {lang} · {len(order)} systems, "
+               f"{min(ns)}–{max(ns)} heard utterances each, sorted by rhythm spread")
+    for s, dy, size, weight, color in (("Rhythm: flattened vs erratic", 44, 15, "bold", INK),
+                                       (sub, 26, 9.5, "normal", MUT)):
+        ax_x.annotate(s, (0, 1.0), xycoords="axes fraction", xytext=(0, dy),
+                      textcoords="offset points", ha="left", va="bottom", fontsize=size,
+                      fontweight=weight, color=color)
 
 
 def main():
@@ -265,13 +219,13 @@ def main():
         csv_path = os.path.join(REPO, "results", f"rhythm_{test_set}_{args.lang}.csv")
         data.append((test_set, *load(csv_path, test_set, args.lang)))
 
-    fig, ax = plt.subplots(figsize=(11.0, 7.6) if len(sets) == 2 else (9.6, 7.0), dpi=200)
+    n_rows = len({r["system"] for _, rows, _ in data for r in rows}) + 1
+    fig, (ax_x, ax_y) = plt.subplots(1, 2, sharey=True, dpi=200,
+                                     figsize=(11.0, 1.9 + 0.2 * n_rows),
+                                     gridspec_kw=dict(wspace=0.08))
     fig.patch.set_facecolor(PAPER)
-    draw(ax, data, args.lang)
-    ax.text(0, 1.085, "Rhythm: flattened vs erratic",
-            transform=ax.transAxes, color=INK, fontsize=15, fontweight="bold")
+    draw(ax_x, ax_y, data, args.lang)
 
-    fig.tight_layout()
     os.makedirs(os.path.dirname(out), exist_ok=True)
     fig.savefig(out, facecolor=PAPER, bbox_inches="tight")
     print(f"-> {out}")
